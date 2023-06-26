@@ -1,0 +1,42 @@
+# file opened: helloworld.asm
+ 1    0000              CHPUT equ 00a2h
+ 2    0000              HELLOHIGH EQU 0e000h
+ 3    0000
+ 4    0000              ; BLOAD header
+ 5    0000 FE               db 0x0fe
+ 6    0001 00 80 34 80      dw BEGIN, ENDADR, START_BASIC
+ 6    0005 00 80
+ 7    0007
+ 8    0007                  org 8000h
+ 9    8000              BEGIN:
+10    8000              START_BASIC:
+11    8000 21 00 E0         ld hl, HELLOHIGH
+12    8003 7E               ld a, (hl)
+13    8004 FE 48            cp 'H'
+14    8006 20 03            jr nz, _noprint
+15    8008 CD 1E 80         call print
+16    800B              _noprint:
+17    800B 21 27 80         ld hl, strHello
+18    800E 11 00 E0         ld de, HELLOHIGH
+19    8011 01 0D 00         ld bc, ENDADR - strHello
+20    8014 ED B0            ldir
+21    8016 21 27 80         ld hl, strHello
+22    8019 CD 1E 80         call print
+23    801C 49               DB 049h
+24    801D C9               ret
+25    801E
+26    801E              print:
+27    801E 7E               ld a,(hl)
+28    801F A7               and a
+29    8020 C8               ret z
+30    8021 23               inc hl
+31    8022 CD A2 00         call CHPUT
+32    8025 18 F7            jr print
+33    8027
+34    8027 48 65 6C 6C  strHello db "Hello MSX!",13,10,0
+34    802B 6F 20 4D 53
+34    802F 58 21 0D 0A
+34    8033 00
+35    8034
+36    8034              ENDADR:
+# file closed: helloworld.asm

@@ -1,0 +1,20 @@
+# file opened: bios.asm
+ 1    0000              ;   .ASSUME ADL=0
+ 2    0000
+ 3    0000              ; BLOAD header
+ 4    0000 FE               db 0x0fe
+ 5    0001 00 00 08 00      dw BEGIN, ENDADR, START_BASIC
+ 5    0005 00 00
+ 6    0007
+ 7    0007                  .ORG 0000h
+ 8    0000              BEGIN:
+ 9    0000              START_BASIC:
+10    0000
+11    0000 C3 00 F2     BOOT:       JP 0xF200    ; 0x0000 - BIOS JUMP COLD BOOT, will be replaced with WARM BOOT vector
+12    0003 00           IOBYTE:     DB 0         ; 0x0003 - real/virtual
+13    0004 00           DEFDSKUSR:  DB 0         ; 0x0004 - default drive and user
+14    0005 C3 06 E4     BDOS_ENTRY: JP 0xE400+6  ; 0x0005 - BDOS entry point - FBASE
+15    0008
+16    0008              ENDADR:
+17    0008
+# file closed: bios.asm

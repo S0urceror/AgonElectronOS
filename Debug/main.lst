@@ -1,0 +1,785 @@
+Zilog eZ80 Macro Assembler Version 4.3 (19073001)24-Jun-23     07:37:02     page:   1
+
+
+PC     Object              I  Line    Source 
+                           A     1    ; Zilog eZ80 ANSI C Compiler Release 3.4
+                           A     2    ; -nomodsect -optspeed -noreduceopt -nopadbranc
+                           A     3    ; -peephole -globalopt -localcse -const=ROM 
+                           A     4    	FILE	"..\main.c"
+                           A     5    	.assume ADL=1
+                           A     6    .DEBUG "C"
+                           A     7    	SEGMENT CODE
+                           A     8    .BEGREC "fmt_type",19
+                           A     9    .DEFINE "status"
+                           A    10    .VALUE 0
+                           A    11    .CLASS 8
+                           A    12    .TYPE 12
+                           A    13    .ENDEF
+                           A    14    .DEFINE "flags"
+                           A    15    .VALUE 1
+                           A    16    .CLASS 8
+                           A    17    .TYPE 12
+                           A    18    .ENDEF
+                           A    19    .DEFINE "size"
+                           A    20    .VALUE 2
+                           A    21    .CLASS 8
+                           A    22    .TYPE 2
+                           A    23    .ENDEF
+                           A    24    .DEFINE "chr"
+                           A    25    .VALUE 3
+                           A    26    .CLASS 8
+                           A    27    .TYPE 2
+                           A    28    .ENDEF
+                           A    29    .DEFINE "type"
+                           A    30    .VALUE 4
+                           A    31    .CLASS 8
+                           A    32    .TYPE 2
+                           A    33    .ENDEF
+                           A    34    .DEFINE "field_width"
+                           A    35    .VALUE 5
+                           A    36    .CLASS 8
+                           A    37    .TYPE 2
+                           A    38    .ENDEF
+                           A    39    .DEFINE "precision"
+                           A    40    .VALUE 6
+                           A    41    .CLASS 8
+                           A    42    .TYPE 2
+                           A    43    .ENDEF
+                           A    44    .DEFINE "set_begin"
+                           A    45    .VALUE 7
+                           A    46    .CLASS 8
+                           A    47    .TYPE 34
+                           A    48    .ENDEF
+                           A    49    .DEFINE "set_end"
+                           A    50    .VALUE 10
+                           A    51    .CLASS 8
+                           A    52    .TYPE 34
+                           A    53    .ENDEF
+                           A    54    .DEFINE "pad_whole"
+                           A    55    .VALUE 13
+                           A    56    .CLASS 8
+                           A    57    .TYPE 12
+                           A    58    .ENDEF
+                           A    59    .DEFINE "pad_pre_fract"
+                           A    60    .VALUE 14
+                           A    61    .CLASS 8
+                           A    62    .TYPE 12
+                           A    63    .ENDEF
+                           A    64    .DEFINE "pad_post_fract"
+                           A    65    .VALUE 15
+                           A    66    .CLASS 8
+                           A    67    .TYPE 12
+                           A    68    .ENDEF
+                           A    69    .DEFINE "pad_at"
+                           A    70    .VALUE 16
+                           A    71    .CLASS 8
+                           A    72    .TYPE 34
+                           A    73    .ENDEF
+                           A    74    .ENDREC "fmt_type"
+                           A    75    .BEGREC "flt_info",12
+                           A    76    .DEFINE "flags"
+                           A    77    .VALUE 0
+                           A    78    .CLASS 8
+                           A    79    .TYPE 12
+                           A    80    .ENDEF
+                           A    81    .DEFINE "exp"
+                           A    82    .VALUE 1
+                           A    83    .CLASS 8
+                           A    84    .TYPE 2
+                           A    85    .ENDEF
+                           A    86    .DEFINE "digits"
+                           A    87    .VALUE 2
+                           A    88    .CLASS 8
+                           A    89    .DIM 10
+                           A    90    .TYPE 108
+                           A    91    .ENDEF
+                           A    92    .ENDREC "flt_info"
+                           A    93    .BEGREC "NONAME0",566
+                           A    94    .DEFINE "fs_type"
+                           A    95    .VALUE 0
+                           A    96    .CLASS 8
+                           A    97    .TYPE 12
+                           A    98    .ENDEF
+                           A    99    .DEFINE "pdrv"
+                           A   100    .VALUE 1
+                           A   101    .CLASS 8
+                           A   102    .TYPE 12
+                           A   103    .ENDEF
+                           A   104    .DEFINE "n_fats"
+                           A   105    .VALUE 2
+                           A   106    .CLASS 8
+                           A   107    .TYPE 12
+                           A   108    .ENDEF
+                           A   109    .DEFINE "wflag"
+                           A   110    .VALUE 3
+                           A   111    .CLASS 8
+                           A   112    .TYPE 12
+                           A   113    .ENDEF
+                           A   114    .DEFINE "fsi_flag"
+                           A   115    .VALUE 4
+                           A   116    .CLASS 8
+                           A   117    .TYPE 12
+                           A   118    .ENDEF
+                           A   119    .DEFINE "id"
+                           A   120    .VALUE 5
+                           A   121    .CLASS 8
+                           A   122    .TYPE 13
+                           A   123    .ENDEF
+                           A   124    .DEFINE "n_rootdir"
+                           A   125    .VALUE 7
+                           A   126    .CLASS 8
+                           A   127    .TYPE 13
+                           A   128    .ENDEF
+                           A   129    .DEFINE "csize"
+                           A   130    .VALUE 9
+                           A   131    .CLASS 8
+                           A   132    .TYPE 13
+                           A   133    .ENDEF
+                           A   134    .DEFINE "lfnbuf"
+                           A   135    .VALUE 11
+                           A   136    .CLASS 8
+                           A   137    .TYPE 45
+                           A   138    .ENDEF
+                           A   139    .DEFINE "last_clst"
+                           A   140    .VALUE 14
+                           A   141    .CLASS 8
+                           A   142    .TYPE 15
+                           A   143    .ENDEF
+                           A   144    .DEFINE "free_clst"
+                           A   145    .VALUE 18
+                           A   146    .CLASS 8
+                           A   147    .TYPE 15
+                           A   148    .ENDEF
+                           A   149    .DEFINE "cdir"
+                           A   150    .VALUE 22
+                           A   151    .CLASS 8
+                           A   152    .TYPE 15
+                           A   153    .ENDEF
+                           A   154    .DEFINE "n_fatent"
+                           A   155    .VALUE 26
+                           A   156    .CLASS 8
+                           A   157    .TYPE 15
+                           A   158    .ENDEF
+                           A   159    .DEFINE "fsize"
+                           A   160    .VALUE 30
+                           A   161    .CLASS 8
+                           A   162    .TYPE 15
+                           A   163    .ENDEF
+                           A   164    .DEFINE "volbase"
+                           A   165    .VALUE 34
+                           A   166    .CLASS 8
+                           A   167    .TYPE 15
+                           A   168    .ENDEF
+                           A   169    .DEFINE "fatbase"
+                           A   170    .VALUE 38
+                           A   171    .CLASS 8
+                           A   172    .TYPE 15
+                           A   173    .ENDEF
+                           A   174    .DEFINE "dirbase"
+                           A   175    .VALUE 42
+                           A   176    .CLASS 8
+                           A   177    .TYPE 15
+                           A   178    .ENDEF
+                           A   179    .DEFINE "database"
+                           A   180    .VALUE 46
+                           A   181    .CLASS 8
+                           A   182    .TYPE 15
+                           A   183    .ENDEF
+                           A   184    .DEFINE "winsect"
+                           A   185    .VALUE 50
+                           A   186    .CLASS 8
+                           A   187    .TYPE 15
+                           A   188    .ENDEF
+                           A   189    .DEFINE "win"
+                           A   190    .VALUE 54
+                           A   191    .CLASS 8
+                           A   192    .DIM 512
+                           A   193    .TYPE 108
+                           A   194    .ENDEF
+                           A   195    .ENDREC "NONAME0"
+                           A   196    .BEGREC "NONAME1",15
+                           A   197    .DEFINE "fs"
+                           A   198    .VALUE 0
+                           A   199    .CLASS 8
+                           A   200    .TAG "NONAME0"
+                           A   201    .TYPE 40
+                           A   202    .ENDEF
+                           A   203    .DEFINE "id"
+                           A   204    .VALUE 3
+                           A   205    .CLASS 8
+                           A   206    .TYPE 13
+                           A   207    .ENDEF
+                           A   208    .DEFINE "attr"
+                           A   209    .VALUE 5
+                           A   210    .CLASS 8
+                           A   211    .TYPE 12
+                           A   212    .ENDEF
+                           A   213    .DEFINE "stat"
+                           A   214    .VALUE 6
+                           A   215    .CLASS 8
+                           A   216    .TYPE 12
+                           A   217    .ENDEF
+                           A   218    .DEFINE "sclust"
+                           A   219    .VALUE 7
+                           A   220    .CLASS 8
+                           A   221    .TYPE 15
+                           A   222    .ENDEF
+                           A   223    .DEFINE "objsize"
+                           A   224    .VALUE 11
+                           A   225    .CLASS 8
+                           A   226    .TYPE 15
+                           A   227    .ENDEF
+                           A   228    .ENDREC "NONAME1"
+                           A   229    .BEGREC "NONAME2",36
+                           A   230    .DEFINE "obj"
+                           A   231    .VALUE 0
+                           A   232    .CLASS 8
+                           A   233    .TAG "NONAME1"
+                           A   234    .TYPE 8
+                           A   235    .ENDEF
+                           A   236    .DEFINE "flag"
+                           A   237    .VALUE 15
+                           A   238    .CLASS 8
+                           A   239    .TYPE 12
+                           A   240    .ENDEF
+                           A   241    .DEFINE "err"
+                           A   242    .VALUE 16
+                           A   243    .CLASS 8
+                           A   244    .TYPE 12
+                           A   245    .ENDEF
+                           A   246    .DEFINE "fptr"
+                           A   247    .VALUE 17
+                           A   248    .CLASS 8
+                           A   249    .TYPE 15
+                           A   250    .ENDEF
+                           A   251    .DEFINE "clust"
+                           A   252    .VALUE 21
+                           A   253    .CLASS 8
+                           A   254    .TYPE 15
+                           A   255    .ENDEF
+                           A   256    .DEFINE "sect"
+                           A   257    .VALUE 25
+                           A   258    .CLASS 8
+                           A   259    .TYPE 15
+                           A   260    .ENDEF
+                           A   261    .DEFINE "dir_sect"
+                           A   262    .VALUE 29
+                           A   263    .CLASS 8
+                           A   264    .TYPE 15
+                           A   265    .ENDEF
+                           A   266    .DEFINE "dir_ptr"
+                           A   267    .VALUE 33
+                           A   268    .CLASS 8
+                           A   269    .TYPE 44
+                           A   270    .ENDEF
+                           A   271    .ENDREC "NONAME2"
+                           A   272    .BEGREC "NONAME3",46
+                           A   273    .DEFINE "obj"
+                           A   274    .VALUE 0
+                           A   275    .CLASS 8
+                           A   276    .TAG "NONAME1"
+                           A   277    .TYPE 8
+                           A   278    .ENDEF
+                           A   279    .DEFINE "dptr"
+                           A   280    .VALUE 15
+                           A   281    .CLASS 8
+                           A   282    .TYPE 15
+                           A   283    .ENDEF
+                           A   284    .DEFINE "clust"
+                           A   285    .VALUE 19
+                           A   286    .CLASS 8
+                           A   287    .TYPE 15
+                           A   288    .ENDEF
+                           A   289    .DEFINE "sect"
+                           A   290    .VALUE 23
+                           A   291    .CLASS 8
+                           A   292    .TYPE 15
+                           A   293    .ENDEF
+                           A   294    .DEFINE "dir"
+                           A   295    .VALUE 27
+                           A   296    .CLASS 8
+                           A   297    .TYPE 44
+                           A   298    .ENDEF
+                           A   299    .DEFINE "fn"
+                           A   300    .VALUE 30
+                           A   301    .CLASS 8
+                           A   302    .DIM 12
+                           A   303    .TYPE 108
+                           A   304    .ENDEF
+                           A   305    .DEFINE "blk_ofs"
+                           A   306    .VALUE 42
+                           A   307    .CLASS 8
+                           A   308    .TYPE 15
+                           A   309    .ENDEF
+                           A   310    .ENDREC "NONAME3"
+                           A   311    .BEGREC "NONAME4",278
+                           A   312    .DEFINE "fsize"
+                           A   313    .VALUE 0
+                           A   314    .CLASS 8
+                           A   315    .TYPE 15
+                           A   316    .ENDEF
+                           A   317    .DEFINE "fdate"
+                           A   318    .VALUE 4
+                           A   319    .CLASS 8
+                           A   320    .TYPE 13
+                           A   321    .ENDEF
+                           A   322    .DEFINE "ftime"
+                           A   323    .VALUE 6
+                           A   324    .CLASS 8
+                           A   325    .TYPE 13
+                           A   326    .ENDEF
+                           A   327    .DEFINE "fattrib"
+                           A   328    .VALUE 8
+                           A   329    .CLASS 8
+                           A   330    .TYPE 12
+                           A   331    .ENDEF
+                           A   332    .DEFINE "altname"
+                           A   333    .VALUE 9
+                           A   334    .CLASS 8
+                           A   335    .DIM 13
+                           A   336    .TYPE 98
+                           A   337    .ENDEF
+                           A   338    .DEFINE "fname"
+                           A   339    .VALUE 22
+                           A   340    .CLASS 8
+                           A   341    .DIM 256
+                           A   342    .TYPE 98
+                           A   343    .ENDEF
+                           A   344    .ENDREC "NONAME4"
+                           A   345    .BEGREC "NONAME5",12
+                           A   346    .DEFINE "fmt"
+                           A   347    .VALUE 0
+                           A   348    .CLASS 8
+                           A   349    .TYPE 12
+                           A   350    .ENDEF
+                           A   351    .DEFINE "n_fat"
+                           A   352    .VALUE 1
+                           A   353    .CLASS 8
+                           A   354    .TYPE 12
+                           A   355    .ENDEF
+                           A   356    .DEFINE "align"
+                           A   357    .VALUE 2
+                           A   358    .CLASS 8
+                           A   359    .TYPE 14
+                           A   360    .ENDEF
+                           A   361    .DEFINE "n_root"
+                           A   362    .VALUE 5
+                           A   363    .CLASS 8
+                           A   364    .TYPE 14
+                           A   365    .ENDEF
+                           A   366    .DEFINE "au_size"
+                           A   367    .VALUE 8
+                           A   368    .CLASS 8
+                           A   369    .TYPE 15
+                           A   370    .ENDEF
+                           A   371    .ENDREC "NONAME5"
+                           A   372    .BEGREC "HEADER",7
+                           A   373    .DEFINE "magic"
+                           A   374    .VALUE 0
+                           A   375    .CLASS 8
+                           A   376    .TYPE 12
+                           A   377    .ENDEF
+                           A   378    .DEFINE "begin"
+                           A   379    .VALUE 1
+                           A   380    .CLASS 8
+                           A   381    .TYPE 13
+                           A   382    .ENDEF
+                           A   383    .DEFINE "end"
+                           A   384    .VALUE 3
+                           A   385    .CLASS 8
+                           A   386    .TYPE 13
+                           A   387    .ENDEF
+                           A   388    .DEFINE "start"
+                           A   389    .VALUE 5
+                           A   390    .CLASS 8
+                           A   391    .TYPE 13
+                           A   392    .ENDEF
+                           A   393    .ENDREC "HEADER"
+                           A   394    	SEGMENT BSS
+000000                     A   395    _errno:
+000000                     A   396    	DS	1
+                           A   397    .DEFINE "errno"
+                           A   398    .ALIAS "_errno"
+                           A   399    .CLASS 83
+                           A   400    .VALUE _errno
+                           A   401    .TYPE 12
+                           A   402    .ENDEF
+000001                     A   403    _fs:
+000001                     A   404    	DS	566
+                           A   405    .DEFINE "fs"
+                           A   406    .ALIAS "_fs"
+                           A   407    .CLASS 83
+                           A   408    .VALUE _fs
+                           A   409    .TAG "NONAME0"
+                           A   410    .TYPE 8
+                           A   411    .ENDEF
+                           A   412    ;    1	/*
+                           A   413    ;    2	 * Title:			AGON Electron OS
+                           A   414    ;    3	 * Author:			Mario Smit (S0urcer
+                           A   415    ;    4	 */
+                           A   416    ;    5	
+                           A   417    ;    6	#include <eZ80.h>
+                           A   418    ;    7	#include <defines.h>
+                           A   419    ;    8	#include <stdio.h>
+                           A   420    ;    9	
+                           A   421    ;   10	#include "globals.h"
+                           A   422    ;   11	#include "spi.h"
+                           A   423    ;   12	#include "uart.h"
+                           A   424    ;   13	#include "machine.h"
+                           A   425    ;   14	#include "interrupts.h"
+                           A   426    ;   15	#include "vectors16.h"
+                           A   427    ;   16	#include "rtc.h"
+                           A   428    ;   17	#include "timer.h"
+                           A   429    ;   18	#include "cp.h"
+                           A   430    ;   19	
+                           A   431    ;   20	UINT8 errno;
+                           A   432    ;   21	static FATFS 	fs;						
+                           A   433    	SEGMENT CODE
+                           A   434    ;   22	
+                           A   435    ;   23	// Initialise the interrupts
+                           A   436    ;   24	//
+                           A   437    ;   25	void init_interrupts(void) 
+                           A   438    ;   26	{
+000000                     A   439    _init_interrupts:
+                           A   440    .DEFINE "_init_interrupts"
+                           A   441    
+                           A   442    .VALUE _init_interrupts
+                           A   443    
+                           A   444    .CLASS 2
+                           A   445    
+                           A   446    .TYPE 65
+                           A   447    
+                           A   448    .ENDEF
+                           A   449    
+                           A   450    .BEGFUNC "init_interrupts",26,"_init_interrupts
+                           A   451    
+000000 DDE5                A   452    	PUSH	IX
+000002 DD210000 00         A   453    	LD	IX,0
+000007 DD39                A   454    	ADD	IX,SP
+                           A   455    ;   27		set_vector(PORTB1_IVECT, vblank_han
+                           A   456    .LINE 27
+                           A   457    
+000009 01 00 00 00         A   458    	LD	BC,_vblank_handler
+00000D C5                  A   459    	PUSH	BC
+00000E 01320000            A   460    	LD	BC,50
+000012 C5                  A   461    	PUSH	BC
+000013 CD 00 00 00         A   462    	CALL	_set_vector
+000017 C1                  A   463    	POP	BC
+000018 C1                  A   464    	POP	BC
+                           A   465    ;   28		set_vector(UART0_IVECT,  uart0_hand
+                           A   466    .LINE 28
+                           A   467    
+000019 01 00 00 00         A   468    	LD	BC,_uart0_handler
+00001D C5                  A   469    	PUSH	BC
+00001E 01180000            A   470    	LD	BC,24
+000022 C5                  A   471    	PUSH	BC
+000023 CD 00 00 00         A   472    	CALL	_set_vector
+000027 C1                  A   473    	POP	BC
+000028 C1                  A   474    	POP	BC
+                           A   475    ;   29	}
+                           A   476    .LINE 29
+                           A   477    
+000029 DDF9                A   478    	LD	SP,IX
+00002B DDE1                A   479    	POP	IX
+00002D C9                  A   480    	RET	
+                           A   481    
+                           A   482    
+                           A   483    ;**************************** _init_interrupts 
+                           A   484    ;Name                         Addr/Register   S
+                           A   485    ;_uart0_handler                      IMPORT  --
+                           A   486    ;_vblank_handler                     IMPORT  --
+                           A   487    ;_set_vector                         IMPORT  --
+                           A   488    
+                           A   489    
+                           A   490    ; Stack Frame Size: 6 (bytes)
+                           A   491    ;       Spill Code: 0 (instruction)
+                           A   492    
+                           A   493    
+                           A   494    .ENDFUNC "init_interrupts",29,"_init_interrupts
+                           A   495    ;   30	
+                           A   496    ;   31	
+                           A   497    ;   32	// The main loop
+                           A   498    ;   33	//
+                           A   499    ;   34	int main(void) {
+00002E                     A   500    _main:
+                           A   501    .DEFINE "_main"
+                           A   502    
+                           A   503    .VALUE _main
+                           A   504    
+                           A   505    .CLASS 2
+                           A   506    
+                           A   507    .TYPE 68
+                           A   508    
+                           A   509    .ENDEF
+                           A   510    
+                           A   511    .BEGFUNC "main",34,"_main"
+                           A   512    
+                           A   513    .LINE 34
+                           A   514    
+                           A   515    .DEFINE "ch"
+                           A   516    
+                           A   517    .CLASS 65
+                           A   518    
+                           A   519    .VALUE -3
+                           A   520    
+                           A   521    .TYPE 4
+                           A   522    
+                           A   523    .ENDEF
+                           A   524    
+00002E DDE5                A   525    	PUSH	IX
+000030 DD210000 00         A   526    	LD	IX,0
+000035 DD39                A   527    	ADD	IX,SP
+000037 C5                  A   528    	PUSH	BC
+                           A   529    ;   35		INT		ch;
+                           A   530    ;   36	
+                           A   531    ;   37		DI();								
+                           A   532    .LINE 37
+                           A   533    
+000038 F3                  A   534    	di
+                           A   535    ;   38		init_interrupts();					
+                           A   536    .LINE 38
+                           A   537    
+000039 CD 00 00 00         A   538    	CALL	_init_interrupts
+                           A   539    ;   39		init_rtc();							
+                           A   540    .LINE 39
+                           A   541    
+00003D CD 00 00 00         A   542    	CALL	_init_rtc
+                           A   543    ;   40		init_spi();							
+                           A   544    .LINE 40
+                           A   545    
+000041 CD 00 00 00         A   546    	CALL	_init_spi
+                           A   547    ;   41		uart0_init_fifo ();
+                           A   548    .LINE 41
+                           A   549    
+000045 CD 00 00 00         A   550    	CALL	_uart0_init_fifo
+                           A   551    ;   42		init_uart ();						
+                           A   552    .LINE 42
+                           A   553    
+000049 CD 00 00 00         A   554    	CALL	_init_uart
+                           A   555    ;   43		EI();								
+                           A   556    .LINE 43
+                           A   557    
+00004D FB                  A   558    	ei
+                           A   559    ;   44		
+                           A   560    ;   45		// wait 0.5 seconds or 500ms
+                           A   561    ;   46		//init_timer1(500, 16, 0x00);  // 1
+                           A   562    ;   47		//wait_timer1();
+                           A   563    ;   48		//enable_timer1(0);
+                           A   564    ;   49	
+                           A   565    ;   50		// wakeup sequence
+                           A   566    ;   51		while(getch ()!=ESC);
+00004E                     A   567    L_2:
+                           A   568    .LINE 51
+                           A   569    
+00004E CD 00 00 00         A   570    	CALL	_getch
+000052 011B0000            A   571    	LD	BC,27
+000056 B7                  A   572    	OR	A,A
+000057 ED42                A   573    	SBC	HL,BC
+000059 20 F3               A   574    	JR	NZ,L_2
+                           A   575    ;   52		putch (CTRL_Z);
+                           A   576    .LINE 52
+                           A   577    
+00005B 011A0000            A   578    	LD	BC,26
+00005F C5                  A   579    	PUSH	BC
+000060 CD 00 00 00         A   580    	CALL	_putch
+000064 C1                  A   581    	POP	BC
+                           A   582    ;   53	
+                           A   583    ;   54		// let's go...
+                           A   584    ;   55		printf("Electron - OS - version %d.
+                           A   585    .LINE 55
+                           A   586    
+000065 01 00 00 00         A   587    	LD	BC,___print_uputch
+000069 ED43 00 00 00       A   588    	LD	(___print_xputch),BC
+00006E 01 00 00 00         A   589    	LD	BC,L__2
+000072 C5                  A   590    	PUSH	BC
+000073 CD 00 00 00         A   591    	CALL	___print_sendstring
+000077 C1                  A   592    	POP	BC
+000078 01000000            A   593    	LD	BC,0
+00007C C5                  A   594    	PUSH	BC
+00007D C5                  A   595    	PUSH	BC
+00007E CD 00 00 00         A   596    	CALL	__u_itoa
+000082 C1                  A   597    	POP	BC
+000083 C1                  A   598    	POP	BC
+000084 012E0000            A   599    	LD	BC,46
+000088 C5                  A   600    	PUSH	BC
+000089 CD 00 00 00         A   601    	CALL	___print_uputch
+00008D C1                  A   602    	POP	BC
+00008E 01000000            A   603    	LD	BC,0
+000092 C5                  A   604    	PUSH	BC
+000093 01010000            A   605    	LD	BC,1
+000097 C5                  A   606    	PUSH	BC
+000098 CD 00 00 00         A   607    	CALL	__u_itoa
+00009C C1                  A   608    	POP	BC
+00009D C1                  A   609    	POP	BC
+00009E 012E0000            A   610    	LD	BC,46
+0000A2 C5                  A   611    	PUSH	BC
+0000A3 CD 00 00 00         A   612    	CALL	___print_uputch
+0000A7 C1                  A   613    	POP	BC
+0000A8 01000000            A   614    	LD	BC,0
+0000AC C5                  A   615    	PUSH	BC
+0000AD C5                  A   616    	PUSH	BC
+0000AE CD 00 00 00         A   617    	CALL	__u_itoa
+0000B2 C1                  A   618    	POP	BC
+0000B3 C1                  A   619    	POP	BC
+0000B4 01 19 00 00         A   620    	LD	BC,L__3
+0000B8 C5                  A   621    	PUSH	BC
+0000B9 CD 00 00 00         A   622    	CALL	___print_sendstring
+0000BD C1                  A   623    	POP	BC
+                           A   624    ;   56	
+                           A   625    ;   57		if (f_mount(&fs, "", 1)==FR_OK)		
+                           A   626    .LINE 57
+                           A   627    
+0000BE 01010000            A   628    	LD	BC,1
+0000C2 C5                  A   629    	PUSH	BC
+0000C3 01 1C 00 00         A   630    	LD	BC,L__4
+0000C7 C5                  A   631    	PUSH	BC
+0000C8 01 01 00 00         A   632    	LD	BC,_fs
+0000CC C5                  A   633    	PUSH	BC
+0000CD CD 00 00 00         A   634    	CALL	_f_mount
+0000D1 C1                  A   635    	POP	BC
+0000D2 C1                  A   636    	POP	BC
+0000D3 C1                  A   637    	POP	BC
+0000D4 01000000            A   638    	LD	BC,0
+0000D8 B7                  A   639    	OR	A,A
+0000D9 ED42                A   640    	SBC	HL,BC
+0000DB 20 19               A   641    	JR	NZ,L_7
+                           A   642    ;   58		{
+                           A   643    ;   59			printf ("[SD card mounted]\r\n"
+                           A   644    .LINE 59
+                           A   645    
+0000DD 01 00 00 00         A   646    	LD	BC,___print_uputch
+0000E1 ED43 00 00 00       A   647    	LD	(___print_xputch),BC
+0000E6 01 1D 00 00         A   648    	LD	BC,L__6
+0000EA C5                  A   649    	PUSH	BC
+0000EB CD 00 00 00         A   650    	CALL	___print_sendstring
+0000EF C1                  A   651    	POP	BC
+                           A   652    ;   60			machine_init ();
+                           A   653    .LINE 60
+                           A   654    
+0000F0 CD 00 00 00         A   655    	CALL	_machine_init
+                           A   656    ;   61		}
+                           A   657    ;   62		else
+                           A   658    .LINE 62
+                           A   659    
+0000F4 18 28               A   660    	JR	L_8
+0000F6                     A   661    L_7:
+                           A   662    ;   63		{
+                           A   663    ;   64			printf ("[SD card NOT mounted]\
+                           A   664    .LINE 64
+                           A   665    
+0000F6 01 00 00 00         A   666    	LD	BC,___print_uputch
+0000FA ED43 00 00 00       A   667    	LD	(___print_xputch),BC
+0000FF 01 31 00 00         A   668    	LD	BC,L__7
+000103 C5                  A   669    	PUSH	BC
+000104 CD 00 00 00         A   670    	CALL	___print_sendstring
+000108 C1                  A   671    	POP	BC
+                           A   672    ;   65			printf ("[System halted]\r\n");
+                           A   673    .LINE 65
+                           A   674    
+000109 01 00 00 00         A   675    	LD	BC,___print_uputch
+00010D ED43 00 00 00       A   676    	LD	(___print_xputch),BC
+000112 01 49 00 00         A   677    	LD	BC,L__8
+000116 C5                  A   678    	PUSH	BC
+000117 CD 00 00 00         A   679    	CALL	___print_sendstring
+00011B C1                  A   680    	POP	BC
+                           A   681    ;   66			while (1);
+00011C                     A   682    L_5:
+                           A   683    .LINE 66
+                           A   684    
+00011C 18 FE               A   685    	JR	L_5
+                           A   686    ;   67		}
+00011E                     A   687    L_8:
+                           A   688    .LINE 67
+                           A   689    
+                           A   690    ;   68	
+                           A   691    ;   69		// command processor
+                           A   692    ;   70		cp_run ();
+                           A   693    .LINE 70
+                           A   694    
+00011E CD 00 00 00         A   695    	CALL	_cp_run
+                           A   696    ;   71	
+                           A   697    ;   72		return 0;
+                           A   698    .LINE 72
+                           A   699    
+000122 B7                  A   700    	OR	A,A
+000123 ED62                A   701    	SBC	HL,HL
+                           A   702    .LINE 73
+                           A   703    
+000125 DDF9                A   704    	LD	SP,IX
+000127 DDE1                A   705    	POP	IX
+000129 C9                  A   706    	RET	
+                           A   707    
+                           A   708    
+                           A   709    ;**************************** _main ***********
+                           A   710    ;Name                         Addr/Register   S
+                           A   711    ;_cp_run                             IMPORT  --
+                           A   712    ;_machine_init                       IMPORT  --
+                           A   713    ;_fs                                 STATIC    
+                           A   714    ;_f_mount                            IMPORT  --
+                           A   715    ;__u_itoa                            IMPORT  --
+                           A   716    ;___print_sendstring                 IMPORT  --
+                           A   717    ;___print_xputch                     IMPORT    
+                           A   718    ;___print_uputch                     IMPORT  --
+                           A   719    ;_putch                              IMPORT  --
+                           A   720    ;_getch                              IMPORT  --
+                           A   721    ;_init_uart                          IMPORT  --
+                           A   722    ;_uart0_init_fifo                    IMPORT  --
+                           A   723    ;_init_spi                           IMPORT  --
+                           A   724    ;_init_rtc                           IMPORT  --
+                           A   725    ;ch                                    IX-3    
+                           A   726    
+                           A   727    
+                           A   728    ; Stack Frame Size: 9 (bytes)
+                           A   729    ;       Spill Code: 0 (instruction)
+                           A   730    
+                           A   731    
+                           A   732    .ENDFUNC "main",73,"_main"
+                           A   733    	SEGMENT STRSECT
+000000                     A   734    L__2:
+000000 456C6563 74726F6E   A   735    	DB	"Electron - OS - version "
+000008 202D204F 53202D20 
+000010 76657273 696F6E20 
+000018 00                  A   736    	DB	0
+000019                     A   737    L__3:
+000019 0D0A00              A   738    	DB	13,10,0
+00001C                     A   739    L__4:
+00001C 00                  A   740    	DB	0
+00001D                     A   741    L__6:
+00001D 5B534420 63617264   A   742    	DB	"[SD card mounted]"
+000025 206D6F75 6E746564 
+00002D 5D 
+00002E 0D0A00              A   743    	DB	13,10,0
+000031                     A   744    L__7:
+000031 5B534420 63617264   A   745    	DB	"[SD card NOT mounted]"
+000039 204E4F54 206D6F75 
+000041 6E746564 5D 
+000046 0D0A00              A   746    	DB	13,10,0
+000049                     A   747    L__8:
+000049 5B537973 74656D20   A   748    	DB	"[System halted]"
+000051 68616C74 65645D 
+000058 0D0A00              A   749    	DB	13,10,0
+                           A   750    	XREF _cp_run:ROM
+                           A   751    	XREF _init_rtc:ROM
+                           A   752    	XREF _set_vector:ROM
+                           A   753    	XREF _vblank_handler:ROM
+                           A   754    	XREF _machine_init:ROM
+                           A   755    	XREF _f_mount:ROM
+                           A   756    	XREF _uart0_init_fifo:ROM
+                           A   757    	XREF _putch:ROM
+                           A   758    	XREF _getch:ROM
+                           A   759    	XREF _uart0_handler:ROM
+                           A   760    	XREF _init_uart:ROM
+                           A   761    	XREF _init_spi:ROM
+                           A   762    	XREF __u_itoa:ROM
+                           A   763    	XREF ___print_sendstring:ROM
+                           A   764    	XREF ___print_xputch:ROM
+                           A   765    	XREF ___print_uputch:ROM
+                           A   766    	XDEF _main
+                           A   767    	XDEF _init_interrupts
+                           A   768    	XDEF _errno
+                           A   769    	END
+
+
+Errors: 0
+Warnings: 0
+Lines Assembled: 770

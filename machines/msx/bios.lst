@@ -1,0 +1,535 @@
+# file opened: bios.asm
+  1   0000              ;   .ASSUME ADL=0
+  2   0000
+  3   0000              ;       symbols used to procedure alternate code
+  4   0000
+  5   0000              ;       INTHZ   interrupt frequency
+  6   0000              ;       CHRGEN  character generator
+  7   0000              ;               0 = japanese
+  8   0000              ;               1 = international
+  9   0000              ;               2 = USSR ??
+ 10   0000              ;       DATFMT  date format
+ 11   0000              ;               0 = Y-M-D
+ 12   0000              ;               1 = M-D-Y
+ 13   0000              ;               2 = D-M-Y
+ 14   0000              ;       KEYTYP  keyboard layout
+ 15   0000              ;               0 = Japanese
+ 16   0000              ;               1 = International (QWERTY/other)
+ 17   0000              ;               2 = French (AZERTY)
+ 18   0000              ;               3 = English
+ 19   0000              ;               4 = German (DIN)
+ 20   0000              ;               5 = USSR
+ 21   0000              ;               6 = Spanish
+ 22   0000              ;               7 = Swedish ??
+ 23   0000              ;       BASVER  0 = Japanese
+ 24   0000              ;               1 = International
+ 25   0000
+ 26   0000              INTHZ EQU 60
+ 27   0000              CHRGEN EQU 1
+ 28   0000              DATFMT EQU 1
+ 29   0000              KEYTYP EQU 1
+ 30   0000              BASVER EQU 1
+ 31   0000              MSXVER EQU 0 ; MSX1
+ 32   0000
+ 33   0000              VARWRK  EQU     0F380H
+ 34   0000              H.KEYI  EQU     0FD9AH
+ 35   0000              HIMEM   EQU     0FC4AH
+ 36   0000              BOTTOM  EQU     0FC48H
+ 37   0000              PRMSTK  EQU     0F6E4H
+ 38   0000              PRMPRV  EQU     0F74CH
+ 39   0000              STKTOP  EQU     0F674H
+ 40   0000              MEMSIZ  EQU     0f672h
+ 41   0000              NULBUF  EQU     0f862h
+ 42   0000              FCERR   EQU     0475AH
+ 43   0000              QUETAB  EQU     0F959H
+ 44   0000              KEYBUF  EQU     0FBF0H
+ 45   0000              H.RUNC  EQU     0FECBh
+ 46   0000              H.PHYD  EQU     0FFA7h
+ 47   0000
+ 48   0000              ; BLOAD header
+ 49   0000 FE               db 0x0fe
+ 50   0001 00 00 C3 03      dw BEGIN, ENDADR, START_BASIC
+ 50   0005 00 00
+ 51   0007
+ 52   0007                  .ORG 0000h
+ 53   0000              BEGIN:
+ 54   0000              START_BASIC:
+ 55   0000
+ 56   0000              BOOT:                   ; 0000h
+ 57   0000 C3 5A 01         JP _BOOT
+ 58   0003 00 00 00...      DS 000Ch - $
+ 59   000C              RDSLT:                  ; 000Ch
+ 60   000C C3 F3 02         JP _RDSLT
+ 61   000F 00               DS 0010h - $
+ 62   0010              CHRGTR:                 ; RST 10h
+ 63   0010 C9               RET
+ 64   0011 00 00 00         DS 0014h - $
+ 65   0014              WRSLT:                  ; 0014h
+ 66   0014 C3 FE 02         JP _WRSLT
+ 67   0017 00               DS 0018h - $
+ 68   0018              OUTDO:                   ; RST 18h
+ 69   0018 C3 A2 00         JP CHPUT
+ 70   001B 00               DS 001Ch - $
+ 71   001C              CALSLT:                 ; 001Ch
+ 72   001C C3 1B 03         JP _CALSLT
+ 73   001F 00               DS 0020h - $
+ 74   0020              DCOMPR:                 ; RST 20h
+ 75   0020 C3 9E 02         JP _DCOMPR
+ 76   0023 00               DS 0024h - $
+ 77   0024              ENASLT:                 ; 0024h
+ 78   0024 C3 24 03         JP _ENASLT
+ 79   0027 00               DS 0028h - $
+ 80   0028              GETTYPR:                ; RST 28h
+ 81   0028 C3 D6 02         JP _WRITE_PORT
+ 82   002B                  DS 002Bh - $
+ 83   002B              IDBYT0:
+ 84   002B                  IF      INTHZ EQ 60
+ 85   002B 11               DEFB    CHRGEN+16*DATFMT
+ 86   002C                  ELSE
+ 87   002C ~                DEFB    CHRGEN+16*DATFMT+128
+ 88   002C                  ENDIF
+ 89   002C 11           IDBYT1: DEFB    KEYTYP+16*BASVER
+ 90   002D 00           IDBYT2: DEFB    MSXVER                  ; MSX version 0 = MSX1
+ 91   002E 00               DEFB    0
+ 92   002F 00               DS 0030h - $
+ 93   0030              CALLF:                  ; RST 30h
+ 94   0030 C3 09 03         JP _CALLF
+ 95   0033 00               DS    00034H-$
+ 96   0034              ; The next bytes are used by the diskrom, to initialize the double byte header char
+ 97   0034              ; table (0F30FH). I have not seen a MSX with anything other than four zero's, meaning
+ 98   0034              ; no double byte chars.
+ 99   0034 00 00        D0034:  db    0,0
+100   0036 00 00                db    0,0
+101   0038                  DS 0038h - $
+102   0038              KEYINT:                 ; RST 38h
+103   0038 C3 BB 02         JP _READ_PORT
+104   003B
+105   003B 00 00 00...      DS 009ch - $
+106   009C              CHSNS:
+107   009C C3 A9 02         JP _CHSNS
+108   009F
+109   009F                  DS 009fh - $
+110   009F              CHGET:                  ; 009fh
+111   009F C3 A4 02         JP _CHGET
+112   00A2
+113   00A2                  DS 00a2h - $
+114   00A2              CHPUT:                  ; 00a2h
+115   00A2 5B               DB 0x5b ; .LIL
+116   00A3 CF               RST 08h
+117   00A4 C9               RET
+118   00A5
+119   00A5 00 00 00...      DS 00b7h - $
+120   00B7              BREAKX:
+121   00B7 A7               and a ; no CTRL-STOP pressed
+122   00B8 C9               RET
+123   00B9
+124   00B9 00 00 00...      DS 0141h - $
+125   0141              SNSMAT:                 ; 0141h
+126   0141 C3 AD 02         JP _SNSMAT
+127   0144
+128   0144                  DS 0144h - $
+129   0144              PHYDIO:                 ; 0144h
+130   0144 C3 2F 03         JP _PHYDIO
+131   0147
+132   0147 00 00 00...      DS 0159h - $
+133   0159              CALBAS:                 ; 0159h
+134   0159 C9               RET
+135   015A
+136   015A              _BOOT:
+137   015A                  ; assume only primary slots no secundary slots
+138   015A                  ; assume that 0000-3FFF is in slot 00 - ROM
+139   015A                  ; assume that 4000-7FFF is in slot 00 - ROM
+140   015A                  ; assume that 8000-BFFF is in slot 01 - RAM
+141   015A                  ; assume that C000-FFFF is in slot 01 - RAM
+142   015A 3E 54            ld a, 0b01010100
+143   015C DD 21 04 00      ld ix, 0x0004
+144   0160 37               scf ; set carry = write
+145   0161 5B               DB 0x5b ; .LIL
+146   0162 FF               rst 38h
+147   0163
+148   0163                  ; setup MSX variables in page 3
+149   0163 01 49 0C         ld      bc,0C49H
+150   0166 11 81 F3         ld      de,VARWRK+1
+151   0169 21 80 F3         ld      hl,VARWRK
+152   016C 36 00            ld      (hl),0
+153   016E ED B0            ldir                            ; clear system variable area
+154   0170 01 90 00         LD      BC,00090H
+155   0173 11 80 F3         LD      DE,VARWRK
+156   0176 21 33 03         LD      HL,I7F27
+157   0179 ED B0            LDIR                            ; initialize some systemvariables
+158   017B 01 2F 02         LD      BC,00230H-1
+159   017E 11 9B FD         LD      DE,H.KEYI+1
+160   0181 21 9A FD         LD      HL,H.KEYI
+161   0184 36 C9            LD      (HL),0C9H
+162   0186 ED B0            LDIR                            ; initialize hooks
+163   0188 21 80 F3         LD      HL,VARWRK
+164   018B 22 4A FC         LD      (HIMEM),HL              ; highest BASIC RAM address
+165   018E 21 00 80         LD      HL,08000h
+166   0191 22 48 FC         LD      (BOTTOM),HL             ; lowest BASIC RAM address
+167   0194 21 68 F1         ld      hl,0f168h
+168   0197 22 72 F6         ld      (MEMSIZ),hl
+169   019A 21 77 F1         ld      hl,0f177h
+170   019D 22 62 F8         ld      (NULBUF),hl
+171   01A0 21 E4 F6         LD      HL,0f6e4h
+172   01A3 22 4C F7         LD      (PRMPRV),HL             ; initialize previous FN block pointer
+173   01A6 21 A0 F0         LD      HL,0f0a0h
+174   01A9 22 74 F6         LD      (STKTOP),HL             ; Z80 stack temporary at PRMSTK
+175   01AC F9               LD      SP,HL
+176   01AD
+177   01AD                  ; display MSX boot prompt
+178   01AD 21 EF 01         ld hl, MSX_INTRO
+179   01B0 CD E7 01         call _print
+180   01B3 06 10            ld      b,010h
+181   01B5              A7D0D:
+182   01B5 2B               dec     hl
+183   01B6 7D               ld      a,l
+184   01B7 B4               or      h
+185   01B8 20 FB            jr      nz,A7D0D
+186   01BA 10 F9            djnz    A7D0D                   ; wait 3 seconds
+187   01BC
+188   01BC                  ; get contents of diskrom start address in slot 1
+189   01BC DD 21 00 00      ld ix,0
+190   01C0 3E 01            ld a, 1
+191   01C2 21 02 40         ld hl, 04002h
+192   01C5 CD F3 02         call _RDSLT
+193   01C8 DD 6F            ld ixl, a
+194   01CA 3E 01            ld a, 1
+195   01CC 21 03 40         ld hl, 04003h
+196   01CF CD F3 02         call _RDSLT
+197   01D2 DD 67            ld ixh, a
+198   01D4                  ; jump there
+199   01D4 FD 21 00 01      ld iy, 0100h
+200   01D8 CD 1C 00         call CALSLT
+201   01DB
+202   01DB                  ; emulate BASIC continuing init and then calling H.RUNC
+203   01DB CD CB FE         call H.RUNC
+204   01DE                  ; diskrom should now have attempted to run MSXDOS
+205   01DE                  ; if there is no disk mounted or not a valid disk we return here
+206   01DE FB               EI
+207   01DF 21 3C 02         ld hl, FAKE_BASIC_PROMPT
+208   01E2 CD E7 01         call _print
+209   01E5              _forever:
+210   01E5 18 FE            jr _forever
+211   01E7
+212   01E7              _print:
+213   01E7              _next_character:
+214   01E7 7E               ld a, (hl)
+215   01E8 A7               and a
+216   01E9 C8               ret z
+217   01EA 5B               DB 0x5b ; .LIL
+218   01EB CF               RST 08h
+219   01EC 23               inc hl
+220   01ED 18 F8            jr _next_character
+221   01EF
+222   01EF              MSX_INTRO:
+223   01EF 0C 0D 0A 0D      DB 12,"\r\n\r\n\r\n",9,9,9,9,"MSX  system\r\n",9,9,9,9,"version 1.0\r\n",9,9,"Copyright 1983 by Microsoft\r\n\r\n\r\n",0
+223   01F3 0A 0D 0A 09
+223   01F7 09 09 09 4D
+223   01FB 53 58 20 20
+223   01FF 73 79 73 74
+223   0203 65 6D 0D 0A
+223   0207 09 09 09 09
+223   020B 76 65 72 73
+223   020F 69 6F 6E 20
+223   0213 31 2E 30 0D
+223   0217 0A 09 09 43
+223   021B 6F 70 79 72
+223   021F 69 67 68 74
+223   0223 20 31 39 38
+223   0227 33 20 62 79
+223   022B 20 4D 69 63
+223   022F 72 6F 73 6F
+223   0233 66 74 0D 0A
+223   0237 0D 0A 0D 0A
+223   023B 00
+224   023C              FAKE_BASIC_PROMPT:
+225   023C 4D 53 58 20      DB "MSX BASIC version 5.0\r\nCopyright 2023 by S0urceror\r\n65535 Bytes free\r\nDisk BASIC version 1.0\r\nOk\r\n"
+225   0240 42 41 53 49
+225   0244 43 20 76 65
+225   0248 72 73 69 6F
+225   024C 6E 20 35 2E
+225   0250 30 0D 0A 43
+225   0254 6F 70 79 72
+225   0258 69 67 68 74
+225   025C 20 32 30 32
+225   0260 33 20 62 79
+225   0264 20 53 30 75
+225   0268 72 63 65 72
+225   026C 6F 72 0D 0A
+225   0270 36 35 35 33
+225   0274 35 20 42 79
+225   0278 74 65 73 20
+225   027C 66 72 65 65
+225   0280 0D 0A 44 69
+225   0284 73 6B 20 42
+225   0288 41 53 49 43
+225   028C 20 76 65 72
+225   0290 73 69 6F 6E
+225   0294 20 31 2E 30
+225   0298 0D 0A 4F 6B
+225   029C 0D 0A
+226   029E
+227   029E              _DCOMPR:
+228   029E              ;       Subroutine      DCOMPR
+229   029E              ;       Inputs          ________________________
+230   029E              ;       Outputs         ________________________
+231   029E 7C               ld      a,h
+232   029F 92               sub     d
+233   02A0 C0               ret     nz
+234   02A1 7D               ld      a,l
+235   02A2 93               sub     e
+236   02A3 C9               ret
+237   02A4
+238   02A4              _CHGET:
+239   02A4 5B               DB 0x5b ; .LIL
+240   02A5 D7               RST 10h
+241   02A6 38 FC            jr c, _CHGET
+242   02A8 C9               RET
+243   02A9
+244   02A9              _CHSNS
+245   02A9 5B               DB 0x5b ; .LIL
+246   02AA D7               RST 10h
+247   02AB A7               and a
+248   02AC C9               RET
+249   02AD
+250   02AD              _SNSMAT:
+251   02AD C5               push bc
+252   02AE 47               ld b,a ; preserve matrix line nr.
+253   02AF                  ;
+254   02AF                  ; read character from fifo
+255   02AF 5B               DB 0x5b ; .LIL
+256   02B0 D7               RST 10h
+257   02B1 38 04            jr c, HANDLE_SNSMAT_NOPRESS
+258   02B3
+259   02B3                  ; TODO check ASCII with line-nr
+260   02B3 3E FF            ld a, 0xff ; no presses for now
+261   02B5 C1               pop bc
+262   02B6 C9               RET
+263   02B7
+264   02B7              HANDLE_SNSMAT_NOPRESS:
+265   02B7 3E FF            ld a, 0xff
+266   02B9 C1               pop bc
+267   02BA C9               RET
+268   02BB
+269   02BB              _READ_PORT:
+270   02BB FD E1            POP IY
+271   02BD FD 23            INC IY
+272   02BF FD E5            PUSH IY
+273   02C1 FD 7E FF         LD A,(IY-1)
+274   02C4 FE A8            cp 0xa8
+275   02C6 28 02            jr z,_READ_A8
+276   02C8                  ; any other port
+277   02C8 AF               xor a
+278   02C9 C9               RET
+279   02CA              _READ_A8:
+280   02CA DD E5            push ix
+281   02CC DD 21 04 00      ld ix, 0x0004
+282   02D0 A7               and a ; reset carry = read
+283   02D1 5B               DB 0x5b ; .LIL
+284   02D2 FF               rst 38h
+285   02D3 DD E1            pop ix
+286   02D5 C9               RET
+287   02D6
+288   02D6              _WRITE_PORT:
+289   02D6 FD E1            POP IY      ; get address of following instruction
+290   02D8 FD 23            INC IY
+291   02DA FD E5            PUSH IY     ; return address is next byte
+292   02DC F5               push af
+293   02DD FD 7E FF         LD A,(IY-1)
+294   02E0 FE A8            cp 0xa8
+295   02E2 28 02            jr z,_WRITE_A8
+296   02E4                  ; no other OUT's
+297   02E4 F1               pop af
+298   02E5 C9               RET
+299   02E6              _WRITE_A8:
+300   02E6 DD E5            push ix
+301   02E8 DD 21 04 00      ld ix, 0x0004
+302   02EC 37               scf ; set carry = write
+303   02ED 5B               DB 0x5b ; .LIL
+304   02EE FF               rst 38h
+305   02EF DD E1            pop ix
+306   02F1 F1               pop af
+307   02F2 C9               RET
+308   02F3
+309   02F3              _RDSLT:
+310   02F3 DD E5            push ix
+311   02F5 DD 21 06 00      ld ix, 0x0006
+312   02F9 5B               DB 0x5b ; .LIL
+313   02FA FF               rst 38h
+314   02FB DD E1            pop ix
+315   02FD C9               ret
+316   02FE
+317   02FE              _WRSLT:
+318   02FE DD E5            push ix
+319   0300 DD 21 08 00      ld ix, 0x0008
+320   0304 5B               DB 0x5b ; .LIL
+321   0305 FF               rst 38h
+322   0306 DD E1            pop ix
+323   0308 C9               ret
+324   0309
+325   0309              _CALLF:
+326   0309 E3               ex      (sp),hl
+327   030A F5               push    af
+328   030B D5               push    de
+329   030C 7E               ld      a,(hl)
+330   030D F5               push    af
+331   030E FD E1            pop     iy                      ; slotid
+332   0310 23               inc     hl
+333   0311 5E               ld      e,(hl)
+334   0312 23               inc     hl
+335   0313 56               ld      d,(hl)
+336   0314 23               inc     hl
+337   0315 D5               push    de
+338   0316 DD E1            pop     ix                      ; adres
+339   0318 D1               pop     de
+340   0319 F1               pop     af
+341   031A E3               ex      (sp),hl
+342   031B                  ; now slotid is in IY and address is in IX
+343   031B              _CALSLT:
+344   031B                  ; first save IX
+345   031B 5B               DB 0x5b ; .LIL
+346   031C DF               rst 18h
+347   031D                  ;  electron os calslt
+348   031D DD 21 0A 00      ld ix, 0x000a
+349   0321 5B               DB 0x5b ; .LIL
+350   0322 FF               rst 38h
+351   0323 C9               ret
+352   0324
+353   0324              _ENASLT:
+354   0324 DD E5            push ix
+355   0326 DD 21 0C 00      ld ix, 0x000c
+356   032A 5B               DB 0x5b ; .LIL
+357   032B FF               rst 38h
+358   032C DD E1            pop ix
+359   032E C9               ret
+360   032F
+361   032F              _PHYDIO:
+362   032F CD A7 FF     	CALL    H.PHYD
+363   0332 C9               RET
+364   0333
+365   0333              I7F27: ; area that will be copied to F380, contains code and initialisation
+366   0333                  .PHASE  VARWRK
+367   F380
+368   F380 EF           RDPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+369   F381 A8                   DB      0a8h
+370   F382                      ;OUT     (0A8H),A
+371   F382 5E                   LD      E,(HL)
+372   F383 18 03                JR      J7F2F
+373   F385
+374   F385 EF           WRPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+375   F386 A8                   DB      0a8h
+376   F387                      ;OUT     (0A8H),A
+377   F387 73                   LD      (HL),E
+378   F388 7A           J7F2F:  LD      A,D
+379   F389 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
+380   F38A A8                   DB      0a8h
+381   F38B                      ;OUT     (0A8H),A
+382   F38B C9                   RET
+383   F38C
+384   F38C EF           CLPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+385   F38D A8                   DB      0a8h
+386   F38E                      ;OUT     (0A8H),A
+387   F38E 08                   EX      AF,AF'
+388   F38F CD 98 F3             CALL    CLPRM1
+389   F392 08                   EX      AF,AF'
+390   F393 F1                   POP     AF
+391   F394 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
+392   F395 A8                   DB      0a8h
+393   F396                      ;OUT     (0A8H),A
+394   F396 08                   EX      AF,AF'
+395   F397 C9                   RET
+396   F398
+397   F398 DD E9        CLPRM1: JP      (IX)
+398   F39A
+399   F39A 5A 47        USRTAB: defw    FCERR                   ; illegal function call
+400   F39C 5A 47                defw    FCERR                   ; illegal function call
+401   F39E 5A 47                defw    FCERR                   ; illegal function call
+402   F3A0 5A 47                defw    FCERR                   ; illegal function call
+403   F3A2 5A 47                defw    FCERR                   ; illegal function call
+404   F3A4 5A 47                defw    FCERR                   ; illegal function call
+405   F3A6 5A 47                defw    FCERR                   ; illegal function call
+406   F3A8 5A 47                defw    FCERR                   ; illegal function call
+407   F3AA 5A 47                defw    FCERR                   ; illegal function call
+408   F3AC 5A 47                defw    FCERR                   ; illegal function call
+409   F3AE
+410   F3AE              LINL40:
+411   F3AE 27                   defb    39
+412   F3AF
+413   F3AF 1D           LINL32: defb    29
+414   F3B0
+415   F3B0              LINLEN:
+416   F3B0 1D                   defb    29
+417   F3B1
+418   F3B1 18           CRTCNT: defb    24
+419   F3B2
+420   F3B2 0E           CLMLST: defb    14
+421   F3B3
+422   F3B3 00 00        TXTNAM: defw    0
+423   F3B5 00 00        TXTCOL: defw    0
+424   F3B7 00 08        TXTCGP: defw    00800H
+425   F3B9 00 00        TXTATR: defw    0
+426   F3BB 00 00        TXTPAT: defw    0
+427   F3BD
+428   F3BD 00 18        T32NAM: defw    01800H
+429   F3BF 00 20        T32COL: defw    02000H
+430   F3C1 00 00        T32CGP: defw    0
+431   F3C3 00 1B        T32ATR: defw    01B00H
+432   F3C5 00 38        T32PAT: defw    03800H
+433   F3C7
+434   F3C7 00 18        GRPNAM: defw    01800H
+435   F3C9 00 20        GRPCOL: defw    02000H
+436   F3CB 00 00        GRPCGP: defw    0
+437   F3CD 00 1B        GRPATR: defw    01B00H
+438   F3CF 00 38        GRPPAT: defw    03800H
+439   F3D1
+440   F3D1 00 08        MLTNAM: defw    00800H
+441   F3D3 00 00        MLTCOL: defw    0
+442   F3D5 00 00        MLTCGP: defw    0
+443   F3D7 00 1B        MLTATR: defw    01B00H
+444   F3D9 00 38        MLTPAT: defw    03800H
+445   F3DB
+446   F3DB 01           CLIKSW: defb    1
+447   F3DC 01           CSRY:   defb    1
+448   F3DD 01           CSRX:   defb    1
+449   F3DE 00           CNSDFG: defb    0
+450   F3DF
+451   F3DF 00           RG0SAV: defb    000H
+452   F3E0 E0           RG1SAV: defb    0E0H
+453   F3E1 00           RG2SAV: defb    000H
+454   F3E2 00           RG3SAV: defb    000H
+455   F3E3 00           RG4SAV: defb    000H
+456   F3E4 00           RG5SAV: defb    000H
+457   F3E5 00           RG6SAV: defb    000H
+458   F3E6 00           RG7SAV: defb    000H
+459   F3E7 00           STATFL: defb    000H
+460   F3E8 FF           TRGFLG: defb    0FFH
+461   F3E9 0F           FORCLR: defb    15
+462   F3EA 04           BAKCLR: defb    4
+463   F3EB
+464   F3EB              BDRCLR:
+465   F3EB 07                   defb    7
+466   F3EC
+467   F3EC C3 00 00     MAXUPD: jp      0
+468   F3EF C3 00 00     MINUPD: jp      0
+469   F3F2 0F           ATRBYT: defb    15
+470   F3F3 59 F9        QUEUES: defw    QUETAB
+471   F3F5 FF           FRCNEW: defb    0FFH
+472   F3F6 01           SCNCNT: defb    1
+473   F3F7 32           REPCNT: defb    50
+474   F3F8 F0 FB        PUTPNT: defw    KEYBUF
+475   F3FA F0 FB        GETPNT: defw    KEYBUF
+476   F3FC 53 5C 26 2D  CS1200: defb    053H,05CH,026H,02DH,00FH
+476   F400 0F
+477   F401 25 2D 0E 16  CS2400: defb    025H,02DH,00EH,016H,01FH
+477   F405 1F
+478   F406 53 5C                defb    053H,05CH
+479   F408 26 2D                defb    026H,02DH
+480   F40A 0F                   defb    00FH
+481   F40B 00 01        ASPCT1: defw    00100H
+482   F40D 00 01        ASPCT2: defw    00100H
+483   F40F 3A           ENDPRG: defb    ':'
+484   F410
+485   F410                      .DEPHASE
+486   03C3              ENDADR:
+487   03C3
+# file closed: bios.asm
