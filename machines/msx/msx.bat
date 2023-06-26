@@ -1,6 +1,6 @@
 init
-load /msx/bios.bin
-load /msx/nms8250_disk.bin
-load /msx/helloworld.bin
-mount /msx/MSXDOS18.DSK
-run 0x8000
+load -0 /msx/bios.bin
+load -1 /msx/bios.bin
+load -1 /msx/diskrom.bin
+mount /msx/MSXDOS.DSK
+run -0 0000
