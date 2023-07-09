@@ -1,4 +1,4 @@
-Zilog eZ80 Macro Assembler Version 4.3 (19073001)25-Jun-23     10:17:32     page:   1
+Zilog eZ80 Macro Assembler Version 4.3 (19073001)04-Jul-23     22:12:44     page:   1
 
 
 PC     Object              I  Line    Source 
@@ -188,208 +188,341 @@ PC     Object              I  Line    Source
                            A     5        SEGMENT CODE ;.STARTUP
                            A     6    
                            A     7    	XDEF	electron_os_api
-                           A     8    
-                           A     9    	XREF	_machine_read_write_disk
-                           A    10        XREF 	_machine_warm_boot
-                           A    11    	;
-                           A    12    	XREF	SLOT_REGISTER
-                           A    13    	XREF	call_address_ix
-                           A    14    	XREF    _prev_mbase
-                           A    15    	XREF	_callSM
-                           A    16    
-       0000F3FC            A    17    JUMPER EQU 0f3fch ;Work area of the data record
-                           A    18    
-                           A    19    ; API's in low 64kb so 16-bit range
-                           A    20    ; call API specified by IX
-000000                     A    21    electron_os_api:
-000000 F5                  A    22    	push af
-000001 C5                  A    23        push bc
-                           A    24    	; let ix point to address in jumptable
-000002 01 15 00 00         A    25        ld bc, jumptable
-000006 DD09                A    26        add ix,bc
-                           A    27    	; read contens of jumptable
-000008 DD4E00              A    28    	ld c, (ix+0)
-00000B DD4601              A    29    	ld b, (ix+1)
-                           A    30    	; put in ix
-00000E C5                  A    31    	push bc
-00000F DDE1                A    32    	pop ix
-                           A    33    	; restore bc+af
-000011 C1                  A    34        pop bc
-000012 F1                  A    35    	pop af
-                           A    36    	; jump to address specified in jumptable
-000013 DDE9                A    37        jp (ix)
-                           A    38    
-000015                     A    39    jumptable:
-000015 2300                A    40        DW eos_machine_read_write_disk				
-000017 3600                A    41        DW eos_machine_reload_warmboot_images		
-                           A    42        ;
-000019 4300                A    43        DW eos_msx_machine_slotregister				
-00001B 4F00                A    44        DW eos_msx_machine_rdslt					
-00001D 6700                A    45        DW eos_msx_machine_wrslt					
-00001F 7B00                A    46        DW eos_msx_machine_calslt					
-000021 D200                A    47        DW eos_msx_machine_enaslt					
-                           A    48    
-                           A    49    ; read/write a sector from/to the disk
-                           A    50    ; 
-000023                     A    51    eos_machine_read_write_disk:
-                           A    52    	; push all registers to the stack to pass t
-000023 E5                  A    53    	push hl
-000024 D5                  A    54    	push de
-000025 C5                  A    55    	push bc
-000026 F5                  A    56    	push af
-000027 ED6E                A    57    	ld a, mb
-000029 F5                  A    58    	push af
-00002A CD 00 00 00         A    59    	call _machine_read_write_disk ; HL contains
-00002E E5                  A    60    	push hl
-00002F F1                  A    61    	pop af
-                           A    62    	; restore the other registers
-000030 E1                  A    63    	pop hl ; old mb contents is not modified
-000031 E1                  A    64    	pop hl ; old af contents can be thrown away
-000032 C1                  A    65    	pop bc
-000033 D1                  A    66    	pop de
-000034 E1                  A    67    	pop hl
-000035 C9                  A    68        ret
-                           A    69    
-000036                     A    70    eos_machine_reload_warmboot_images:
-000036 E5                  A    71    	push hl
-000037 D5                  A    72    	push de
-000038 C5                  A    73    	push bc
-000039 F5                  A    74    	push af
-00003A CD 00 00 00         A    75    	call _machine_warm_boot
-00003E F1                  A    76    	pop af
-00003F C1                  A    77    	pop bc
-000040 D1                  A    78    	pop de
-000041 E1                  A    79    	pop hl
-000042 C9                  A    80        ret
-                           A    81    	
-000043                     A    82    eos_msx_machine_slotregister:
-000043 38 05               A    83    	jr c, _slotregister_write
-000045                     A    84    _slotregister_read:
-000045 3A 00 00 00         A    85    	ld a, (SLOT_REGISTER)
-000049 C9                  A    86    	ret
-00004A                     A    87    _slotregister_write:
-00004A 32 00 00 00         A    88    	ld (SLOT_REGISTER),a
-00004E C9                  A    89    	ret
-                           A    90    
-                           A    91    ; IN  - A  slot (ExxxSSPP)
-                           A    92    ;       HL address to read in 16-bit space
-                           A    93    ; OUT - result in A
-00004F                     A    94    eos_msx_machine_rdslt:
-                           A    95    	; assumptions
-                           A    96    	; we have no expanded slots
-                           A    97    	; we only do primary slots
-                           A    98    	; ROM, slot 0, in 0x50000-0x5ffff , other s
-00004F A7                  A    99    	and a
-000050 28 12               A   100    	jr z, _rdslt_rom
-000052 E5                  A   101    	push hl
-                           A   102    	; add start ram slot
-000053 C605                A   103    	add a, 5
-                           A   104    	; push hl to stack which gives:
-                           A   105    	; SP   - L
-                           A   106    	; SP+1 - H
-                           A   107    	; SP+2 - U
-000055 E5                  A   108    	push hl
-000056 DD210000 00         A   109    	ld ix, 0
-00005B DD39                A   110    	add ix, sp
-                           A   111    	; modify hl on stack to point to right slot
-00005D DD7702              A   112    	ld (ix+2),a
-000060 E1                  A   113    	pop hl
-000061 7E                  A   114    	ld a, (hl)
-000062 E1                  A   115    	pop hl
-000063 C9                  A   116    	ret
-000064                     A   117    _rdslt_rom
-000064 3EAA                A   118    	ld a, 0aah
-000066 C9                  A   119    	ret
-000067                     A   120    eos_msx_machine_wrslt:
-000067 A7                  A   121    	and a
-000068 C8                  A   122    	ret z ; do not attempt to write ROM section
-000069 E5                  A   123    	push hl
-                           A   124    	; add start ram slot
-00006A C605                A   125    	add a, 5
-                           A   126    	; push hl to stack which gives:
-                           A   127    	; SP   - L
-                           A   128    	; SP+1 - H
-                           A   129    	; SP+2 - U
-00006C E5                  A   130    	push hl
-00006D DD210000 00         A   131    	ld ix, 0
-000072 DD39                A   132    	add ix, sp
-                           A   133    	; modify hl on stack to point to right slot
-000074 DD7702              A   134    	ld (ix+2),a
-000077 E1                  A   135    	pop hl
-000078 73                  A   136    	ld (hl),e
-000079 E1                  A   137    	pop hl
-00007A C9                  A   138    	ret
-00007B                     A   139    eos_msx_machine_calslt:
-00007B F5                  A   140    	push af
-00007C DDE1                A   141    	pop ix
-                           A   142    	; store mb
-00007E ED6E                A   143    	ld a, mb
-000080 32 00 00 00         A   144    	ld (_prev_mbase),a
-                           A   145    	; store registers we are going to change
-000084 DDE5                A   146    	push ix ; was AF
-000086 D5                  A   147    	push de
-                           A   148    	;
-000087 FD7C                A   149    	ld a, iyh
-000089 C605                A   150    	add a,5
-00008B ED6D                A   151    	ld mb, a
-00008D ED39B5              A   152    	out0 (RAM_ADDR_U), a ; remap internal ram t
-                           A   153    	;
-                           A   154    	; push de to stack which gives:
-                           A   155    	; SP   - E
-                           A   156    	; SP+1 - D
-                           A   157    	; SP+2 - U
-000090 D5                  A   158    	push de
-000091 FD210000 00         A   159    	ld iy, 0
-000096 FD39                A   160    	add iy, sp
-                           A   161    	; modify DE on stack to point to JUMPER add
-                           A   162    	; A contains slot/mb
-000098 FD7702              A   163    	ld (iy+2),a
-00009B 3EF3                A   164    	ld a, HIGH JUMPER
-00009D FD7701              A   165    	ld (iy+1),a
-0000A0 3EFC                A   166    	ld a, LOW JUMPER
-0000A2 FD7700              A   167    	ld (iy+0),a
-                           A   168    	; get it back
-0000A5 D1                  A   169    	pop de
-                           A   170    	; change JUMPER address to call address
-0000A6 DD21 00 00 00       A   171    	ld ix, call_address_ix
-0000AB 3ECD                A   172    	ld a, 0cdh	 ; CALL
-0000AD 12                  A   173    	ld (de),a
-0000AE 13                  A   174    	inc de
-0000AF DD7E00              A   175    	ld a, (ix+0) ; LOW IX
-0000B2 12                  A   176    	ld (de),a
-0000B3 13                  A   177    	inc de
-0000B4 DD7E01              A   178    	ld a, (ix+1) ; HIGH IX
-0000B7 12                  A   179    	ld (de),a
-0000B8 13                  A   180    	inc de
-0000B9 3E49                A   181    	ld a, 049h   ; LIS
-0000BB 12                  A   182    	ld (de),a
-0000BC 13                  A   183    	inc de
-0000BD 3EC9                A   184    	ld a, 0c9h   ; RET
-0000BF 12                  A   185    	ld (de),a
-                           A   186    	;
-0000C0 D1                  A   187    	pop de
-0000C1 F1                  A   188    	pop af
-                           A   189    	;
-0000C2 49CDFCF3            A   190    	call.is JUMPER ; JUMPER routine
-                           A   191    	;
-                           A   192    	; restore mb
-0000C6 F5                  A   193    	push af
-0000C7 3A 00 00 00         A   194    	ld a, (_prev_mbase)
-0000CB ED6D                A   195    	ld mb, a
-0000CD ED39B5              A   196    	out0 (RAM_ADDR_U), a ; remap internal ram t
-0000D0 F1                  A   197    	pop af
-0000D1 C9                  A   198    	ret
-0000D2                     A   199    eos_msx_machine_enaslt:
-                           A   200    	; we don't do anything yet...
-                           A   201    
-                           A   202    	; we could check calling stack
-                           A   203    	; scrub the stack
-                           A   204    	; switch MB
-                           A   205    	; jump to return address in selected slot i
-0000D2 C9                  A   206    	ret
-                           A   207    
+                           A     8    	XDEF	electron_os_inout
+                           A     9    	XDEF	_machine_vblank_handler
+                           A    10    
+                           A    11    	XREF	_machine_read_write_disk
+                           A    12        XREF 	_machine_warm_boot
+                           A    13    	XREF	_machine_vsync_address
+                           A    14    	XREF	_machine_vsync
+                           A    15    	;
+                           A    16    	XREF	SLOT_REGISTER
+                           A    17    	XREF	call_address_ix
+                           A    18    	XREF    _prev_mbase
+                           A    19    	XREF	_callSM
+                           A    20    	;
+                           A    21    	XREF	uart0_send_fifo_add
+                           A    22    	XREF	uart0_recv_fifo_get
+                           A    23    
+       0000F3FC            A    24    JUMPER EQU 0f3fch ;Work area of the data record
+                           A    25    
+                           A    26    ; API's in low 64kb so 16-bit range
+                           A    27    ; call API specified by IX
+000000                     A    28    electron_os_api:
+000000 F5                  A    29    	push af
+000001 C5                  A    30        push bc
+                           A    31    	; let ix point to address in jumptable
+000002 01 15 00 00         A    32        ld bc, jumptable
+000006 DD09                A    33        add ix,bc
+                           A    34    	; read contens of jumptable
+000008 DD4E00              A    35    	ld c, (ix+0)
+00000B DD4601              A    36    	ld b, (ix+1)
+                           A    37    	; put in ix
+00000E C5                  A    38    	push bc
+00000F DDE1                A    39    	pop ix
+                           A    40    	; restore bc+af
+000011 C1                  A    41        pop bc
+000012 F1                  A    42    	pop af
+                           A    43    	; jump to address specified in jumptable
+000013 DDE9                A    44        jp (ix)
+                           A    45    
+000015                     A    46    jumptable:
+000015 2700                A    47        DW eos_machine_read_write_disk				
+000017 3A00                A    48        DW eos_machine_reload_warmboot_images		
+                           A    49        ;
+000019 4700                A    50        DW eos_msx_machine_slotregister				
+00001B 5300                A    51        DW eos_msx_machine_rdslt					
+00001D 6F00                A    52        DW eos_msx_machine_wrslt					
+00001F 8700                A    53        DW eos_msx_machine_calslt					
+000021 DE00                A    54        DW eos_msx_machine_enaslt					
+000023 DF00                A    55    	DW eos_msx_machine_setvblankaddress			
+000025 E400                A    56    	DW eos_msx_machine_getvdpstatus				
+                           A    57    
+                           A    58    ; read/write a sector from/to the disk
+                           A    59    ; 
+000027                     A    60    eos_machine_read_write_disk:
+                           A    61    	; push all registers to the stack to pass t
+000027 E5                  A    62    	push hl
+000028 D5                  A    63    	push de
+000029 C5                  A    64    	push bc
+00002A F5                  A    65    	push af
+00002B ED6E                A    66    	ld a, mb
+00002D F5                  A    67    	push af
+00002E CD 00 00 00         A    68    	call _machine_read_write_disk ; HL contains
+000032 E5                  A    69    	push hl
+000033 F1                  A    70    	pop af
+                           A    71    	; restore the other registers
+000034 E1                  A    72    	pop hl ; old mb contents is not modified
+000035 E1                  A    73    	pop hl ; old af contents can be thrown away
+000036 C1                  A    74    	pop bc
+000037 D1                  A    75    	pop de
+000038 E1                  A    76    	pop hl
+000039 C9                  A    77        ret
+                           A    78    
+00003A                     A    79    eos_machine_reload_warmboot_images:
+00003A E5                  A    80    	push hl
+00003B D5                  A    81    	push de
+00003C C5                  A    82    	push bc
+00003D F5                  A    83    	push af
+00003E CD 00 00 00         A    84    	call _machine_warm_boot
+000042 F1                  A    85    	pop af
+000043 C1                  A    86    	pop bc
+000044 D1                  A    87    	pop de
+000045 E1                  A    88    	pop hl
+000046 C9                  A    89        ret
+                           A    90    	
+000047                     A    91    eos_msx_machine_slotregister:
+000047 38 05               A    92    	jr c, _slotregister_write
+000049                     A    93    _slotregister_read:
+000049 3A 00 00 00         A    94    	ld a, (SLOT_REGISTER)
+00004D C9                  A    95    	ret
+00004E                     A    96    _slotregister_write:
+00004E 32 00 00 00         A    97    	ld (SLOT_REGISTER),a
+000052 C9                  A    98    	ret
+                           A    99    
+                           A   100    ; IN  - A  slot (ExxxSSPP)
+                           A   101    ;       HL address to read in 16-bit space
+                           A   102    ; OUT - result in A
+000053                     A   103    eos_msx_machine_rdslt:
+                           A   104    	; assumptions
+                           A   105    	; we have no expanded slots
+                           A   106    	; we only do primary slots
+                           A   107    	; ROM, slot 0, in 0x50000-0x5ffff , other s
+000053 A7                  A   108    	and a
+000054 28 16               A   109    	jr z, _rdslt_rom
+000056 DDE5                A   110    	push ix
+000058 E5                  A   111    	push hl
+                           A   112    	; add start ram slot
+000059 C605                A   113    	add a, 5
+                           A   114    	; push hl to stack which gives:
+                           A   115    	; SP   - L
+                           A   116    	; SP+1 - H
+                           A   117    	; SP+2 - U
+00005B E5                  A   118    	push hl
+00005C DD210000 00         A   119    	ld ix, 0
+000061 DD39                A   120    	add ix, sp
+                           A   121    	; modify hl on stack to point to right slot
+000063 DD7702              A   122    	ld (ix+2),a
+000066 E1                  A   123    	pop hl
+000067 7E                  A   124    	ld a, (hl)
+000068 E1                  A   125    	pop hl
+000069 DDE1                A   126    	pop ix
+00006B C9                  A   127    	ret
+00006C                     A   128    _rdslt_rom
+00006C 3EAA                A   129    	ld a, 0aah
+00006E C9                  A   130    	ret
+00006F                     A   131    eos_msx_machine_wrslt:
+00006F A7                  A   132    	and a
+000070 C8                  A   133    	ret z ; do not attempt to write ROM section
+000071 DDE5                A   134    	push ix
+000073 E5                  A   135    	push hl
+                           A   136    	; add start ram slot
+000074 C605                A   137    	add a, 5
+                           A   138    	; push hl to stack which gives:
+                           A   139    	; SP   - L
+                           A   140    	; SP+1 - H
+                           A   141    	; SP+2 - U
+000076 E5                  A   142    	push hl
+000077 DD210000 00         A   143    	ld ix, 0
+00007C DD39                A   144    	add ix, sp
+                           A   145    	; modify hl on stack to point to right slot
+00007E DD7702              A   146    	ld (ix+2),a
+000081 E1                  A   147    	pop hl
+000082 73                  A   148    	ld (hl),e
+000083 E1                  A   149    	pop hl
+000084 DDE1                A   150    	pop ix
+000086 C9                  A   151    	ret
+                           A   152    
+                           A   153    ;Function : Executes inter-slot call.
+                           A   154    ;Input    : IY - High byte with slot ID, see RD
+                           A   155    ;           IX - The address that will be calle
+                           A   156    ;Remark   : Variables can never be given in alt
+000087                     A   157    eos_msx_machine_calslt:
+000087 F5                  A   158    	push af
+000088 DDE1                A   159    	pop ix
+                           A   160    	; store mb
+00008A ED6E                A   161    	ld a, mb
+00008C 32 00 00 00         A   162    	ld (_prev_mbase),a
+                           A   163    	; store registers we are going to change
+000090 DDE5                A   164    	push ix ; was AF
+000092 D5                  A   165    	push de
+                           A   166    	;
+000093 FD7C                A   167    	ld a, iyh
+000095 C605                A   168    	add a,5
+000097 ED6D                A   169    	ld mb, a
+000099 ED39B5              A   170    	out0 (RAM_ADDR_U), a ; remap internal ram t
+                           A   171    	;
+                           A   172    	; push de to stack which gives:
+                           A   173    	; SP   - E
+                           A   174    	; SP+1 - D
+                           A   175    	; SP+2 - U
+00009C D5                  A   176    	push de
+00009D FD210000 00         A   177    	ld iy, 0
+0000A2 FD39                A   178    	add iy, sp
+                           A   179    	; modify DE on stack to point to JUMPER add
+                           A   180    	; A contains slot/mb
+0000A4 FD7702              A   181    	ld (iy+2),a
+0000A7 3EF3                A   182    	ld a, HIGH JUMPER
+0000A9 FD7701              A   183    	ld (iy+1),a
+0000AC 3EFC                A   184    	ld a, LOW JUMPER
+0000AE FD7700              A   185    	ld (iy+0),a
+                           A   186    	; get it back
+0000B1 D1                  A   187    	pop de
+                           A   188    	; change JUMPER address to call address
+0000B2 DD21 00 00 00       A   189    	ld ix, call_address_ix
+0000B7 3ECD                A   190    	ld a, 0cdh	 ; CALL
+0000B9 12                  A   191    	ld (de),a
+0000BA 13                  A   192    	inc de
+0000BB DD7E00              A   193    	ld a, (ix+0) ; LOW IX
+0000BE 12                  A   194    	ld (de),a
+0000BF 13                  A   195    	inc de
+0000C0 DD7E01              A   196    	ld a, (ix+1) ; HIGH IX
+0000C3 12                  A   197    	ld (de),a
+0000C4 13                  A   198    	inc de
+0000C5 3E49                A   199    	ld a, 049h   ; LIS
+0000C7 12                  A   200    	ld (de),a
+0000C8 13                  A   201    	inc de
+0000C9 3EC9                A   202    	ld a, 0c9h   ; RET
+0000CB 12                  A   203    	ld (de),a
+                           A   204    	;
+0000CC D1                  A   205    	pop de
+0000CD F1                  A   206    	pop af
+                           A   207    	;
+0000CE 49CDFCF3            A   208    	call.is JUMPER ; JUMPER routine
+                           A   209    	;
+                           A   210    	; restore mb
+0000D2 F5                  A   211    	push af
+0000D3 3A 00 00 00         A   212    	ld a, (_prev_mbase)
+0000D7 ED6D                A   213    	ld mb, a
+0000D9 ED39B5              A   214    	out0 (RAM_ADDR_U), a ; remap internal ram t
+0000DC F1                  A   215    	pop af
+0000DD C9                  A   216    	ret
+                           A   217    
+0000DE                     A   218    eos_msx_machine_enaslt:
+                           A   219    	; we don't do anything yet...
+                           A   220    
+                           A   221    	; we could check calling stack
+                           A   222    	; scrub the stack
+                           A   223    	; switch MB
+                           A   224    	; jump to return address in selected slot i
+0000DE C9                  A   225    	ret
+                           A   226    
+0000DF                     A   227    eos_msx_machine_setvblankaddress:
+0000DF 22 00 00 00         A   228    	ld (_machine_vsync_address),hl
+0000E3 C9                  A   229    	ret
+                           A   230    
+0000E4                     A   231    eos_msx_machine_getvdpstatus:
+0000E4 3A 00 00 00         A   232    	ld a, (_machine_vsync)
+0000E8 F5                  A   233    	push af
+0000E9 AF                  A   234    	xor a
+0000EA 32 00 00 00         A   235    	ld (_machine_vsync),a
+0000EE F1                  A   236    	pop af
+0000EF C9                  A   237    	ret
+                           A   238    	
+0000F0                     A   239    _machine_vblank_handler:
+0000F0 F3                  A   240    	DI
+0000F1 F5                  A   241    	push af
+0000F2 D5                  A   242    	push de
+0000F3 E5                  A   243    	push hl
+0000F4 FDE5                A   244    	push iy
+                           A   245    	;
+0000F6 2A 00 00 00         A   246    	ld hl,(_machine_vsync_address)
+0000FA 7D                  A   247    	ld a, l
+0000FB B4                  A   248    	or h
+0000FC 28 33               A   249    	jr z, _no_address	
+                           A   250    	; set vsync status
+0000FE 3E80                A   251    	ld a, 080h
+000100 32 00 00 00         A   252    	ld (_machine_vsync), a
+                           A   253    	; push de to stack which gives:
+                           A   254    	; SP   - E
+                           A   255    	; SP+1 - D
+                           A   256    	; SP+2 - U
+000104 D5                  A   257    	push de
+000105 FD210000 00         A   258    	ld iy, 0
+00010A FD39                A   259    	add iy, sp
+                           A   260    	; modify DE on stack to point to JUMPER add
+00010C ED6E                A   261    	ld a, mb
+00010E FD7702              A   262    	ld (iy+2),a
+000111 3EF3                A   263    	ld a, HIGH JUMPER
+000113 FD7701              A   264    	ld (iy+1),a
+000116 3EFC                A   265    	ld a, LOW JUMPER
+000118 FD7700              A   266    	ld (iy+0),a
+                           A   267    	; get it back
+00011B D1                  A   268    	pop de
+                           A   269    	; change JUMPER address to call address
+00011C 3ECD                A   270    	ld a, 0cdh	 ; CALL
+00011E 12                  A   271    	ld (de),a
+00011F 13                  A   272    	inc de
+000120 7D                  A   273    	ld a, l
+000121 12                  A   274    	ld (de),a
+000122 13                  A   275    	inc de
+000123 7C                  A   276    	ld a, h
+000124 12                  A   277    	ld (de),a
+000125 13                  A   278    	inc de
+000126 3E49                A   279    	ld a, 049h   ; LIS
+000128 12                  A   280    	ld (de),a
+000129 13                  A   281    	inc de
+00012A 3EC9                A   282    	ld a, 0c9h   ; RET
+00012C 12                  A   283    	ld (de),a
+                           A   284    	;
+00012D 49CDFCF3            A   285    	call.is JUMPER ; JUMPER routine	
+                           A   286    	;
+000131                     A   287    _no_address:
+000131 FDE1                A   288    	pop iy
+000133 E1                  A   289    	pop hl
+000134 D1                  A   290    	pop de
+000135 F1                  A   291    	pop af
+000136 FB                  A   292    	EI	
+000137 5BED4D              A   293    	RETI.L
+                           A   294    
+                           A   295    ; IN/OUT to port specified in IYl
+                           A   296    ; OUT value in IYh
+                           A   297    ; Cy = write, No Cy = read
+00013A                     A   298    electron_os_inout:
+00013A F5                  A   299    	push af
+00013B FD7D                A   300    	ld a, iyl
+00013D FEA8                A   301    	cp 0a8h
+00013F 28 33               A   302    	jr z, _electron_os_inout_slotregister
+000141 FEFF                A   303    	cp 0ffh ; if port number is ffh then it is 
+000143 20 02               A   304    	jr nz, _electron_os_inout_next_1
+000145 FD69                A   305    	ld iyl, c
+000147                     A   306    _electron_os_inout_next_1:	
+000147 F1                  A   307    	pop af
+000148 F5                  A   308    	push af
+                           A   309    	; send command to HAL
+000149 3E80                A   310    	ld a, 080h ; 0b10000000 ; send
+00014B 38 02               A   311    	jr c, _electron_os_inout_next_2
+00014D F601                A   312    	or 001h ; 0b00000001 ; recv
+00014F                     A   313    _electron_os_inout_next_2:
+                           A   314    	; send command 0x80 (out) or 0x81 (in)
+00014F CD 00 00 00         A   315    	call uart0_send_fifo_add
+                           A   316    	; send port number
+000153 FD7D                A   317    	ld a, iyl
+000155 CD 00 00 00         A   318    	call uart0_send_fifo_add
+000159 F1                  A   319    	pop af
+00015A 30 07               A   320    	jr nc, _electron_os_inout_recv_1
+                           A   321    	; send last byte, value
+00015C FD7C                A   322    	ld a, iyh
+00015E CD 00 00 00         A   323    	call uart0_send_fifo_add
+000162 C9                  A   324    	ret
+000163                     A   325    _electron_os_inout_recv_1:
+                           A   326    	; wait for result
+000163 CD 00 00 00         A   327    	call uart0_recv_fifo_get
+000167 38 FA               A   328    	jr c, _electron_os_inout_recv_1
+000169 FE81                A   329    	cp 081h ; 0b10000001
+                           A   330    	; skip responses we do not expect
+00016B 20 F6               A   331    	jr nz, _electron_os_inout_recv_1
+00016D                     A   332    _electron_os_inout_recv_2:
+                           A   333    	; wait for result
+00016D CD 00 00 00         A   334    	call uart0_recv_fifo_get
+000171 38 FA               A   335    	jr c, _electron_os_inout_recv_2
+                           A   336    	; value returned in A
+000173 C9                  A   337    	ret
+000174                     A   338    _electron_os_inout_slotregister:
+000174 F1                  A   339    	pop af
+000175 C3 47 00 00         A   340    	jp eos_msx_machine_slotregister
 
 
 Errors: 0
 Warnings: 0
-Lines Assembled: 387
+Lines Assembled: 520

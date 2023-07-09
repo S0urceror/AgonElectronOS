@@ -123,7 +123,7 @@ BOOL cp_type (char* filename)
 BOOL cp_process ()
 {
 	char  *pArg,*pEnd;
-	INT16 start_address,begin,end,start;
+	INT16 start_address,begin,end,start,vsync_address;
 	UINT8 slot = 0 ; // default slot 0
 
 	if (strstr (szCommandLine,"init")==szCommandLine)
@@ -206,6 +206,19 @@ BOOL cp_process ()
 		machine_start (slot,start_address);
 		return TRUE;
 	}
+	if (strstr (szCommandLine,"vsync")==szCommandLine)
+	{
+		BOOL vsync = TRUE;
+		pArg = szCommandLine+5;
+		if (*pArg!='\0')
+		{	
+			pArg++;
+			if (pArg[0]=='o' && pArg[1]=='f' && pArg[2]=='f')
+				vsync = FALSE;
+		}
+		machine_set_vsync (vsync);
+		return TRUE;
+	}
 	if (strstr (szCommandLine,"dir")==szCommandLine)
 	{
 		pArg = szCommandLine+3;
@@ -257,41 +270,64 @@ BOOL cp_process ()
 			return cp_type (++pArg);
 		}
 	}
+	if (strstr (szCommandLine,"rem")==szCommandLine)
+	{
+		return TRUE;
+	}
 	return FALSE;
+}
+
+void process_character (INT ch)
+{
+	if (ch>=0x20 && ch<0x7f) 
+	{
+		putch(ch);
+		*ptrCommandLine = ch;
+		ptrCommandLine++;
+	}
+	if (ch == '\r') // carriage return
+	{
+		*ptrCommandLine=0;
+		ptrCommandLine=szCommandLine;
+		if (cp_process ())
+			printf ("\r\nOK\r\n*");
+		else
+			printf ("\r\nSyntax error\r\n*");
+	}
+	if (ch == 0x7f) // backspace
+	{
+		if (ptrCommandLine>szCommandLine)
+		{
+			putch (ch);
+			ptrCommandLine--;
+		}
+	}
+}
+void process_cmd (INT ch)
+{
+	UINT8 cmd = ch & 0x7f; //0b01111111;
+	printf ("\r\nreceived command %d\r\n",cmd);
+	switch (cmd)
+	{
+		case 0:
+			
+			break;
+	}
 }
 
 void cp_run ()
 {
 	INT ch;
-	
+
 	printf ("\r\n*");
 	ptrCommandLine = szCommandLine;
 	while (TRUE)
 	{
 		ch = getch();
-		if (ch>=0x20 && ch<0x80) 
-		{
-			putch(ch);
-			*ptrCommandLine = ch;
-			ptrCommandLine++;
-			continue;
-		}
-		if (ch == '\r') // carriage return
-		{
-			*ptrCommandLine=0;
-			ptrCommandLine=szCommandLine;
-			if (cp_process ())
-				printf ("\r\nOK\r\n*");
-			else
-				printf ("\r\nSyntax error\r\n*");
-		}
-		if (ch == 0x08) // backspace
-		{
-			if (ptrCommandLine>szCommandLine)
-			{
-				putch (ch);
-				ptrCommandLine--;
-			}
-		}
+		if (ch & 0x80 /*0b10000000*/)
+			process_cmd (ch);
+		else
+			process_character (ch);
+		
 	}
 }

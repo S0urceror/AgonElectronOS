@@ -1,4 +1,4 @@
-Zilog eZ80 Macro Assembler Version 4.3 (19073001)24-Jun-23     07:37:02     page:   1
+Zilog eZ80 Macro Assembler Version 4.3 (19073001)04-Jul-23     21:34:48     page:   1
 
 
 PC     Object              I  Line    Source 
@@ -117,8 +117,8 @@ PC     Object              I  Line    Source
        00000085            B   107    TMR1_RR_H               EQU     85h
                            B   108    
                            B   109    ; UART constants
-       00000050            B   110    UART0_SEND_BUFFER_SIZE  EQU     80
-       00000050            B   111    UART0_RECV_BUFFER_SIZE  EQU     80
+       00000040            B   110    UART0_SEND_BUFFER_SIZE  EQU     64
+       00000040            B   111    UART0_RECV_BUFFER_SIZE  EQU     64
        00000002            B   112    UART_IER_TRANSMITINT    EQU     00000010b
                            A     7    			
                            A     8    			XDEF	_clock
@@ -148,11 +148,11 @@ PC     Object              I  Line    Source
 000017                     A    32    _prev_mbase		DS  1
                            A    33    
 000018                     A    34    _uart0_send_buffer DS UART0_SEND_BUFFER_SIZE
-000068                     A    35    _uart0_send_head DS 3
-00006B                     A    36    _uart0_send_tail DS 3
-00006E                     A    37    _uart0_recv_buffer DS UART0_RECV_BUFFER_SIZE
-0000BE                     A    38    _uart0_recv_head DS 3
-0000C1                     A    39    _uart0_recv_tail DS 3
+000058                     A    35    _uart0_send_head DS 3
+00005B                     A    36    _uart0_send_tail DS 3
+00005E                     A    37    _uart0_recv_buffer DS UART0_RECV_BUFFER_SIZE
+00009E                     A    38    _uart0_recv_head DS 3
+0000A1                     A    39    _uart0_recv_tail DS 3
                            A    40    		
                            A    41    			SECTION DATA		; This section 
                            A    42    

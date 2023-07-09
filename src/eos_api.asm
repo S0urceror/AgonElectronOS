@@ -5,14 +5,21 @@
     SEGMENT CODE ;.STARTUP
 
 	XDEF	electron_os_api
+	XDEF	electron_os_inout
+	XDEF	_machine_vblank_handler
 
 	XREF	_machine_read_write_disk
     XREF 	_machine_warm_boot
+	XREF	_machine_vsync_address
+	XREF	_machine_vsync
 	;
 	XREF	SLOT_REGISTER
 	XREF	call_address_ix
 	XREF    _prev_mbase
 	XREF	_callSM
+	;
+	XREF	uart0_send_fifo_add
+	XREF	uart0_recv_fifo_get
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
 
@@ -45,6 +52,8 @@ jumptable:
     DW eos_msx_machine_wrslt					;0x0008
     DW eos_msx_machine_calslt					;0x000a
     DW eos_msx_machine_enaslt					;0x000c
+	DW eos_msx_machine_setvblankaddress			;0x000e
+	DW eos_msx_machine_getvdpstatus				;0x0010
 
 ; read/write a sector from/to the disk
 ; 
@@ -98,6 +107,7 @@ eos_msx_machine_rdslt:
 	; ROM, slot 0, in 0x50000-0x5ffff , other slots RAM 0x60000 - 0x8ffff
 	and a
 	jr z, _rdslt_rom
+	push ix
 	push hl
 	; add start ram slot
 	add a, 5
@@ -113,6 +123,7 @@ eos_msx_machine_rdslt:
 	pop hl
 	ld a, (hl)
 	pop hl
+	pop ix
 	ret
 _rdslt_rom
 	ld a, 0aah
@@ -120,6 +131,7 @@ _rdslt_rom
 eos_msx_machine_wrslt:
 	and a
 	ret z ; do not attempt to write ROM section
+	push ix
 	push hl
 	; add start ram slot
 	add a, 5
@@ -135,7 +147,13 @@ eos_msx_machine_wrslt:
 	pop hl
 	ld (hl),e
 	pop hl
+	pop ix
 	ret
+
+;Function : Executes inter-slot call.
+;Input    : IY - High byte with slot ID, see RDSLT
+;           IX - The address that will be called
+;Remark   : Variables can never be given in alternative registers or IX and IY
 eos_msx_machine_calslt:
 	push af
 	pop ix
@@ -196,6 +214,7 @@ eos_msx_machine_calslt:
 	out0 (RAM_ADDR_U), a ; remap internal ram to upper 4k of selected 64kB
 	pop af
 	ret
+
 eos_msx_machine_enaslt:
 	; we don't do anything yet...
 
@@ -205,3 +224,117 @@ eos_msx_machine_enaslt:
 	; jump to return address in selected slot in simplified ROM 0/RAM 1 system
 	ret
 
+eos_msx_machine_setvblankaddress:
+	ld (_machine_vsync_address),hl
+	ret
+
+eos_msx_machine_getvdpstatus:
+	ld a, (_machine_vsync)
+	push af
+	xor a
+	ld (_machine_vsync),a
+	pop af
+	ret
+	
+_machine_vblank_handler:
+	DI
+	push af
+	push de
+	push hl
+	push iy
+	;
+	ld hl,(_machine_vsync_address)
+	ld a, l
+	or h
+	jr z, _no_address	
+	; set vsync status
+	ld a, 080h
+	ld (_machine_vsync), a
+	; push de to stack which gives:
+	; SP   - E
+	; SP+1 - D
+	; SP+2 - U
+	push de
+	ld iy, 0
+	add iy, sp
+	; modify DE on stack to point to JUMPER address in right slot
+	ld a, mb
+	ld (iy+2),a
+	ld a, HIGH JUMPER
+	ld (iy+1),a
+	ld a, LOW JUMPER
+	ld (iy+0),a
+	; get it back
+	pop de
+	; change JUMPER address to call address
+	ld a, 0cdh	 ; CALL
+	ld (de),a
+	inc de
+	ld a, l
+	ld (de),a
+	inc de
+	ld a, h
+	ld (de),a
+	inc de
+	ld a, 049h   ; LIS
+	ld (de),a
+	inc de
+	ld a, 0c9h   ; RET
+	ld (de),a
+	;
+	call.is JUMPER ; JUMPER routine	
+	;
+_no_address:
+	pop iy
+	pop hl
+	pop de
+	pop af
+	EI	
+	RETI.L
+
+; IN/OUT to port specified in IYl
+; OUT value in IYh
+; Cy = write, No Cy = read
+electron_os_inout:
+	push af
+	ld a, iyl
+	cp 0a8h
+	jr z, _electron_os_inout_slotregister
+	cp 0ffh ; if port number is ffh then it is passed in register C
+	jr nz, _electron_os_inout_next_1
+	ld iyl, c
+_electron_os_inout_next_1:	
+	pop af
+	push af
+	; send command to HAL
+	ld a, 080h ; 0b10000000 ; send
+	jr c, _electron_os_inout_next_2
+	or 001h ; 0b00000001 ; recv
+_electron_os_inout_next_2:
+	; send command 0x80 (out) or 0x81 (in)
+	call uart0_send_fifo_add
+	; send port number
+	ld a, iyl
+	call uart0_send_fifo_add
+	pop af
+	jr nc, _electron_os_inout_recv_1
+	; send last byte, value
+	ld a, iyh
+	call uart0_send_fifo_add
+	ret
+_electron_os_inout_recv_1:
+	; wait for result
+	call uart0_recv_fifo_get
+	jr c, _electron_os_inout_recv_1
+	cp 081h ; 0b10000001
+	; skip responses we do not expect
+	jr nz, _electron_os_inout_recv_1
+_electron_os_inout_recv_2:
+	; wait for result
+	call uart0_recv_fifo_get
+	jr c, _electron_os_inout_recv_2
+	; value returned in A
+	ret
+_electron_os_inout_slotregister:
+	pop af
+	jp eos_msx_machine_slotregister

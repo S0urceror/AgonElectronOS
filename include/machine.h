@@ -27,5 +27,7 @@ void machine_warm_boot ();
 BOOL machine_set_warmboot_image (UINT8 bank, char* szFilename);
 
 UINT16 machine_read_write_disk (UINT16 mb, UINT16 af, UINT16 bc, UINT16 de, UINT16 hl);
+void machine_set_vsync (BOOL vsync);
+void machine_vblank_handler ();
 
 #endif

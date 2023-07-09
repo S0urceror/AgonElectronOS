@@ -43,6 +43,9 @@ BRD0_HIGH               .equ    000h
 BRD1_LOW                .equ    00ah
 BRD1_HIGH               .equ    000h
 
+; interrupt driven sends or immediate sending?	
+UART0_SEND_INTERRUPTS EQU    0
+
 _init_uart
 UART0_INIT:
     ; all pins to GPIO mode 2, high impedance input
@@ -195,6 +198,8 @@ _uart0_init_fifo:
     pop hl
     ret
 
+	IF UART0_SEND_INTERRUPTS
+
 ; Write a character to the SEND buffer
 ; Parameters:
 ; - A: The character to write (least significant byte)
@@ -214,7 +219,7 @@ uart0_send_fifo_add:
     ld de, _uart0_send_buffer
     sbc hl,de
     ld a, l
-    cp UART0_SEND_BUFFER_SIZE-1
+    cp UART0_SEND_BUFFER_SIZE
     jr nz, _uart0_send_interrupt
     ; reset to start of buffer
     ld (_uart0_send_head),de
@@ -229,6 +234,26 @@ _uart0_send_interrupt:
     pop hl
     ret
 
+	ELSE
+
+; Write a character to the SEND buffer
+; Parameters:
+; - A: The character to write (least significant byte)
+; Returns:
+; - A: The character written
+uart0_send_fifo_add:
+    push af
+_uart0_send_wait    
+    ; check if host is ready to receive, otherwise wait
+    in0 a, (UART0_MSR)
+    bit 4,a ; check inverted CTS bit, 1 = CTS, 0 = NOT CTS (clear to send)
+    jr z, _uart0_send_wait
+    ;
+    pop af
+    out0 (UART0_THR),a
+    RET
+	
+	ENDIF
 ; Write a received character to the RECV buffer
 ; Parameters:
 ; - A: The character to write (least significant byte)
@@ -248,7 +273,7 @@ uart0_recv_fifo_add:
     ld de, _uart0_recv_buffer
     sbc hl,de
     ld a, l
-    cp UART0_RECV_BUFFER_SIZE-1
+    cp UART0_RECV_BUFFER_SIZE
     jr nz, _uart0_recv_done
     ; reset to start of buffer
     ld (_uart0_recv_head),de
@@ -283,7 +308,7 @@ uart0_send_fifo_get:
     ld de, _uart0_send_buffer
     sbc hl,de
     ld a, l
-    cp UART0_SEND_BUFFER_SIZE-1
+    cp UART0_SEND_BUFFER_SIZE
     jr nz, _uart0_send_read
     ; reset to start of buffer
     ld (_uart0_send_tail),de
@@ -323,7 +348,7 @@ uart0_recv_fifo_get:
     ld de, _uart0_recv_buffer
     sbc hl,de
     ld a, l
-    cp UART0_RECV_BUFFER_SIZE-1
+    cp UART0_RECV_BUFFER_SIZE
     jr nz, _uart0_recv_read
     ; reset to start of buffer
     ld (_uart0_recv_tail),de

@@ -4641,8 +4641,14 @@ A5967:  inc     hl
         call    A5F95
         ld      (RAMAD3),a              ; slotid of current page 3
         ld      c,000H
-        call    A5E52                   ; search ram in page 0
-        jr      c,A59C1
+        ; MSM - disable search of RAM in page 0
+        ; RDVRM/WRVRM destroys page 0 bios in slot 1 and screws up
+        ;call    A5E52                   ; search ram in page 0
+        ;jr      c,A59C1
+        nop
+        nop
+        nop
+        ld      a, 1
         ld      (RAMAD0),a              ; found, set ram slotid page 0
 A59C1:  ld      c,040H
         call    A5E52                   ; search ram in page 1

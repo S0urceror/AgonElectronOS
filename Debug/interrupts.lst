@@ -1,4 +1,4 @@
-Zilog eZ80 Macro Assembler Version 4.3 (19073001)24-Jun-23     07:37:02     page:   1
+Zilog eZ80 Macro Assembler Version 4.3 (19073001)02-Jul-23     09:58:12     page:   1
 
 
 PC     Object              I  Line    Source 
@@ -180,8 +180,8 @@ PC     Object              I  Line    Source
        00000085            B   107    TMR1_RR_H               EQU     85h
                            B   108    
                            B   109    ; UART constants
-       00000050            B   110    UART0_SEND_BUFFER_SIZE  EQU     80
-       00000050            B   111    UART0_RECV_BUFFER_SIZE  EQU     80
+       00000040            B   110    UART0_SEND_BUFFER_SIZE  EQU     64
+       00000040            B   111    UART0_RECV_BUFFER_SIZE  EQU     64
        00000002            B   112    UART_IER_TRANSMITINT    EQU     00000010b
                            B     0    			INCLUDE "eZ80F92.inc"
                            B     1    ;**********************************************

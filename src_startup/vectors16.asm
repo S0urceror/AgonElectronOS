@@ -26,6 +26,7 @@
 			XREF	uart0_recv_fifo_get
 			XREF	uart0_recv_fifo_nrchars
 			XREF	electron_os_api
+			XREF	electron_os_inout
 			XREF	call_address_ix
 
 NVECTORS 	EQU 48			; Number of interrupt vectors
@@ -102,7 +103,7 @@ _rst_08_handler:
 	RET.L
 
 ; get a character from the input fifo in A
-; non-blocking, returns C when no char available
+; non-blocking, returns Cy when no char available
 _rst_10_handler:
 	call uart0_recv_fifo_get
 	RET.L
@@ -114,7 +115,10 @@ _rst_18_handler:
 _rst_20_handler:
 	call uart0_recv_fifo_nrchars
 	RET.L
+
 _rst_28_handler:
+	CALL electron_os_inout
+	RET.L
 _rst_30_handler:
 	RET.L
 
@@ -140,21 +144,22 @@ __default_mi_handler:
 ; void _init_default_vectors(void);
 ;
 __init_default_vectors:
-_init_default_vectors:	PUSH	AF
+_init_default_vectors:	
+	PUSH	AF
 	SAVEIMASK
-	LD	HL, __default_mi_handler
-	LD	A, %C3
-	LD 	(__2nd_jump_table), A		; Place jp opcode
-	LD 	(__2nd_jump_table + 1), HL	; __default_hndlr
-	LD 	HL, __2nd_jump_table
-	LD	DE, __2nd_jump_table + 4
-	LD	BC, NVECTORS * 4 - 4
+	LD		HL, __default_mi_handler
+	LD		A, %C3
+	LD 		(__2nd_jump_table), A		; Place jp opcode
+	LD 		(__2nd_jump_table + 1), HL	; __default_hndlr
+	LD 		HL, __2nd_jump_table
+	LD		DE, __2nd_jump_table + 4
+	LD		BC, NVECTORS * 4 - 4
 	LDIR
-	IM	2
-	LD 	A, __vector_table >> 8
-	LD 	I, A				; Load interrupt vector base
+	IM		2
+	LD 		A, __vector_table >> 8
+	LD 		I, A				; Load interrupt vector base
 	RESTOREIMASK
-	POP	AF
+	POP		AF
 	RET
 
 ; Installs a user interrupt handler in the 2nd interrupt vector jump table
@@ -164,27 +169,27 @@ _init_default_vectors:	PUSH	AF
 __set_vector:
 _set_vector:		
 	PUSH	IY
-	LD	IY, 0
-	ADD	IY, SP				; Standard prologue
+	LD		IY, 0
+	ADD		IY, SP				; Standard prologue
 	PUSH	AF
 	SAVEIMASK
-	LD	BC, 0				; Clear BC
-	LD	B, 2				; Calculate 2nd jump table offset
-	LD	C, (IY + 6)			; Vector offset
-	MLT	BC				; BC is 2nd jp table offset
-	LD	HL, __2nd_jump_table
-	ADD	HL, BC				; HL is location of jp in 2nd jp table
-	LD 	(HL), %C3			; Place jp opcode just in case
-	INC	HL				; HL is jp destination address
-	LD	BC, (IY + 9)			; BC is isr address
-	LD 	DE, (HL)			; Save previous handler
-	LD 	(HL), BC			; Store new isr address
+	LD		BC, 0				; Clear BC
+	LD		B, 2				; Calculate 2nd jump table offset
+	LD		C, (IY + 6)			; Vector offset
+	MLT		BC					; BC is 2nd jp table offset
+	LD		HL, __2nd_jump_table
+	ADD		HL, BC				; HL is location of jp in 2nd jp table
+	LD 		(HL), %C3			; Place jp opcode just in case
+	INC		HL					; HL is jp destination address
+	LD		BC, (IY + 9)		; BC is isr address
+	LD 		DE, (HL)			; Save previous handler
+	LD 		(HL), BC			; Store new isr address
 	PUSH	DE
-	POP	HL				; Return previous handler
+	POP		HL					; Return previous handler
 	RESTOREIMASK
-	POP	AF
-	LD 	SP, IY				; Standard epilogue
-	POP	IY
+	POP		AF
+	LD 		SP, IY				; Standard epilogue
+	POP		IY
 	RET
 
 ; Interrupt Vector Table

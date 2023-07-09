@@ -4,6 +4,7 @@
 #include "machine.h"
 #include "misc.h"
 #include <String.h>
+#include "vectors16.h"
 
 INT8 *ram;
 INT8  mbase;
@@ -11,6 +12,8 @@ FIL disks[8]; // A-H
 char szWarmBootImage[255];
 UINT8 wb_bank;
 int _secsize;
+UINT16 machine_vsync_address;
+UINT8 machine_vsync;
 
 BOOL machine_load_image (UINT8 bank,TCHAR* filename)
 {
@@ -84,6 +87,9 @@ BOOL machine_init ()
 	ram = (INT8*) 0x050000;
 	mbase = 0x05;
 	RAM_ADDR_U = mbase; // MSM: map internal ram to upper 4k of selected 64kB
+	machine_vsync_address=0x0000;
+	machine_vsync=0;
+	
 	return TRUE;
 }
 
@@ -140,4 +146,10 @@ UINT16 machine_read_write_disk (UINT16 mbase,UINT16 af, UINT16 bc, UINT16 de, UI
 			return 0x0101; // return A=1 + carry to signal error
 	}
 	return 0x0000; // no error-code, no carry
+}
+
+void machine_set_vsync (BOOL vsync)
+{
+	if (vsync==TRUE)
+		set_vector(PORTB1_IVECT, machine_vblank_handler); 	// 0x32
 }

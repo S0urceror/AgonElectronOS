@@ -32,504 +32,1267 @@
  31   0000              MSXVER EQU 0 ; MSX1
  32   0000
  33   0000              VARWRK  EQU     0F380H
- 34   0000              H.KEYI  EQU     0FD9AH
- 35   0000              HIMEM   EQU     0FC4AH
- 36   0000              BOTTOM  EQU     0FC48H
- 37   0000              PRMSTK  EQU     0F6E4H
- 38   0000              PRMPRV  EQU     0F74CH
- 39   0000              STKTOP  EQU     0F674H
- 40   0000              MEMSIZ  EQU     0f672h
- 41   0000              NULBUF  EQU     0f862h
- 42   0000              FCERR   EQU     0475AH
- 43   0000              QUETAB  EQU     0F959H
- 44   0000              KEYBUF  EQU     0FBF0H
- 45   0000              H.RUNC  EQU     0FECBh
- 46   0000              H.PHYD  EQU     0FFA7h
- 47   0000
- 48   0000              ; BLOAD header
- 49   0000 FE               db 0x0fe
- 50   0001 00 00 C3 03      dw BEGIN, ENDADR, START_BASIC
- 50   0005 00 00
- 51   0007
- 52   0007                  .ORG 0000h
- 53   0000              BEGIN:
- 54   0000              START_BASIC:
- 55   0000
- 56   0000              BOOT:                   ; 0000h
- 57   0000 C3 5A 01         JP _BOOT
- 58   0003 00 00 00...      DS 000Ch - $
- 59   000C              RDSLT:                  ; 000Ch
- 60   000C C3 F3 02         JP _RDSLT
- 61   000F 00               DS 0010h - $
- 62   0010              CHRGTR:                 ; RST 10h
- 63   0010 C9               RET
- 64   0011 00 00 00         DS 0014h - $
- 65   0014              WRSLT:                  ; 0014h
- 66   0014 C3 FE 02         JP _WRSLT
- 67   0017 00               DS 0018h - $
- 68   0018              OUTDO:                   ; RST 18h
- 69   0018 C3 A2 00         JP CHPUT
- 70   001B 00               DS 001Ch - $
- 71   001C              CALSLT:                 ; 001Ch
- 72   001C C3 1B 03         JP _CALSLT
- 73   001F 00               DS 0020h - $
- 74   0020              DCOMPR:                 ; RST 20h
- 75   0020 C3 9E 02         JP _DCOMPR
- 76   0023 00               DS 0024h - $
- 77   0024              ENASLT:                 ; 0024h
- 78   0024 C3 24 03         JP _ENASLT
- 79   0027 00               DS 0028h - $
- 80   0028              GETTYPR:                ; RST 28h
- 81   0028 C3 D6 02         JP _WRITE_PORT
- 82   002B                  DS 002Bh - $
- 83   002B              IDBYT0:
- 84   002B                  IF      INTHZ EQ 60
- 85   002B 11               DEFB    CHRGEN+16*DATFMT
- 86   002C                  ELSE
- 87   002C ~                DEFB    CHRGEN+16*DATFMT+128
- 88   002C                  ENDIF
- 89   002C 11           IDBYT1: DEFB    KEYTYP+16*BASVER
- 90   002D 00           IDBYT2: DEFB    MSXVER                  ; MSX version 0 = MSX1
- 91   002E 00               DEFB    0
- 92   002F 00               DS 0030h - $
- 93   0030              CALLF:                  ; RST 30h
- 94   0030 C3 09 03         JP _CALLF
- 95   0033 00               DS    00034H-$
- 96   0034              ; The next bytes are used by the diskrom, to initialize the double byte header char
- 97   0034              ; table (0F30FH). I have not seen a MSX with anything other than four zero's, meaning
- 98   0034              ; no double byte chars.
- 99   0034 00 00        D0034:  db    0,0
-100   0036 00 00                db    0,0
-101   0038                  DS 0038h - $
-102   0038              KEYINT:                 ; RST 38h
-103   0038 C3 BB 02         JP _READ_PORT
-104   003B
-105   003B 00 00 00...      DS 009ch - $
-106   009C              CHSNS:
-107   009C C3 A9 02         JP _CHSNS
-108   009F
-109   009F                  DS 009fh - $
-110   009F              CHGET:                  ; 009fh
-111   009F C3 A4 02         JP _CHGET
-112   00A2
-113   00A2                  DS 00a2h - $
-114   00A2              CHPUT:                  ; 00a2h
-115   00A2 5B               DB 0x5b ; .LIL
-116   00A3 CF               RST 08h
-117   00A4 C9               RET
-118   00A5
-119   00A5 00 00 00...      DS 00b7h - $
-120   00B7              BREAKX:
-121   00B7 A7               and a ; no CTRL-STOP pressed
-122   00B8 C9               RET
-123   00B9
-124   00B9 00 00 00...      DS 0141h - $
-125   0141              SNSMAT:                 ; 0141h
-126   0141 C3 AD 02         JP _SNSMAT
-127   0144
-128   0144                  DS 0144h - $
-129   0144              PHYDIO:                 ; 0144h
-130   0144 C3 2F 03         JP _PHYDIO
-131   0147
-132   0147 00 00 00...      DS 0159h - $
-133   0159              CALBAS:                 ; 0159h
-134   0159 C9               RET
-135   015A
-136   015A              _BOOT:
-137   015A                  ; assume only primary slots no secundary slots
-138   015A                  ; assume that 0000-3FFF is in slot 00 - ROM
-139   015A                  ; assume that 4000-7FFF is in slot 00 - ROM
-140   015A                  ; assume that 8000-BFFF is in slot 01 - RAM
-141   015A                  ; assume that C000-FFFF is in slot 01 - RAM
-142   015A 3E 54            ld a, 0b01010100
-143   015C DD 21 04 00      ld ix, 0x0004
-144   0160 37               scf ; set carry = write
-145   0161 5B               DB 0x5b ; .LIL
-146   0162 FF               rst 38h
-147   0163
-148   0163                  ; setup MSX variables in page 3
-149   0163 01 49 0C         ld      bc,0C49H
-150   0166 11 81 F3         ld      de,VARWRK+1
-151   0169 21 80 F3         ld      hl,VARWRK
-152   016C 36 00            ld      (hl),0
-153   016E ED B0            ldir                            ; clear system variable area
-154   0170 01 90 00         LD      BC,00090H
-155   0173 11 80 F3         LD      DE,VARWRK
-156   0176 21 33 03         LD      HL,I7F27
-157   0179 ED B0            LDIR                            ; initialize some systemvariables
-158   017B 01 2F 02         LD      BC,00230H-1
-159   017E 11 9B FD         LD      DE,H.KEYI+1
-160   0181 21 9A FD         LD      HL,H.KEYI
-161   0184 36 C9            LD      (HL),0C9H
-162   0186 ED B0            LDIR                            ; initialize hooks
-163   0188 21 80 F3         LD      HL,VARWRK
-164   018B 22 4A FC         LD      (HIMEM),HL              ; highest BASIC RAM address
-165   018E 21 00 80         LD      HL,08000h
-166   0191 22 48 FC         LD      (BOTTOM),HL             ; lowest BASIC RAM address
-167   0194 21 68 F1         ld      hl,0f168h
-168   0197 22 72 F6         ld      (MEMSIZ),hl
-169   019A 21 77 F1         ld      hl,0f177h
-170   019D 22 62 F8         ld      (NULBUF),hl
-171   01A0 21 E4 F6         LD      HL,0f6e4h
-172   01A3 22 4C F7         LD      (PRMPRV),HL             ; initialize previous FN block pointer
-173   01A6 21 A0 F0         LD      HL,0f0a0h
-174   01A9 22 74 F6         LD      (STKTOP),HL             ; Z80 stack temporary at PRMSTK
-175   01AC F9               LD      SP,HL
-176   01AD
-177   01AD                  ; display MSX boot prompt
-178   01AD 21 EF 01         ld hl, MSX_INTRO
-179   01B0 CD E7 01         call _print
-180   01B3 06 10            ld      b,010h
-181   01B5              A7D0D:
-182   01B5 2B               dec     hl
-183   01B6 7D               ld      a,l
-184   01B7 B4               or      h
-185   01B8 20 FB            jr      nz,A7D0D
-186   01BA 10 F9            djnz    A7D0D                   ; wait 3 seconds
-187   01BC
-188   01BC                  ; get contents of diskrom start address in slot 1
-189   01BC DD 21 00 00      ld ix,0
-190   01C0 3E 01            ld a, 1
-191   01C2 21 02 40         ld hl, 04002h
-192   01C5 CD F3 02         call _RDSLT
-193   01C8 DD 6F            ld ixl, a
-194   01CA 3E 01            ld a, 1
-195   01CC 21 03 40         ld hl, 04003h
-196   01CF CD F3 02         call _RDSLT
-197   01D2 DD 67            ld ixh, a
-198   01D4                  ; jump there
-199   01D4 FD 21 00 01      ld iy, 0100h
-200   01D8 CD 1C 00         call CALSLT
-201   01DB
-202   01DB                  ; emulate BASIC continuing init and then calling H.RUNC
-203   01DB CD CB FE         call H.RUNC
-204   01DE                  ; diskrom should now have attempted to run MSXDOS
-205   01DE                  ; if there is no disk mounted or not a valid disk we return here
-206   01DE FB               EI
-207   01DF 21 3C 02         ld hl, FAKE_BASIC_PROMPT
-208   01E2 CD E7 01         call _print
-209   01E5              _forever:
-210   01E5 18 FE            jr _forever
-211   01E7
-212   01E7              _print:
-213   01E7              _next_character:
-214   01E7 7E               ld a, (hl)
-215   01E8 A7               and a
-216   01E9 C8               ret z
-217   01EA 5B               DB 0x5b ; .LIL
-218   01EB CF               RST 08h
-219   01EC 23               inc hl
-220   01ED 18 F8            jr _next_character
-221   01EF
-222   01EF              MSX_INTRO:
-223   01EF 0C 0D 0A 0D      DB 12,"\r\n\r\n\r\n",9,9,9,9,"MSX  system\r\n",9,9,9,9,"version 1.0\r\n",9,9,"Copyright 1983 by Microsoft\r\n\r\n\r\n",0
-223   01F3 0A 0D 0A 09
-223   01F7 09 09 09 4D
-223   01FB 53 58 20 20
-223   01FF 73 79 73 74
-223   0203 65 6D 0D 0A
-223   0207 09 09 09 09
-223   020B 76 65 72 73
-223   020F 69 6F 6E 20
-223   0213 31 2E 30 0D
-223   0217 0A 09 09 43
-223   021B 6F 70 79 72
-223   021F 69 67 68 74
-223   0223 20 31 39 38
-223   0227 33 20 62 79
-223   022B 20 4D 69 63
-223   022F 72 6F 73 6F
-223   0233 66 74 0D 0A
-223   0237 0D 0A 0D 0A
-223   023B 00
-224   023C              FAKE_BASIC_PROMPT:
-225   023C 4D 53 58 20      DB "MSX BASIC version 5.0\r\nCopyright 2023 by S0urceror\r\n65535 Bytes free\r\nDisk BASIC version 1.0\r\nOk\r\n"
-225   0240 42 41 53 49
-225   0244 43 20 76 65
-225   0248 72 73 69 6F
-225   024C 6E 20 35 2E
-225   0250 30 0D 0A 43
-225   0254 6F 70 79 72
-225   0258 69 67 68 74
-225   025C 20 32 30 32
-225   0260 33 20 62 79
-225   0264 20 53 30 75
-225   0268 72 63 65 72
-225   026C 6F 72 0D 0A
-225   0270 36 35 35 33
-225   0274 35 20 42 79
-225   0278 74 65 73 20
-225   027C 66 72 65 65
-225   0280 0D 0A 44 69
-225   0284 73 6B 20 42
-225   0288 41 53 49 43
-225   028C 20 76 65 72
-225   0290 73 69 6F 6E
-225   0294 20 31 2E 30
-225   0298 0D 0A 4F 6B
-225   029C 0D 0A
-226   029E
-227   029E              _DCOMPR:
-228   029E              ;       Subroutine      DCOMPR
-229   029E              ;       Inputs          ________________________
-230   029E              ;       Outputs         ________________________
-231   029E 7C               ld      a,h
-232   029F 92               sub     d
-233   02A0 C0               ret     nz
-234   02A1 7D               ld      a,l
-235   02A2 93               sub     e
-236   02A3 C9               ret
-237   02A4
-238   02A4              _CHGET:
-239   02A4 5B               DB 0x5b ; .LIL
-240   02A5 D7               RST 10h
-241   02A6 38 FC            jr c, _CHGET
-242   02A8 C9               RET
-243   02A9
-244   02A9              _CHSNS
-245   02A9 5B               DB 0x5b ; .LIL
-246   02AA D7               RST 10h
-247   02AB A7               and a
-248   02AC C9               RET
-249   02AD
-250   02AD              _SNSMAT:
-251   02AD C5               push bc
-252   02AE 47               ld b,a ; preserve matrix line nr.
-253   02AF                  ;
-254   02AF                  ; read character from fifo
-255   02AF 5B               DB 0x5b ; .LIL
-256   02B0 D7               RST 10h
-257   02B1 38 04            jr c, HANDLE_SNSMAT_NOPRESS
-258   02B3
-259   02B3                  ; TODO check ASCII with line-nr
-260   02B3 3E FF            ld a, 0xff ; no presses for now
-261   02B5 C1               pop bc
-262   02B6 C9               RET
-263   02B7
-264   02B7              HANDLE_SNSMAT_NOPRESS:
-265   02B7 3E FF            ld a, 0xff
-266   02B9 C1               pop bc
-267   02BA C9               RET
-268   02BB
-269   02BB              _READ_PORT:
-270   02BB FD E1            POP IY
-271   02BD FD 23            INC IY
-272   02BF FD E5            PUSH IY
-273   02C1 FD 7E FF         LD A,(IY-1)
-274   02C4 FE A8            cp 0xa8
-275   02C6 28 02            jr z,_READ_A8
-276   02C8                  ; any other port
-277   02C8 AF               xor a
-278   02C9 C9               RET
-279   02CA              _READ_A8:
-280   02CA DD E5            push ix
-281   02CC DD 21 04 00      ld ix, 0x0004
-282   02D0 A7               and a ; reset carry = read
-283   02D1 5B               DB 0x5b ; .LIL
-284   02D2 FF               rst 38h
-285   02D3 DD E1            pop ix
-286   02D5 C9               RET
-287   02D6
-288   02D6              _WRITE_PORT:
-289   02D6 FD E1            POP IY      ; get address of following instruction
-290   02D8 FD 23            INC IY
-291   02DA FD E5            PUSH IY     ; return address is next byte
-292   02DC F5               push af
-293   02DD FD 7E FF         LD A,(IY-1)
-294   02E0 FE A8            cp 0xa8
-295   02E2 28 02            jr z,_WRITE_A8
-296   02E4                  ; no other OUT's
-297   02E4 F1               pop af
-298   02E5 C9               RET
-299   02E6              _WRITE_A8:
-300   02E6 DD E5            push ix
-301   02E8 DD 21 04 00      ld ix, 0x0004
-302   02EC 37               scf ; set carry = write
-303   02ED 5B               DB 0x5b ; .LIL
-304   02EE FF               rst 38h
-305   02EF DD E1            pop ix
-306   02F1 F1               pop af
-307   02F2 C9               RET
-308   02F3
-309   02F3              _RDSLT:
-310   02F3 DD E5            push ix
-311   02F5 DD 21 06 00      ld ix, 0x0006
-312   02F9 5B               DB 0x5b ; .LIL
-313   02FA FF               rst 38h
-314   02FB DD E1            pop ix
-315   02FD C9               ret
-316   02FE
-317   02FE              _WRSLT:
-318   02FE DD E5            push ix
-319   0300 DD 21 08 00      ld ix, 0x0008
-320   0304 5B               DB 0x5b ; .LIL
-321   0305 FF               rst 38h
-322   0306 DD E1            pop ix
-323   0308 C9               ret
-324   0309
-325   0309              _CALLF:
-326   0309 E3               ex      (sp),hl
-327   030A F5               push    af
-328   030B D5               push    de
-329   030C 7E               ld      a,(hl)
-330   030D F5               push    af
-331   030E FD E1            pop     iy                      ; slotid
-332   0310 23               inc     hl
-333   0311 5E               ld      e,(hl)
-334   0312 23               inc     hl
-335   0313 56               ld      d,(hl)
-336   0314 23               inc     hl
-337   0315 D5               push    de
-338   0316 DD E1            pop     ix                      ; adres
-339   0318 D1               pop     de
-340   0319 F1               pop     af
-341   031A E3               ex      (sp),hl
-342   031B                  ; now slotid is in IY and address is in IX
-343   031B              _CALSLT:
-344   031B                  ; first save IX
-345   031B 5B               DB 0x5b ; .LIL
-346   031C DF               rst 18h
-347   031D                  ;  electron os calslt
-348   031D DD 21 0A 00      ld ix, 0x000a
-349   0321 5B               DB 0x5b ; .LIL
-350   0322 FF               rst 38h
-351   0323 C9               ret
-352   0324
-353   0324              _ENASLT:
-354   0324 DD E5            push ix
-355   0326 DD 21 0C 00      ld ix, 0x000c
-356   032A 5B               DB 0x5b ; .LIL
-357   032B FF               rst 38h
-358   032C DD E1            pop ix
-359   032E C9               ret
-360   032F
-361   032F              _PHYDIO:
-362   032F CD A7 FF     	CALL    H.PHYD
-363   0332 C9               RET
-364   0333
-365   0333              I7F27: ; area that will be copied to F380, contains code and initialisation
-366   0333                  .PHASE  VARWRK
-367   F380
-368   F380 EF           RDPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-369   F381 A8                   DB      0a8h
-370   F382                      ;OUT     (0A8H),A
-371   F382 5E                   LD      E,(HL)
-372   F383 18 03                JR      J7F2F
-373   F385
-374   F385 EF           WRPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-375   F386 A8                   DB      0a8h
-376   F387                      ;OUT     (0A8H),A
-377   F387 73                   LD      (HL),E
-378   F388 7A           J7F2F:  LD      A,D
-379   F389 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
-380   F38A A8                   DB      0a8h
-381   F38B                      ;OUT     (0A8H),A
-382   F38B C9                   RET
-383   F38C
-384   F38C EF           CLPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-385   F38D A8                   DB      0a8h
-386   F38E                      ;OUT     (0A8H),A
-387   F38E 08                   EX      AF,AF'
-388   F38F CD 98 F3             CALL    CLPRM1
-389   F392 08                   EX      AF,AF'
-390   F393 F1                   POP     AF
-391   F394 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
-392   F395 A8                   DB      0a8h
-393   F396                      ;OUT     (0A8H),A
-394   F396 08                   EX      AF,AF'
-395   F397 C9                   RET
-396   F398
-397   F398 DD E9        CLPRM1: JP      (IX)
-398   F39A
-399   F39A 5A 47        USRTAB: defw    FCERR                   ; illegal function call
-400   F39C 5A 47                defw    FCERR                   ; illegal function call
-401   F39E 5A 47                defw    FCERR                   ; illegal function call
-402   F3A0 5A 47                defw    FCERR                   ; illegal function call
-403   F3A2 5A 47                defw    FCERR                   ; illegal function call
-404   F3A4 5A 47                defw    FCERR                   ; illegal function call
-405   F3A6 5A 47                defw    FCERR                   ; illegal function call
-406   F3A8 5A 47                defw    FCERR                   ; illegal function call
-407   F3AA 5A 47                defw    FCERR                   ; illegal function call
-408   F3AC 5A 47                defw    FCERR                   ; illegal function call
-409   F3AE
-410   F3AE              LINL40:
-411   F3AE 27                   defb    39
-412   F3AF
-413   F3AF 1D           LINL32: defb    29
-414   F3B0
-415   F3B0              LINLEN:
-416   F3B0 1D                   defb    29
-417   F3B1
-418   F3B1 18           CRTCNT: defb    24
-419   F3B2
-420   F3B2 0E           CLMLST: defb    14
-421   F3B3
-422   F3B3 00 00        TXTNAM: defw    0
-423   F3B5 00 00        TXTCOL: defw    0
-424   F3B7 00 08        TXTCGP: defw    00800H
-425   F3B9 00 00        TXTATR: defw    0
-426   F3BB 00 00        TXTPAT: defw    0
-427   F3BD
-428   F3BD 00 18        T32NAM: defw    01800H
-429   F3BF 00 20        T32COL: defw    02000H
-430   F3C1 00 00        T32CGP: defw    0
-431   F3C3 00 1B        T32ATR: defw    01B00H
-432   F3C5 00 38        T32PAT: defw    03800H
-433   F3C7
-434   F3C7 00 18        GRPNAM: defw    01800H
-435   F3C9 00 20        GRPCOL: defw    02000H
-436   F3CB 00 00        GRPCGP: defw    0
-437   F3CD 00 1B        GRPATR: defw    01B00H
-438   F3CF 00 38        GRPPAT: defw    03800H
-439   F3D1
-440   F3D1 00 08        MLTNAM: defw    00800H
-441   F3D3 00 00        MLTCOL: defw    0
-442   F3D5 00 00        MLTCGP: defw    0
-443   F3D7 00 1B        MLTATR: defw    01B00H
-444   F3D9 00 38        MLTPAT: defw    03800H
-445   F3DB
-446   F3DB 01           CLIKSW: defb    1
-447   F3DC 01           CSRY:   defb    1
-448   F3DD 01           CSRX:   defb    1
-449   F3DE 00           CNSDFG: defb    0
-450   F3DF
-451   F3DF 00           RG0SAV: defb    000H
-452   F3E0 E0           RG1SAV: defb    0E0H
-453   F3E1 00           RG2SAV: defb    000H
-454   F3E2 00           RG3SAV: defb    000H
-455   F3E3 00           RG4SAV: defb    000H
-456   F3E4 00           RG5SAV: defb    000H
-457   F3E5 00           RG6SAV: defb    000H
-458   F3E6 00           RG7SAV: defb    000H
-459   F3E7 00           STATFL: defb    000H
-460   F3E8 FF           TRGFLG: defb    0FFH
-461   F3E9 0F           FORCLR: defb    15
-462   F3EA 04           BAKCLR: defb    4
-463   F3EB
-464   F3EB              BDRCLR:
-465   F3EB 07                   defb    7
-466   F3EC
-467   F3EC C3 00 00     MAXUPD: jp      0
-468   F3EF C3 00 00     MINUPD: jp      0
-469   F3F2 0F           ATRBYT: defb    15
-470   F3F3 59 F9        QUEUES: defw    QUETAB
-471   F3F5 FF           FRCNEW: defb    0FFH
-472   F3F6 01           SCNCNT: defb    1
-473   F3F7 32           REPCNT: defb    50
-474   F3F8 F0 FB        PUTPNT: defw    KEYBUF
-475   F3FA F0 FB        GETPNT: defw    KEYBUF
-476   F3FC 53 5C 26 2D  CS1200: defb    053H,05CH,026H,02DH,00FH
-476   F400 0F
-477   F401 25 2D 0E 16  CS2400: defb    025H,02DH,00EH,016H,01FH
-477   F405 1F
-478   F406 53 5C                defb    053H,05CH
-479   F408 26 2D                defb    026H,02DH
-480   F40A 0F                   defb    00FH
-481   F40B 00 01        ASPCT1: defw    00100H
-482   F40D 00 01        ASPCT2: defw    00100H
-483   F40F 3A           ENDPRG: defb    ':'
-484   F410
-485   F410                      .DEPHASE
-486   03C3              ENDADR:
-487   03C3
+ 34   0000              HIMEM   EQU     0FC4AH
+ 35   0000              BOTTOM  EQU     0FC48H
+ 36   0000              PRMSTK  EQU     0F6E4H
+ 37   0000              PRMPRV  EQU     0F74CH
+ 38   0000              STKTOP  EQU     0F674H
+ 39   0000              MEMSIZ  EQU     0f672h
+ 40   0000              NULBUF  EQU     0f862h
+ 41   0000              FCERR   EQU     0475AH
+ 42   0000              QUETAB  EQU     0F959H
+ 43   0000              KEYBUF  EQU     0FBF0H
+ 44   0000              H.RUNC  EQU     0FECBh
+ 45   0000              H.PHYD  EQU     0FFA7h
+ 46   0000              H.TIMI  EQU	    0FD9Fh
+ 47   0000              H.KEYI  EQU     0FD9AH
+ 48   0000
+ 49   0000              RG0SAV  EQU     0F3DFH
+ 50   0000
+ 51   0000              ; BLOAD header
+ 52   0000 FE               db 0x0fe
+ 53   0001 00 00 1A 0C      dw BEGIN, ENDADR, START_BASIC
+ 53   0005 00 00
+ 54   0007
+ 55   0007                  .ORG 0000h
+ 56   0000              BEGIN:
+ 57   0000              START_BASIC:
+ 58   0000
+ 59   0000              BOOT:                   ; 0000h
+ 60   0000 C3 5A 01         JP _BOOT
+ 61   0003 10 F4            DW CGTABL           ; 0004h Location MSX font in ROM
+ 62   0005 98               DB 0x98             ; 0006h VDP READ PORT
+ 63   0006 98               DB 0x98             ; 0007h VDP WRITE PORT
+ 64   0007 00 00 00...      DS 000Ch - $
+ 65   000C              RDSLT:                  ; 000Ch
+ 66   000C C3 FE 02         JP _RDSLT
+ 67   000F
+ 68   000F 00               DS 0010h - $
+ 69   0010              CHRGTR:                 ; RST 10h
+ 70   0010 C9               RET
+ 71   0011
+ 72   0011 00 00 00         DS 0014h - $
+ 73   0014              WRSLT:                  ; 0014h
+ 74   0014 C3 09 03         JP _WRSLT
+ 75   0017
+ 76   0017 00               DS 0018h - $
+ 77   0018              OUTDO:                  ; RST 18h
+ 78   0018 C3 A2 00         JP CHPUT
+ 79   001B
+ 80   001B 00               DS 001Ch - $
+ 81   001C              CALSLT:                 ; 001Ch
+ 82   001C C3 26 03         JP _CALSLT
+ 83   001F
+ 84   001F 00               DS 0020h - $
+ 85   0020              DCOMPR:                 ; RST 20h
+ 86   0020 C3 BF 02         JP _DCOMPR
+ 87   0023
+ 88   0023 00               DS 0024h - $
+ 89   0024              ENASLT:                 ; 0024h
+ 90   0024 C3 2F 03         JP _ENASLT
+ 91   0027
+ 92   0027 00               DS 0028h - $
+ 93   0028              GETTYPR:                ; RST 28h
+ 94   0028 C3 EB 02         JP _WRITE_PORT
+ 95   002B
+ 96   002B                  DS 002Bh - $
+ 97   002B              IDBYT0:
+ 98   002B                  IF      INTHZ EQ 60
+ 99   002B 11               DEFB    CHRGEN+16*DATFMT
+100   002C                  ELSE
+101   002C ~                DEFB    CHRGEN+16*DATFMT+128
+102   002C                  ENDIF
+103   002C 11           IDBYT1: DEFB    KEYTYP+16*BASVER
+104   002D 00           IDBYT2: DEFB    MSXVER                  ; MSX version 0 = MSX1
+105   002E 00               DEFB    0
+106   002F
+107   002F 00               DS 0030h - $
+108   0030              CALLF:                  ; RST 30h
+109   0030 C3 14 03         JP _CALLF
+110   0033
+111   0033 00               DS    00034H-$
+112   0034              ; The next bytes are used by the diskrom, to initialize the double byte header char
+113   0034              ; table (0F30FH). I have not seen a MSX with anything other than four zero's, meaning
+114   0034              ; no double byte chars.
+115   0034 00 00        D0034:  db    0,0
+116   0036 00 00                db    0,0
+117   0038
+118   0038                  DS 0038h - $
+119   0038              KEYINT:                 ; RST 38h
+120   0038 C3 DC 02         JP _READ_PORT
+121   003B
+122   003B 00 00 00...      DS 0047h - $
+123   0047              WRTVDP:
+124   0047 C3 49 03         JP _WRTVDP
+125   004A
+126   004A                  DS 004Ah - $
+127   004A              RDVRM:
+128   004A C3 76 03         JP _RDVRM
+129   004D
+130   004D                  DS 004Dh - $
+131   004D              WRTVRM:
+132   004D C3 7E 03         JP _WRTVRM
+133   0050
+134   0050                  DS 0050h - $
+135   0050              SETRD:
+136   0050 C3 5E 03         JP _SETRD
+137   0053
+138   0053                  DS 0053h - $
+139   0053              SETWRT:
+140   0053 C3 69 03         JP _SETWRT
+141   0056
+142   0056 00 00 00...      DS 0093h - $
+143   0093              WRTPSG:
+144   0093 C3 88 03         JP _WRTPSG
+145   0096
+146   0096                  DS 0096h - $
+147   0096              RDPSG:
+148   0096 C3 89 03         JP _RDPSG
+149   0099
+150   0099 00 00 00         DS 009ch - $
+151   009C              CHSNS:
+152   009C C3 CA 02         JP _CHSNS
+153   009F
+154   009F                  DS 009fh - $
+155   009F              CHGET:                  ; 009fh
+156   009F C3 C5 02         JP _CHGET
+157   00A2
+158   00A2                  DS 00a2h - $
+159   00A2              CHPUT:                  ; 00a2h
+160   00A2 5B               DB 0x5b ; .LIL
+161   00A3 CF               RST 08h
+162   00A4 C9               RET
+163   00A5
+164   00A5 00 00 00...      DS 00b7h - $
+165   00B7              BREAKX:
+166   00B7 A7               and a ; no CTRL-STOP pressed
+167   00B8 C9               RET
+168   00B9
+169   00B9 00 00 00...      DS 013eh - $
+170   013E              RDVDP:
+171   013E C3 3E 03         JP _RDVDP
+172   0141
+173   0141                  DS 0141h - $
+174   0141              SNSMAT:                 ; 0141h
+175   0141 C3 CE 02         JP _SNSMAT
+176   0144
+177   0144                  DS 0144h - $
+178   0144              PHYDIO:                 ; 0144h
+179   0144 C3 3A 03         JP _PHYDIO
+180   0147
+181   0147 00 00 00...      DS 0159h - $
+182   0159              CALBAS:                 ; 0159h
+183   0159 C9               RET
+184   015A
+185   015A              _BOOT:
+186   015A                  ; assume only primary slots no secundary slots
+187   015A                  ; assume that 0000-3FFF is in slot 00 - ROM
+188   015A                  ; assume that 4000-7FFF is in slot 00 - ROM
+189   015A                  ; assume that 8000-BFFF is in slot 01 - RAM
+190   015A                  ; assume that C000-FFFF is in slot 01 - RAM
+191   015A 3E 54            ld a, 0b01010100
+192   015C DD 21 04 00      ld ix, 0x0004
+193   0160 37               scf ; set carry = write
+194   0161 5B               DB 0x5b ; .LIL
+195   0162 FF               rst 38h
+196   0163
+197   0163                  ; setup MSX variables in page 3
+198   0163 01 49 0C         ld      bc,0C49H
+199   0166 11 81 F3         ld      de,VARWRK+1
+200   0169 21 80 F3         ld      hl,VARWRK
+201   016C 36 00            ld      (hl),0
+202   016E ED B0            ldir                            ; clear system variable area
+203   0170 01 90 00         LD      BC,00090H
+204   0173 11 80 F3         LD      DE,VARWRK
+205   0176 21 8A 03         LD      HL,I7F27
+206   0179 ED B0            LDIR                            ; initialize some systemvariables
+207   017B 01 2F 02         LD      BC,00230H-1
+208   017E 11 9B FD         LD      DE,H.KEYI+1
+209   0181 21 9A FD         LD      HL,H.KEYI
+210   0184 36 C9            LD      (HL),0C9H
+211   0186 ED B0            LDIR                            ; initialize hooks
+212   0188 21 80 F3         LD      HL,VARWRK
+213   018B 22 4A FC         LD      (HIMEM),HL              ; highest BASIC RAM address
+214   018E 21 00 80         LD      HL,08000h
+215   0191 22 48 FC         LD      (BOTTOM),HL             ; lowest BASIC RAM address
+216   0194 21 68 F1         ld      hl,0f168h
+217   0197 22 72 F6         ld      (MEMSIZ),hl
+218   019A 21 77 F1         ld      hl,0f177h
+219   019D 22 62 F8         ld      (NULBUF),hl
+220   01A0 21 E4 F6         LD      HL,0f6e4h
+221   01A3 22 4C F7         LD      (PRMPRV),HL             ; initialize previous FN block pointer
+222   01A6 21 A0 F0         LD      HL,0f0a0h
+223   01A9 22 74 F6         LD      (STKTOP),HL             ; Z80 stack temporary at PRMSTK
+224   01AC F9               LD      SP,HL
+225   01AD
+226   01AD                  ; set vsync address
+227   01AD DD 21 0E 00      ld ix, 0x000e
+228   01B1 21 9A FD         ld hl, H.KEYI
+229   01B4 5B               DB 0x5b ; .LIL
+230   01B5 FF               rst 38h
+231   01B6                  ;
+232   01B6
+233   01B6                  ; display MSX boot prompt
+234   01B6 21 F8 01         ld hl, MSX_INTRO
+235   01B9 CD F0 01         call _print
+236   01BC 06 10            ld      b,010h
+237   01BE              A7D0D:
+238   01BE 2B               dec     hl
+239   01BF 7D               ld      a,l
+240   01C0 B4               or      h
+241   01C1 20 FB            jr      nz,A7D0D
+242   01C3 10 F9            djnz    A7D0D                   ; wait 3 seconds
+243   01C5
+244   01C5                  ; get contents of diskrom start address in slot 1
+245   01C5 DD 21 00 00      ld ix,0
+246   01C9 3E 01            ld a, 1
+247   01CB 21 02 40         ld hl, 04002h
+248   01CE CD FE 02         call _RDSLT
+249   01D1 DD 6F            ld ixl, a
+250   01D3 3E 01            ld a, 1
+251   01D5 21 03 40         ld hl, 04003h
+252   01D8 CD FE 02         call _RDSLT
+253   01DB DD 67            ld ixh, a
+254   01DD                  ; jump there
+255   01DD FD 21 00 01      ld iy, 0100h
+256   01E1 CD 1C 00         call CALSLT
+257   01E4
+258   01E4                  ; emulate BASIC continuing init and then calling H.RUNC
+259   01E4 CD CB FE         call H.RUNC
+260   01E7                  ; diskrom should now have attempted to run MSXDOS
+261   01E7                  ; if there is no disk mounted or not a valid disk we return here
+262   01E7 FB               EI
+263   01E8 21 5D 02         ld hl, FAKE_BASIC_PROMPT
+264   01EB CD F0 01         call _print
+265   01EE              _forever:
+266   01EE 18 FE            jr _forever
+267   01F0
+268   01F0              _print:
+269   01F0              _next_character:
+270   01F0 7E               ld a, (hl)
+271   01F1 A7               and a
+272   01F2 C8               ret z
+273   01F3 5B               DB 0x5b ; .LIL
+274   01F4 CF               RST 08h
+275   01F5 23               inc hl
+276   01F6 18 F8            jr _next_character
+277   01F8
+278   01F8              MSX_INTRO:
+279   01F8 0C 0D 0A 0D      DB 12,"\r\n\r\n\r\n"
+279   01FC 0A 0D 0A
+280   01FF 20 20 20 20      DB "              MSX  system\r\n"
+280   0203 20 20 20 20
+280   0207 20 20 20 20
+280   020B 20 20 4D 53
+280   020F 58 20 20 73
+280   0213 79 73 74 65
+280   0217 6D 0D 0A
+281   021A 20 20 20 20      DB "              version 1.0\r\n"
+281   021E 20 20 20 20
+281   0222 20 20 20 20
+281   0226 20 20 76 65
+281   022A 72 73 69 6F
+281   022E 6E 20 31 2E
+281   0232 30 0D 0A
+282   0235 20 20 20 20      DB "      Copyright 1983 by Microsoft\r\n"
+282   0239 20 20 43 6F
+282   023D 70 79 72 69
+282   0241 67 68 74 20
+282   0245 31 39 38 33
+282   0249 20 62 79 20
+282   024D 4D 69 63 72
+282   0251 6F 73 6F 66
+282   0255 74 0D 0A
+283   0258 0D 0A 0D 0A      DB "\r\n\r\n",0
+283   025C 00
+284   025D              FAKE_BASIC_PROMPT:
+285   025D 4D 53 58 20      DB "MSX BASIC version 5.0\r\n"
+285   0261 42 41 53 49
+285   0265 43 20 76 65
+285   0269 72 73 69 6F
+285   026D 6E 20 35 2E
+285   0271 30 0D 0A
+286   0274 43 6F 70 79      DB "Copyright 2023 by S0urceror\r\n"
+286   0278 72 69 67 68
+286   027C 74 20 32 30
+286   0280 32 33 20 62
+286   0284 79 20 53 30
+286   0288 75 72 63 65
+286   028C 72 6F 72 0D
+286   0290 0A
+287   0291 36 35 35 33      DB "65535 Bytes free\r\n"
+287   0295 35 20 42 79
+287   0299 74 65 73 20
+287   029D 66 72 65 65
+287   02A1 0D 0A
+288   02A3 44 69 73 6B      DB "Disk BASIC version 1.0\r\n"
+288   02A7 20 42 41 53
+288   02AB 49 43 20 76
+288   02AF 65 72 73 69
+288   02B3 6F 6E 20 31
+288   02B7 2E 30 0D 0A
+289   02BB 4F 6B 0D 0A      DB "Ok\r\n"
+290   02BF
+291   02BF              _DCOMPR:
+292   02BF              ;       Subroutine      DCOMPR
+293   02BF              ;       Inputs          ________________________
+294   02BF              ;       Outputs         ________________________
+295   02BF 7C               ld      a,h
+296   02C0 92               sub     d
+297   02C1 C0               ret     nz
+298   02C2 7D               ld      a,l
+299   02C3 93               sub     e
+300   02C4 C9               ret
+301   02C5
+302   02C5              ;Address  : #009F
+303   02C5              ;Function : One character input (waiting)
+304   02C5              ;Output   : A  - ASCII code of the input character
+305   02C5              ;Registers: AF
+306   02C5              _CHGET:
+307   02C5 5B               DB 0x5b ; .LIL
+308   02C6 D7               RST 10h
+309   02C7 38 FC            jr c, _CHGET
+310   02C9 C9               RET
+311   02CA
+312   02CA              ;Address  : #009C
+313   02CA              ;Function : Tests the status of the keyboard buffer
+314   02CA              ;Output   : Zero flag set if buffer is empty, otherwise not set
+315   02CA              ;Registers: AF
+316   02CA              _CHSNS
+317   02CA 5B               DB 0x5b ; .LIL
+318   02CB D7               RST 10h
+319   02CC A7               and a
+320   02CD C9               RET
+321   02CE
+322   02CE              ;Address  : #0141
+323   02CE              ;Function : Returns the value of the specified line from the keyboard matrix
+324   02CE              ;Input    : A  - For the specified line
+325   02CE              ;Output   : A  - For data (the bit corresponding to the pressed key will be 0)
+326   02CE              ;Registers: AF
+327   02CE              _SNSMAT:
+328   02CE C5               push bc
+329   02CF 47               ld b,a ; preserve matrix line nr.
+330   02D0                  ;
+331   02D0                  ; read character from fifo
+332   02D0 5B               DB 0x5b ; .LIL
+333   02D1 D7               RST 10h
+334   02D2 38 04            jr c, HANDLE_SNSMAT_NOPRESS
+335   02D4
+336   02D4                  ; TODO check ASCII with line-nr
+337   02D4 3E FF            ld a, 0xff ; no presses for now
+338   02D6 C1               pop bc
+339   02D7 C9               RET
+340   02D8
+341   02D8              HANDLE_SNSMAT_NOPRESS:
+342   02D8 3E FF            ld a, 0xff
+343   02DA C1               pop bc
+344   02DB C9               RET
+345   02DC
+346   02DC              _READ_PORT:
+347   02DC FD E1            POP IY
+348   02DE FD 23            INC IY
+349   02E0 FD E5            PUSH IY
+350   02E2 FD 7E FF         LD A,(IY-1)
+351   02E5 FD 6F            ld iyl,a
+352   02E7 A7               and a ; reset carry = read
+353   02E8 5B               DB 0x5b ; .LIL
+354   02E9 EF               rst 28h
+355   02EA C9               ret
+356   02EB
+357   02EB              _WRITE_PORT:
+358   02EB FD E1            POP IY      ; get address of following instruction
+359   02ED FD 23            INC IY
+360   02EF FD E5            PUSH IY     ; return address is next byte
+361   02F1 F5               push af     ; store A to stack
+362   02F2 FD 7E FF         LD A,(IY-1) ; port number we want to write
+363   02F5 FD 6F            ld iyl,a    ; port in IYl
+364   02F7 F1               pop af      ; restore original A
+365   02F8 FD 67            ld iyh,a    ; value in IYh
+366   02FA 37               scf         ; set carry = write
+367   02FB 5B               DB 0x5b ; .LIL
+368   02FC EF               rst 28h
+369   02FD C9               ret
+370   02FE
+371   02FE              ;Address  : #000C
+372   02FE              ;Function : Reads the value of an address in another slot
+373   02FE              ;Input    : A  - ExxxSSPP  Slot-ID
+374   02FE              ;           │        ││└┴─ Primary slot number (00-11)
+375   02FE              ;           │        └┴─── Secondary slot number (00-11)
+376   02FE              ;           └───────────── Expanded slot (0 = no, 1 = yes)
+377   02FE              ;           HL - Address to read
+378   02FE              ;Output   : A  - Contains the value of the read address
+379   02FE              ;Registers: AF, C, DE
+380   02FE              ;Remark   : This routine turns off the interupt, but won't turn it on again
+381   02FE              _RDSLT:
+382   02FE DD E5            push ix
+383   0300 DD 21 06 00      ld ix, 0x0006
+384   0304 5B               DB 0x5b ; .LIL
+385   0305 FF               rst 38h
+386   0306 DD E1            pop ix
+387   0308 C9               ret
+388   0309              ;Address  : #0014
+389   0309              ;Function : Writes a value to an address in another slot.
+390   0309              ;Input    : A  - Slot ID, see RDSLT
+391   0309              ;           HL - Address
+392   0309              ;           E  - Value
+393   0309              ;Registers: AF, BC, D
+394   0309              ;Remark   : See RDSLT
+395   0309              _WRSLT:
+396   0309 DD E5            push ix
+397   030B DD 21 08 00      ld ix, 0x0008
+398   030F 5B               DB 0x5b ; .LIL
+399   0310 FF               rst 38h
+400   0311 DD E1            pop ix
+401   0313 C9               ret
+402   0314              ;Address  : #0030
+403   0314              ;Function : Executes an interslot call
+404   0314              ;Output   : Depends on the calling routine
+405   0314              ;Registers: AF, and the other registers depending on the calling routine
+406   0314              ;Remark   : The following is the calling sequence:
+407   0314              ;           RST #30
+408   0314              ;           DB destination slot ID, see RDSLT
+409   0314              ;           DW destination address
+410   0314              _CALLF:
+411   0314 E3               ex      (sp),hl
+412   0315 F5               push    af
+413   0316 D5               push    de
+414   0317 7E               ld      a,(hl)
+415   0318 F5               push    af
+416   0319 FD E1            pop     iy                      ; slotid
+417   031B 23               inc     hl
+418   031C 5E               ld      e,(hl)
+419   031D 23               inc     hl
+420   031E 56               ld      d,(hl)
+421   031F 23               inc     hl
+422   0320 D5               push    de
+423   0321 DD E1            pop     ix                      ; adres
+424   0323 D1               pop     de
+425   0324 F1               pop     af
+426   0325 E3               ex      (sp),hl
+427   0326                  ; now slotid is in IY and address is in IX
+428   0326
+429   0326              ;Address  : #001C
+430   0326              ;Function : Executes inter-slot call.
+431   0326              ;Input    : IY - High byte with slot ID, see RDSLT
+432   0326              ;           IX - The address that will be called
+433   0326              ;Remark   : Variables can never be given in alternative registers or IX and IY
+434   0326              _CALSLT:
+435   0326                  ; first save IX
+436   0326 5B               DB 0x5b ; .LIL
+437   0327 DF               rst 18h
+438   0328                  ;  electron os calslt
+439   0328 DD 21 0A 00      ld ix, 0x000a
+440   032C 5B               DB 0x5b ; .LIL
+441   032D FF               rst 38h
+442   032E C9               ret
+443   032F
+444   032F              ;Address  : #0024
+445   032F              ;Function : Switches indicated slot at indicated page on perpetually
+446   032F              ;Input    : A - Slot ID, see RDSLT
+447   032F              ;           H - Bit 6 and 7 must contain the page number (00-11)
+448   032F              _ENASLT:
+449   032F DD E5            push ix
+450   0331 DD 21 0C 00      ld ix, 0x000c
+451   0335 5B               DB 0x5b ; .LIL
+452   0336 FF               rst 38h
+453   0337 DD E1            pop ix
+454   0339 C9               ret
+455   033A
+456   033A              ;Address  : #0144
+457   033A              ;Function : Executes I/O for mass-storage media like disks
+458   033A              ;Input    : F  - Set carry to write, reset carry to read
+459   033A              ;           A  - Drive number (0 = A:, 1 = B:, etc.)
+460   033A              ;           B  - Number of sectors
+461   033A              ;           C  - Media ID of the disk
+462   033A              ;           DE - Begin sector
+463   033A              ;           HL - Begin address in memory
+464   033A              ;Output   : F  - Carry set on error
+465   033A              ;           A  - Error code (only if carry set)
+466   033A              ;                0 = Write protected
+467   033A              ;                2 = Not ready
+468   033A              ;                4 = Data error
+469   033A              ;                6 = Seek error
+470   033A              ;                8 = Record not found
+471   033A              ;                10 = Write error
+472   033A              ;                12 = Bad parameter
+473   033A              ;                14 = Out of memory
+474   033A              ;                16 = Other error
+475   033A              ;           B  - Number of sectors actually written or read
+476   033A              ;Registers: All
+477   033A              ;Remark   : Interrupts may be disabled afterwards. On some hard disk interfaces,
+478   033A              ;           when bit 7 of register C is set, a 23-bit addressing scheme is used
+479   033A              ;           and bits 0-6 of register C contain bits 23-16 of the sector number.
+480   033A              _PHYDIO:
+481   033A CD A7 FF     	CALL    H.PHYD
+482   033D C9               RET
+483   033E
+484   033E              ;Address  : #013E
+485   033E              ;Function : Reads VDP status register
+486   033E              ;Output   : A  - Value which was read
+487   033E              ;Registers: A
+488   033E              _RDVDP:
+489   033E                  ; in      a,(099H)
+490   033E                  ;RST 38h
+491   033E                  ;DB 099h
+492   033E                  ;ret
+493   033E DD E5            push ix
+494   0340 DD 21 10 00      ld ix, 0x0010
+495   0344 5B               DB 0x5b ; .LIL
+496   0345 FF               rst 38h
+497   0346 DD E1            pop ix
+498   0348 C9               ret
+499   0349
+500   0349              ;Address  : #0047
+501   0349              ;Function : Write data in the VDP-register
+502   0349              ;Input    : B  - Data to write
+503   0349              ;           C  - Number of the register
+504   0349              ;Registers: AF, BC
+505   0349              _WRTVDP:
+506   0349 78               ld      a,b
+507   034A F3               di
+508   034B                  ;out     (099H),a
+509   034B EF               RST 28h
+510   034C 99               DB 099h
+511   034D 79               ld      a,c
+512   034E F6 80            or      080H
+513   0350                  ;out     (099H),a
+514   0350 EF               RST 28h
+515   0351 99               DB 099h
+516   0352 FB               ei
+517   0353 E5               push    hl
+518   0354 78               ld      a,b
+519   0355 06 00            ld      b,0
+520   0357 21 DF F3         ld      hl,RG0SAV
+521   035A 09               add     hl,bc
+522   035B 77               ld      (hl),a
+523   035C E1               pop     hl
+524   035D C9               ret
+525   035E
+526   035E              ;    push ix
+527   035E              ;    ld ix, 0x0010
+528   035E              ;    DB 0x5b ; .LIL
+529   035E              ;    rst 38h
+530   035E              ;    pop ix
+531   035E              ;    ret
+532   035E
+533   035E              ;Address  : #0050
+534   035E              ;Function : Enable VDP to read
+535   035E              ;Input    : HL - For VRAM-address
+536   035E              ;Registers: AF
+537   035E              _SETRD:
+538   035E 7D               ld      a,l
+539   035F F3               di
+540   0360                  ;out     (099H),a
+541   0360 EF               RST 28h
+542   0361 99               DB 099h
+543   0362 7C               ld      a,h
+544   0363 E6 3F            and     03FH
+545   0365                  ;out     (099H),a
+546   0365 EF               RST 28h
+547   0366 99               DB 099h
+548   0367 FB               ei
+549   0368 C9               ret
+550   0369
+551   0369              ;Address  : #0053
+552   0369              ;Function : Enable VDP to write
+553   0369              ;Input    : HL - Address
+554   0369              ;Registers: AF
+555   0369              _SETWRT:
+556   0369 7D               ld      a,l
+557   036A F3               di
+558   036B                  ;out     (099H),a
+559   036B EF               RST 28h
+560   036C 99               DB 099h
+561   036D 7C               ld      a,h
+562   036E E6 3F            and     03FH
+563   0370 F6 40            or      040H
+564   0372                  ;out     (099H),a
+565   0372 EF               RST 28h
+566   0373 99               DB 099h
+567   0374 FB               ei
+568   0375 C9               ret
+569   0376
+570   0376              ;Address  : #004A
+571   0376              ;Function : Reads the content of VRAM
+572   0376              ;Input    : HL - Address read
+573   0376              ;Output   : A  - Value which was read
+574   0376              ;Registers: AF
+575   0376              _RDVRM:
+576   0376 CD 50 00         call    SETRD                   ; SETRD
+577   0379 E3               ex      (sp),hl
+578   037A E3               ex      (sp),hl
+579   037B                  ;in      a,(098H)
+580   037B FF               RST 38h
+581   037C 98               DB 098h
+582   037D C9               ret
+583   037E
+584   037E
+585   037E              ;Address  : #004D
+586   037E              ;Function : Writes data in VRAM
+587   037E              ;Input    : HL - Address write
+588   037E              ;           A  - Value write
+589   037E              ;Registers: AF
+590   037E              _WRTVRM:
+591   037E F5               push    af
+592   037F CD 53 00         call    SETWRT                  ; SETWRT
+593   0382 E3               ex      (sp),hl
+594   0383 E3               ex      (sp),hl
+595   0384 F1               pop     af
+596   0385 EF               RST 28h
+597   0386 98               DB 098h
+598   0387 C9               ret
+599   0388
+600   0388              ;Address  : #0093
+601   0388              ;Function : Writes data to PSG register
+602   0388              ;Input    : A  - PSG register number
+603   0388              ;           E  - Data write
+604   0388              _WRTPSG:
+605   0388 C9               ret
+606   0389
+607   0389              ;Address  : #0096
+608   0389              ;Function : Reads value from PSG register
+609   0389              ;Input    : A  - PSG register read
+610   0389              ;Output   : A  - Value read
+611   0389              _RDPSG:
+612   0389 C9               ret
+613   038A
+614   038A              I7F27: ; area that will be copied to F380, contains code and initialisation
+615   038A                  .PHASE  VARWRK
+616   F380
+617   F380 EF           RDPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+618   F381 A8                   DB      0a8h
+619   F382                      ;OUT     (0A8H),A
+620   F382 5E                   LD      E,(HL)
+621   F383 18 03                JR      J7F2F
+622   F385
+623   F385 EF           WRPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+624   F386 A8                   DB      0a8h
+625   F387                      ;OUT     (0A8H),A
+626   F387 73                   LD      (HL),E
+627   F388 7A           J7F2F:  LD      A,D
+628   F389 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
+629   F38A A8                   DB      0a8h
+630   F38B                      ;OUT     (0A8H),A
+631   F38B C9                   RET
+632   F38C
+633   F38C EF           CLPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+634   F38D A8                   DB      0a8h
+635   F38E                      ;OUT     (0A8H),A
+636   F38E 08                   EX      AF,AF'
+637   F38F CD 98 F3             CALL    CLPRM1
+638   F392 08                   EX      AF,AF'
+639   F393 F1                   POP     AF
+640   F394 EF                   RST     28h     ; MSM: replace out (a8h),a by RST28
+641   F395 A8                   DB      0a8h
+642   F396                      ;OUT     (0A8H),A
+643   F396 08                   EX      AF,AF'
+644   F397 C9                   RET
+645   F398
+646   F398 DD E9        CLPRM1: JP      (IX)
+647   F39A
+648   F39A 5A 47        USRTAB: defw    FCERR                   ; illegal function call
+649   F39C 5A 47                defw    FCERR                   ; illegal function call
+650   F39E 5A 47                defw    FCERR                   ; illegal function call
+651   F3A0 5A 47                defw    FCERR                   ; illegal function call
+652   F3A2 5A 47                defw    FCERR                   ; illegal function call
+653   F3A4 5A 47                defw    FCERR                   ; illegal function call
+654   F3A6 5A 47                defw    FCERR                   ; illegal function call
+655   F3A8 5A 47                defw    FCERR                   ; illegal function call
+656   F3AA 5A 47                defw    FCERR                   ; illegal function call
+657   F3AC 5A 47                defw    FCERR                   ; illegal function call
+658   F3AE
+659   F3AE              LINL40:
+660   F3AE 27                   defb    39
+661   F3AF
+662   F3AF 1D           LINL32: defb    29
+663   F3B0
+664   F3B0              LINLEN:
+665   F3B0 1D                   defb    29
+666   F3B1
+667   F3B1 18           CRTCNT: defb    24
+668   F3B2
+669   F3B2 0E           CLMLST: defb    14
+670   F3B3
+671   F3B3 00 00        TXTNAM: defw    0
+672   F3B5 00 00        TXTCOL: defw    0
+673   F3B7 00 08        TXTCGP: defw    00800H
+674   F3B9 00 00        TXTATR: defw    0
+675   F3BB 00 00        TXTPAT: defw    0
+676   F3BD
+677   F3BD 00 18        T32NAM: defw    01800H
+678   F3BF 00 20        T32COL: defw    02000H
+679   F3C1 00 00        T32CGP: defw    0
+680   F3C3 00 1B        T32ATR: defw    01B00H
+681   F3C5 00 38        T32PAT: defw    03800H
+682   F3C7
+683   F3C7 00 18        GRPNAM: defw    01800H
+684   F3C9 00 20        GRPCOL: defw    02000H
+685   F3CB 00 00        GRPCGP: defw    0
+686   F3CD 00 1B        GRPATR: defw    01B00H
+687   F3CF 00 38        GRPPAT: defw    03800H
+688   F3D1
+689   F3D1 00 08        MLTNAM: defw    00800H
+690   F3D3 00 00        MLTCOL: defw    0
+691   F3D5 00 00        MLTCGP: defw    0
+692   F3D7 00 1B        MLTATR: defw    01B00H
+693   F3D9 00 38        MLTPAT: defw    03800H
+694   F3DB
+695   F3DB 01           CLIKSW: defb    1
+696   F3DC 01           CSRY:   defb    1
+697   F3DD 01           CSRX:   defb    1
+698   F3DE 00           CNSDFG: defb    0
+699   F3DF
+700   F3DF 00           RG0SAV_: defb    000H
+701   F3E0 E0           RG1SAV_: defb    0E0H
+702   F3E1 00           RG2SAV_: defb    000H
+703   F3E2 00           RG3SAV_: defb    000H
+704   F3E3 00           RG4SAV_: defb    000H
+705   F3E4 00           RG5SAV_: defb    000H
+706   F3E5 00           RG6SAV_: defb    000H
+707   F3E6 00           RG7SAV_: defb    000H
+708   F3E7 00           STATFL: defb    000H
+709   F3E8 FF           TRGFLG: defb    0FFH
+710   F3E9 0F           FORCLR: defb    15
+711   F3EA 04           BAKCLR: defb    4
+712   F3EB
+713   F3EB              BDRCLR:
+714   F3EB 07                   defb    7
+715   F3EC
+716   F3EC C3 00 00     MAXUPD: jp      0
+717   F3EF C3 00 00     MINUPD: jp      0
+718   F3F2 0F           ATRBYT: defb    15
+719   F3F3 59 F9        QUEUES: defw    QUETAB
+720   F3F5 FF           FRCNEW: defb    0FFH
+721   F3F6 01           SCNCNT: defb    1
+722   F3F7 32           REPCNT: defb    50
+723   F3F8 F0 FB        PUTPNT: defw    KEYBUF
+724   F3FA F0 FB        GETPNT: defw    KEYBUF
+725   F3FC 53 5C 26 2D  CS1200: defb    053H,05CH,026H,02DH,00FH
+725   F400 0F
+726   F401 25 2D 0E 16  CS2400: defb    025H,02DH,00EH,016H,01FH
+726   F405 1F
+727   F406 53 5C                defb    053H,05CH
+728   F408 26 2D                defb    026H,02DH
+729   F40A 0F                   defb    00FH
+730   F40B 00 01        ASPCT1: defw    00100H
+731   F40D 00 01        ASPCT2: defw    00100H
+732   F40F 3A           ENDPRG: defb    ':'
+733   F410
+734   F410              CGTABL:
+735   F410 00 00 00 00          DEFB	000H,000H,000H,000H,000H,000H,000H,000H
+735   F414 00 00 00 00
+736   F418 3C 42 A5 81          DEFB	03CH,042H,0A5H,081H,0A5H,099H,042H,03CH
+736   F41C A5 99 42 3C
+737   F420 3C 7E DB FF          DEFB	03CH,07EH,0DBH,0FFH,0FFH,0DBH,066H,03CH
+737   F424 FF DB 66 3C
+738   F428 6C FE FE FE          DEFB	06CH,0FEH,0FEH,0FEH,07CH,038H,010H,000H
+738   F42C 7C 38 10 00
+739   F430 10 38 7C FE          DEFB	010H,038H,07CH,0FEH,07CH,038H,010H,000H
+739   F434 7C 38 10 00
+740   F438 10 38 54 FE          DEFB	010H,038H,054H,0FEH,054H,010H,038H,000H
+740   F43C 54 10 38 00
+741   F440 10 38 7C FE          DEFB	010H,038H,07CH,0FEH,0FEH,010H,038H,000H
+741   F444 FE 10 38 00
+742   F448 00 00 00 30          DEFB	000H,000H,000H,030H,030H,000H,000H,000H
+742   F44C 30 00 00 00
+743   F450 FF FF FF E7          DEFB	0FFH,0FFH,0FFH,0E7H,0E7H,0FFH,0FFH,0FFH
+743   F454 E7 FF FF FF
+744   F458 38 44 82 82          DEFB	038H,044H,082H,082H,082H,044H,038H,000H
+744   F45C 82 44 38 00
+745   F460 C7 BB 7D 7D          DEFB	0C7H,0BBH,07DH,07DH,07DH,0BBH,0C7H,0FFH
+745   F464 7D BB C7 FF
+746   F468 0F 03 05 79          DEFB	00FH,003H,005H,079H,088H,088H,088H,070H
+746   F46C 88 88 88 70
+747   F470 38 44 44 44          DEFB	038H,044H,044H,044H,038H,010H,07CH,010H
+747   F474 38 10 7C 10
+748   F478 30 28 24 24          DEFB	030H,028H,024H,024H,028H,020H,0E0H,0C0H
+748   F47C 28 20 E0 C0
+749   F480 3C 24 3C 24          DEFB	03CH,024H,03CH,024H,024H,0E4H,0DCH,018H
+749   F484 24 E4 DC 18
+750   F488 10 54 38 EE          DEFB	010H,054H,038H,0EEH,038H,054H,010H,000H
+750   F48C 38 54 10 00
+751   F490 10 10 10 7C          DEFB	010H,010H,010H,07CH,010H,010H,010H,010H
+751   F494 10 10 10 10
+752   F498 10 10 10 FF          DEFB	010H,010H,010H,0FFH,000H,000H,000H,000H
+752   F49C 00 00 00 00
+753   F4A0 00 00 00 FF          DEFB	000H,000H,000H,0FFH,010H,010H,010H,010H
+753   F4A4 10 10 10 10
+754   F4A8 10 10 10 F0          DEFB	010H,010H,010H,0F0H,010H,010H,010H,010H
+754   F4AC 10 10 10 10
+755   F4B0 10 10 10 1F          DEFB	010H,010H,010H,01FH,010H,010H,010H,010H
+755   F4B4 10 10 10 10
+756   F4B8 10 10 10 FF          DEFB	010H,010H,010H,0FFH,010H,010H,010H,010H
+756   F4BC 10 10 10 10
+757   F4C0 10 10 10 10          DEFB	010H,010H,010H,010H,010H,010H,010H,010H
+757   F4C4 10 10 10 10
+758   F4C8 00 00 00 FF          DEFB	000H,000H,000H,0FFH,000H,000H,000H,000H
+758   F4CC 00 00 00 00
+759   F4D0 00 00 00 1F          DEFB	000H,000H,000H,01FH,010H,010H,010H,010H
+759   F4D4 10 10 10 10
+760   F4D8 00 00 00 F0          DEFB	000H,000H,000H,0F0H,010H,010H,010H,010H
+760   F4DC 10 10 10 10
+761   F4E0 10 10 10 1F          DEFB	010H,010H,010H,01FH,000H,000H,000H,000H
+761   F4E4 00 00 00 00
+762   F4E8 10 10 10 F0          DEFB	010H,010H,010H,0F0H,000H,000H,000H,000H
+762   F4EC 00 00 00 00
+763   F4F0 81 42 24 18          DEFB	081H,042H,024H,018H,018H,024H,042H,081H
+763   F4F4 18 24 42 81
+764   F4F8 01 02 04 08          DEFB	001H,002H,004H,008H,010H,020H,040H,080H
+764   F4FC 10 20 40 80
+765   F500 80 40 20 10          DEFB	080H,040H,020H,010H,008H,004H,002H,001H
+765   F504 08 04 02 01
+766   F508 00 10 10 FF          DEFB	000H,010H,010H,0FFH,010H,010H,000H,000H
+766   F50C 10 10 00 00
+767   F510 00 00 00 00          DEFB	000H,000H,000H,000H,000H,000H,000H,000H
+767   F514 00 00 00 00
+768   F518 20 20 20 20          DEFB	020H,020H,020H,020H,000H,000H,020H,000H
+768   F51C 00 00 20 00
+769   F520 50 50 50 00          DEFB	050H,050H,050H,000H,000H,000H,000H,000H
+769   F524 00 00 00 00
+770   F528 50 50 F8 50          DEFB	050H,050H,0F8H,050H,0F8H,050H,050H,000H
+770   F52C F8 50 50 00
+771   F530 20 78 A0 70          DEFB	020H,078H,0A0H,070H,028H,0F0H,020H,000H
+771   F534 28 F0 20 00
+772   F538 C0 C8 10 20          DEFB	0C0H,0C8H,010H,020H,040H,098H,018H,000H
+772   F53C 40 98 18 00
+773   F540 40 A0 40 A8          DEFB	040H,0A0H,040H,0A8H,090H,098H,060H,000H
+773   F544 90 98 60 00
+774   F548 10 20 40 00          DEFB	010H,020H,040H,000H,000H,000H,000H,000H
+774   F54C 00 00 00 00
+775   F550 10 20 40 40          DEFB	010H,020H,040H,040H,040H,020H,010H,000H
+775   F554 40 20 10 00
+776   F558 40 20 10 10          DEFB	040H,020H,010H,010H,010H,020H,040H,000H
+776   F55C 10 20 40 00
+777   F560 20 A8 70 20          DEFB	020H,0A8H,070H,020H,070H,0A8H,020H,000H
+777   F564 70 A8 20 00
+778   F568 00 20 20 F8          DEFB	000H,020H,020H,0F8H,020H,020H,000H,000H
+778   F56C 20 20 00 00
+779   F570 00 00 00 00          DEFB	000H,000H,000H,000H,000H,020H,020H,040H
+779   F574 00 20 20 40
+780   F578 00 00 00 78          DEFB	000H,000H,000H,078H,000H,000H,000H,000H
+780   F57C 00 00 00 00
+781   F580 00 00 00 00          DEFB	000H,000H,000H,000H,000H,060H,060H,000H
+781   F584 00 60 60 00
+782   F588 00 00 08 10          DEFB	000H,000H,008H,010H,020H,040H,080H,000H
+782   F58C 20 40 80 00
+783   F590 70 88 98 A8          DEFB	070H,088H,098H,0A8H,0C8H,088H,070H,000H
+783   F594 C8 88 70 00
+784   F598 20 60 A0 20          DEFB	020H,060H,0A0H,020H,020H,020H,0F8H,000H
+784   F59C 20 20 F8 00
+785   F5A0 70 88 08 10          DEFB	070H,088H,008H,010H,060H,080H,0F8H,000H
+785   F5A4 60 80 F8 00
+786   F5A8 70 88 08 30          DEFB	070H,088H,008H,030H,008H,088H,070H,000H
+786   F5AC 08 88 70 00
+787   F5B0 10 30 50 90          DEFB	010H,030H,050H,090H,0F8H,010H,010H,000H
+787   F5B4 F8 10 10 00
+788   F5B8 F8 80 E0 10          DEFB	0F8H,080H,0E0H,010H,008H,010H,0E0H,000H
+788   F5BC 08 10 E0 00
+789   F5C0 30 40 80 F0          DEFB	030H,040H,080H,0F0H,088H,088H,070H,000H
+789   F5C4 88 88 70 00
+790   F5C8 F8 88 10 20          DEFB	0F8H,088H,010H,020H,020H,020H,020H,000H
+790   F5CC 20 20 20 00
+791   F5D0 70 88 88 70          DEFB	070H,088H,088H,070H,088H,088H,070H,000H
+791   F5D4 88 88 70 00
+792   F5D8 70 88 88 78          DEFB	070H,088H,088H,078H,008H,010H,060H,000H
+792   F5DC 08 10 60 00
+793   F5E0 00 00 20 00          DEFB	000H,000H,020H,000H,000H,020H,000H,000H
+793   F5E4 00 20 00 00
+794   F5E8 00 00 20 00          DEFB	000H,000H,020H,000H,000H,020H,020H,040H
+794   F5EC 00 20 20 40
+795   F5F0 18 30 60 C0          DEFB	018H,030H,060H,0C0H,060H,030H,018H,000H
+795   F5F4 60 30 18 00
+796   F5F8 00 00 F8 00          DEFB	000H,000H,0F8H,000H,0F8H,000H,000H,000H
+796   F5FC F8 00 00 00
+797   F600 C0 60 30 18          DEFB	0C0H,060H,030H,018H,030H,060H,0C0H,000H
+797   F604 30 60 C0 00
+798   F608 70 88 08 10          DEFB	070H,088H,008H,010H,020H,000H,020H,000H
+798   F60C 20 00 20 00
+799   F610 70 88 08 68          DEFB	070H,088H,008H,068H,0A8H,0A8H,070H,000H
+799   F614 A8 A8 70 00
+800   F618 20 50 88 88          DEFB	020H,050H,088H,088H,0F8H,088H,088H,000H
+800   F61C F8 88 88 00
+801   F620 F0 48 48 70          DEFB	0F0H,048H,048H,070H,048H,048H,0F0H,000H
+801   F624 48 48 F0 00
+802   F628 30 48 80 80          DEFB	030H,048H,080H,080H,080H,048H,030H,000H
+802   F62C 80 48 30 00
+803   F630 E0 50 48 48          DEFB	0E0H,050H,048H,048H,048H,050H,0E0H,000H
+803   F634 48 50 E0 00
+804   F638 F8 80 80 F0          DEFB	0F8H,080H,080H,0F0H,080H,080H,0F8H,000H
+804   F63C 80 80 F8 00
+805   F640 F8 80 80 F0          DEFB	0F8H,080H,080H,0F0H,080H,080H,080H,000H
+805   F644 80 80 80 00
+806   F648 70 88 80 B8          DEFB	070H,088H,080H,0B8H,088H,088H,070H,000H
+806   F64C 88 88 70 00
+807   F650 88 88 88 F8          DEFB	088H,088H,088H,0F8H,088H,088H,088H,000H
+807   F654 88 88 88 00
+808   F658 70 20 20 20          DEFB	070H,020H,020H,020H,020H,020H,070H,000H
+808   F65C 20 20 70 00
+809   F660 38 10 10 10          DEFB	038H,010H,010H,010H,090H,090H,060H,000H
+809   F664 90 90 60 00
+810   F668 88 90 A0 C0          DEFB	088H,090H,0A0H,0C0H,0A0H,090H,088H,000H
+810   F66C A0 90 88 00
+811   F670 80 80 80 80          DEFB	080H,080H,080H,080H,080H,080H,0F8H,000H
+811   F674 80 80 F8 00
+812   F678 88 D8 A8 A8          DEFB	088H,0D8H,0A8H,0A8H,088H,088H,088H,000H
+812   F67C 88 88 88 00
+813   F680 88 C8 C8 A8          DEFB	088H,0C8H,0C8H,0A8H,098H,098H,088H,000H
+813   F684 98 98 88 00
+814   F688 70 88 88 88          DEFB	070H,088H,088H,088H,088H,088H,070H,000H
+814   F68C 88 88 70 00
+815   F690 F0 88 88 F0          DEFB	0F0H,088H,088H,0F0H,080H,080H,080H,000H
+815   F694 80 80 80 00
+816   F698 70 88 88 88          DEFB	070H,088H,088H,088H,0A8H,090H,068H,000H
+816   F69C A8 90 68 00
+817   F6A0 F0 88 88 F0          DEFB	0F0H,088H,088H,0F0H,0A0H,090H,088H,000H
+817   F6A4 A0 90 88 00
+818   F6A8 70 88 80 70          DEFB	070H,088H,080H,070H,008H,088H,070H,000H
+818   F6AC 08 88 70 00
+819   F6B0 F8 20 20 20          DEFB	0F8H,020H,020H,020H,020H,020H,020H,000H
+819   F6B4 20 20 20 00
+820   F6B8 88 88 88 88          DEFB	088H,088H,088H,088H,088H,088H,070H,000H
+820   F6BC 88 88 70 00
+821   F6C0 88 88 88 88          DEFB	088H,088H,088H,088H,050H,050H,020H,000H
+821   F6C4 50 50 20 00
+822   F6C8 88 88 88 A8          DEFB	088H,088H,088H,0A8H,0A8H,0D8H,088H,000H
+822   F6CC A8 D8 88 00
+823   F6D0 88 88 50 20          DEFB	088H,088H,050H,020H,050H,088H,088H,000H
+823   F6D4 50 88 88 00
+824   F6D8 88 88 88 70          DEFB	088H,088H,088H,070H,020H,020H,020H,000H
+824   F6DC 20 20 20 00
+825   F6E0 F8 08 10 20          DEFB	0F8H,008H,010H,020H,040H,080H,0F8H,000H
+825   F6E4 40 80 F8 00
+826   F6E8 70 40 40 40          DEFB	070H,040H,040H,040H,040H,040H,070H,000H
+826   F6EC 40 40 70 00
+827   F6F0 00 00 80 40          DEFB	000H,000H,080H,040H,020H,010H,008H,000H
+827   F6F4 20 10 08 00
+828   F6F8 70 10 10 10          DEFB	070H,010H,010H,010H,010H,010H,070H,000H
+828   F6FC 10 10 70 00
+829   F700 20 50 88 00          DEFB	020H,050H,088H,000H,000H,000H,000H,000H
+829   F704 00 00 00 00
+830   F708 00 00 00 00          DEFB	000H,000H,000H,000H,000H,000H,0F8H,000H
+830   F70C 00 00 F8 00
+831   F710 40 20 10 00          DEFB	040H,020H,010H,000H,000H,000H,000H,000H
+831   F714 00 00 00 00
+832   F718 00 00 70 08          DEFB	000H,000H,070H,008H,078H,088H,078H,000H
+832   F71C 78 88 78 00
+833   F720 80 80 B0 C8          DEFB	080H,080H,0B0H,0C8H,088H,0C8H,0B0H,000H
+833   F724 88 C8 B0 00
+834   F728 00 00 70 88          DEFB	000H,000H,070H,088H,080H,088H,070H,000H
+834   F72C 80 88 70 00
+835   F730 08 08 68 98          DEFB	008H,008H,068H,098H,088H,098H,068H,000H
+835   F734 88 98 68 00
+836   F738 00 00 70 88          DEFB	000H,000H,070H,088H,0F8H,080H,070H,000H
+836   F73C F8 80 70 00
+837   F740 10 28 20 F8          DEFB	010H,028H,020H,0F8H,020H,020H,020H,000H
+837   F744 20 20 20 00
+838   F748 00 00 68 98          DEFB	000H,000H,068H,098H,098H,068H,008H,070H
+838   F74C 98 68 08 70
+839   F750 80 80 F0 88          DEFB	080H,080H,0F0H,088H,088H,088H,088H,000H
+839   F754 88 88 88 00
+840   F758 20 00 60 20          DEFB	020H,000H,060H,020H,020H,020H,070H,000H
+840   F75C 20 20 70 00
+841   F760 10 00 30 10          DEFB	010H,000H,030H,010H,010H,010H,090H,060H
+841   F764 10 10 90 60
+842   F768 40 40 48 50          DEFB	040H,040H,048H,050H,060H,050H,048H,000H
+842   F76C 60 50 48 00
+843   F770 60 20 20 20          DEFB	060H,020H,020H,020H,020H,020H,070H,000H
+843   F774 20 20 70 00
+844   F778 00 00 D0 A8          DEFB	000H,000H,0D0H,0A8H,0A8H,0A8H,0A8H,000H
+844   F77C A8 A8 A8 00
+845   F780 00 00 B0 C8          DEFB	000H,000H,0B0H,0C8H,088H,088H,088H,000H
+845   F784 88 88 88 00
+846   F788 00 00 70 88          DEFB	000H,000H,070H,088H,088H,088H,070H,000H
+846   F78C 88 88 70 00
+847   F790 00 00 B0 C8          DEFB	000H,000H,0B0H,0C8H,0C8H,0B0H,080H,080H
+847   F794 C8 B0 80 80
+848   F798 00 00 68 98          DEFB	000H,000H,068H,098H,098H,068H,008H,008H
+848   F79C 98 68 08 08
+849   F7A0 00 00 B0 C8          DEFB	000H,000H,0B0H,0C8H,080H,080H,080H,000H
+849   F7A4 80 80 80 00
+850   F7A8 00 00 78 80          DEFB	000H,000H,078H,080H,0F0H,008H,0F0H,000H
+850   F7AC F0 08 F0 00
+851   F7B0 40 40 F0 40          DEFB	040H,040H,0F0H,040H,040H,048H,030H,000H
+851   F7B4 40 48 30 00
+852   F7B8 00 00 90 90          DEFB	000H,000H,090H,090H,090H,090H,068H,000H
+852   F7BC 90 90 68 00
+853   F7C0 00 00 88 88          DEFB	000H,000H,088H,088H,088H,050H,020H,000H
+853   F7C4 88 50 20 00
+854   F7C8 00 00 88 A8          DEFB	000H,000H,088H,0A8H,0A8H,0A8H,050H,000H
+854   F7CC A8 A8 50 00
+855   F7D0 00 00 88 50          DEFB	000H,000H,088H,050H,020H,050H,088H,000H
+855   F7D4 20 50 88 00
+856   F7D8 00 00 88 88          DEFB	000H,000H,088H,088H,098H,068H,008H,070H
+856   F7DC 98 68 08 70
+857   F7E0 00 00 F8 10          DEFB	000H,000H,0F8H,010H,020H,040H,0F8H,000H
+857   F7E4 20 40 F8 00
+858   F7E8 18 20 20 40          DEFB	018H,020H,020H,040H,020H,020H,018H,000H
+858   F7EC 20 20 18 00
+859   F7F0 20 20 20 00          DEFB	020H,020H,020H,000H,020H,020H,020H,000H
+859   F7F4 20 20 20 00
+860   F7F8 C0 20 20 10          DEFB	0C0H,020H,020H,010H,020H,020H,0C0H,000H
+860   F7FC 20 20 C0 00
+861   F800 40 A8 10 00          DEFB	040H,0A8H,010H,000H,000H,000H,000H,000H
+861   F804 00 00 00 00
+862   F808 00 00 20 50          DEFB	000H,000H,020H,050H,0F8H,000H,000H,000H
+862   F80C F8 00 00 00
+863   F810 70 88 80 80          DEFB	070H,088H,080H,080H,088H,070H,020H,060H
+863   F814 88 70 20 60
+864   F818 90 00 00 90          DEFB	090H,000H,000H,090H,090H,090H,068H,000H
+864   F81C 90 90 68 00
+865   F820 10 20 70 88          DEFB	010H,020H,070H,088H,0F8H,080H,070H,000H
+865   F824 F8 80 70 00
+866   F828 20 50 70 08          DEFB	020H,050H,070H,008H,078H,088H,078H,000H
+866   F82C 78 88 78 00
+867   F830 48 00 70 08          DEFB	048H,000H,070H,008H,078H,088H,078H,000H
+867   F834 78 88 78 00
+868   F838 20 10 70 08          DEFB	020H,010H,070H,008H,078H,088H,078H,000H
+868   F83C 78 88 78 00
+869   F840 20 00 70 08          DEFB	020H,000H,070H,008H,078H,088H,078H,000H
+869   F844 78 88 78 00
+870   F848 00 70 80 80          DEFB	000H,070H,080H,080H,080H,070H,010H,060H
+870   F84C 80 70 10 60
+871   F850 20 50 70 88          DEFB	020H,050H,070H,088H,0F8H,080H,070H,000H
+871   F854 F8 80 70 00
+872   F858 50 00 70 88          DEFB	050H,000H,070H,088H,0F8H,080H,070H,000H
+872   F85C F8 80 70 00
+873   F860 20 10 70 88          DEFB	020H,010H,070H,088H,0F8H,080H,070H,000H
+873   F864 F8 80 70 00
+874   F868 50 00 00 60          DEFB	050H,000H,000H,060H,020H,020H,070H,000H
+874   F86C 20 20 70 00
+875   F870 20 50 00 60          DEFB	020H,050H,000H,060H,020H,020H,070H,000H
+875   F874 20 20 70 00
+876   F878 40 20 00 60          DEFB	040H,020H,000H,060H,020H,020H,070H,000H
+876   F87C 20 20 70 00
+877   F880 50 00 20 50          DEFB	050H,000H,020H,050H,088H,0F8H,088H,000H
+877   F884 88 F8 88 00
+878   F888 20 00 20 50          DEFB	020H,000H,020H,050H,088H,0F8H,088H,000H
+878   F88C 88 F8 88 00
+879   F890 10 20 F8 80          DEFB	010H,020H,0F8H,080H,0F0H,080H,0F8H,000H
+879   F894 F0 80 F8 00
+880   F898 00 00 6C 12          DEFB	000H,000H,06CH,012H,07EH,090H,06EH,000H
+880   F89C 7E 90 6E 00
+881   F8A0 3E 50 90 9C          DEFB	03EH,050H,090H,09CH,0F0H,090H,09EH,000H
+881   F8A4 F0 90 9E 00
+882   F8A8 60 90 00 60          DEFB	060H,090H,000H,060H,090H,090H,060H,000H
+882   F8AC 90 90 60 00
+883   F8B0 90 00 00 60          DEFB	090H,000H,000H,060H,090H,090H,060H,000H
+883   F8B4 90 90 60 00
+884   F8B8 40 20 00 60          DEFB	040H,020H,000H,060H,090H,090H,060H,000H
+884   F8BC 90 90 60 00
+885   F8C0 40 A0 00 A0          DEFB	040H,0A0H,000H,0A0H,0A0H,0A0H,050H,000H
+885   F8C4 A0 A0 50 00
+886   F8C8 40 20 00 A0          DEFB	040H,020H,000H,0A0H,0A0H,0A0H,050H,000H
+886   F8CC A0 A0 50 00
+887   F8D0 90 00 90 90          DEFB	090H,000H,090H,090H,0B0H,050H,010H,0E0H
+887   F8D4 B0 50 10 E0
+888   F8D8 50 00 70 88          DEFB	050H,000H,070H,088H,088H,088H,070H,000H
+888   F8DC 88 88 70 00
+889   F8E0 50 00 88 88          DEFB	050H,000H,088H,088H,088H,088H,070H,000H
+889   F8E4 88 88 70 00
+890   F8E8 20 20 78 80          DEFB	020H,020H,078H,080H,080H,078H,020H,020H
+890   F8EC 80 78 20 20
+891   F8F0 18 24 20 F8          DEFB	018H,024H,020H,0F8H,020H,0E2H,05CH,000H
+891   F8F4 20 E2 5C 00
+892   F8F8 88 50 20 F8          DEFB	088H,050H,020H,0F8H,020H,0F8H,020H,000H
+892   F8FC 20 F8 20 00
+893   F900 C0 A0 A0 C8          DEFB	0C0H,0A0H,0A0H,0C8H,09CH,088H,088H,08CH
+893   F904 9C 88 88 8C
+894   F908 18 20 20 F8          DEFB	018H,020H,020H,0F8H,020H,020H,020H,040H
+894   F90C 20 20 20 40
+895   F910 10 20 70 08          DEFB	010H,020H,070H,008H,078H,088H,078H,000H
+895   F914 78 88 78 00
+896   F918 10 20 00 60          DEFB	010H,020H,000H,060H,020H,020H,070H,000H
+896   F91C 20 20 70 00
+897   F920 20 40 00 60          DEFB	020H,040H,000H,060H,090H,090H,060H,000H
+897   F924 90 90 60 00
+898   F928 20 40 00 90          DEFB	020H,040H,000H,090H,090H,090H,068H,000H
+898   F92C 90 90 68 00
+899   F930 50 A0 00 A0          DEFB	050H,0A0H,000H,0A0H,0D0H,090H,090H,000H
+899   F934 D0 90 90 00
+900   F938 28 50 00 C8          DEFB	028H,050H,000H,0C8H,0A8H,098H,088H,000H
+900   F93C A8 98 88 00
+901   F940 00 70 08 78          DEFB	000H,070H,008H,078H,088H,078H,000H,0F8H
+901   F944 88 78 00 F8
+902   F948 00 60 90 90          DEFB	000H,060H,090H,090H,090H,060H,000H,0F0H
+902   F94C 90 60 00 F0
+903   F950 20 00 20 40          DEFB	020H,000H,020H,040H,080H,088H,070H,000H
+903   F954 80 88 70 00
+904   F958 00 00 00 F8          DEFB	000H,000H,000H,0F8H,080H,080H,000H,000H
+904   F95C 80 80 00 00
+905   F960 00 00 00 F8          DEFB	000H,000H,000H,0F8H,008H,008H,000H,000H
+905   F964 08 08 00 00
+906   F968 84 88 90 A8          DEFB	084H,088H,090H,0A8H,054H,084H,008H,01CH
+906   F96C 54 84 08 1C
+907   F970 84 88 90 A8          DEFB	084H,088H,090H,0A8H,058H,0A8H,03CH,008H
+907   F974 58 A8 3C 08
+908   F978 20 00 00 20          DEFB	020H,000H,000H,020H,020H,020H,020H,000H
+908   F97C 20 20 20 00
+909   F980 00 00 24 48          DEFB	000H,000H,024H,048H,090H,048H,024H,000H
+909   F984 90 48 24 00
+910   F988 00 00 90 48          DEFB	000H,000H,090H,048H,024H,048H,090H,000H
+910   F98C 24 48 90 00
+911   F990 28 50 20 50          DEFB	028H,050H,020H,050H,088H,0F8H,088H,000H
+911   F994 88 F8 88 00
+912   F998 28 50 70 08          DEFB	028H,050H,070H,008H,078H,088H,078H,000H
+912   F99C 78 88 78 00
+913   F9A0 28 50 00 70          DEFB	028H,050H,000H,070H,020H,020H,070H,000H
+913   F9A4 20 20 70 00
+914   F9A8 28 50 00 20          DEFB	028H,050H,000H,020H,020H,020H,070H,000H
+914   F9AC 20 20 70 00
+915   F9B0 28 50 00 70          DEFB	028H,050H,000H,070H,088H,088H,070H,000H
+915   F9B4 88 88 70 00
+916   F9B8 50 A0 00 60          DEFB	050H,0A0H,000H,060H,090H,090H,060H,000H
+916   F9BC 90 90 60 00
+917   F9C0 28 50 00 88          DEFB	028H,050H,000H,088H,088H,088H,070H,000H
+917   F9C4 88 88 70 00
+918   F9C8 50 A0 00 A0          DEFB	050H,0A0H,000H,0A0H,0A0H,0A0H,050H,000H
+918   F9CC A0 A0 50 00
+919   F9D0 FC 48 48 48          DEFB	0FCH,048H,048H,048H,0E8H,008H,050H,020H
+919   F9D4 E8 08 50 20
+920   F9D8 00 50 00 50          DEFB	000H,050H,000H,050H,050H,050H,010H,020H
+920   F9DC 50 50 10 20
+921   F9E0 C0 44 C8 54          DEFB	0C0H,044H,0C8H,054H,0ECH,054H,09EH,004H
+921   F9E4 EC 54 9E 04
+922   F9E8 10 A8 40 00          DEFB	010H,0A8H,040H,000H,000H,000H,000H,000H
+922   F9EC 00 00 00 00
+923   F9F0 00 20 50 88          DEFB	000H,020H,050H,088H,050H,020H,000H,000H
+923   F9F4 50 20 00 00
+924   F9F8 88 10 20 40          DEFB	088H,010H,020H,040H,080H,028H,000H,000H
+924   F9FC 80 28 00 00
+925   FA00 7C A8 A8 68          DEFB	07CH,0A8H,0A8H,068H,028H,028H,028H,000H
+925   FA04 28 28 28 00
+926   FA08 38 40 30 48          DEFB	038H,040H,030H,048H,048H,030H,008H,070H
+926   FA0C 48 30 08 70
+927   FA10 00 00 00 00          DEFB	000H,000H,000H,000H,000H,000H,0FFH,0FFH
+927   FA14 00 00 FF FF
+928   FA18 F0 F0 F0 F0          DEFB	0F0H,0F0H,0F0H,0F0H,00FH,00FH,00FH,00FH
+928   FA1C 0F 0F 0F 0F
+929   FA20 00 00 FF FF          DEFB	000H,000H,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH
+929   FA24 FF FF FF FF
+930   FA28 FF FF 00 00          DEFB	0FFH,0FFH,000H,000H,000H,000H,000H,000H
+930   FA2C 00 00 00 00
+931   FA30 00 00 00 3C          DEFB	000H,000H,000H,03CH,03CH,000H,000H,000H
+931   FA34 3C 00 00 00
+932   FA38 FF FF FF FF          DEFB	0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,000H,000H
+932   FA3C FF FF 00 00
+933   FA40 C0 C0 C0 C0          DEFB	0C0H,0C0H,0C0H,0C0H,0C0H,0C0H,0C0H,0C0H
+933   FA44 C0 C0 C0 C0
+934   FA48 0F 0F 0F 0F          DEFB	00FH,00FH,00FH,00FH,0F0H,0F0H,0F0H,0F0H
+934   FA4C F0 F0 F0 F0
+935   FA50 FC FC FC FC          DEFB	0FCH,0FCH,0FCH,0FCH,0FCH,0FCH,0FCH,0FCH
+935   FA54 FC FC FC FC
+936   FA58 03 03 03 03          DEFB	003H,003H,003H,003H,003H,003H,003H,003H
+936   FA5C 03 03 03 03
+937   FA60 3F 3F 3F 3F          DEFB	03FH,03FH,03FH,03FH,03FH,03FH,03FH,03FH
+937   FA64 3F 3F 3F 3F
+938   FA68 11 22 44 88          DEFB	011H,022H,044H,088H,011H,022H,044H,088H
+938   FA6C 11 22 44 88
+939   FA70 88 44 22 11          DEFB	088H,044H,022H,011H,088H,044H,022H,011H
+939   FA74 88 44 22 11
+940   FA78 FE 7C 38 10          DEFB	0FEH,07CH,038H,010H,000H,000H,000H,000H
+940   FA7C 00 00 00 00
+941   FA80 00 00 00 00          DEFB	000H,000H,000H,000H,010H,038H,07CH,0FEH
+941   FA84 10 38 7C FE
+942   FA88 80 C0 E0 F0          DEFB	080H,0C0H,0E0H,0F0H,0E0H,0C0H,080H,000H
+942   FA8C E0 C0 80 00
+943   FA90 01 03 07 0F          DEFB	001H,003H,007H,00FH,007H,003H,001H,000H
+943   FA94 07 03 01 00
+944   FA98 FF 7E 3C 18          DEFB	0FFH,07EH,03CH,018H,018H,03CH,07EH,0FFH
+944   FA9C 18 3C 7E FF
+945   FAA0 81 C3 E7 FF          DEFB	081H,0C3H,0E7H,0FFH,0FFH,0E7H,0C3H,081H
+945   FAA4 FF E7 C3 81
+946   FAA8 F0 F0 F0 F0          DEFB	0F0H,0F0H,0F0H,0F0H,000H,000H,000H,000H
+946   FAAC 00 00 00 00
+947   FAB0 00 00 00 00          DEFB	000H,000H,000H,000H,00FH,00FH,00FH,00FH
+947   FAB4 0F 0F 0F 0F
+948   FAB8 0F 0F 0F 0F          DEFB	00FH,00FH,00FH,00FH,000H,000H,000H,000H
+948   FABC 00 00 00 00
+949   FAC0 00 00 00 00          DEFB	000H,000H,000H,000H,0F0H,0F0H,0F0H,0F0H
+949   FAC4 F0 F0 F0 F0
+950   FAC8 33 33 CC CC          DEFB	033H,033H,0CCH,0CCH,033H,033H,0CCH,0CCH
+950   FACC 33 33 CC CC
+951   FAD0 00 20 20 50          DEFB	000H,020H,020H,050H,050H,088H,0F8H,000H
+951   FAD4 50 88 F8 00
+952   FAD8 20 20 70 20          DEFB	020H,020H,070H,020H,070H,020H,020H,000H
+952   FADC 70 20 20 00
+953   FAE0 00 00 00 50          DEFB	000H,000H,000H,050H,088H,0A8H,050H,000H
+953   FAE4 88 A8 50 00
+954   FAE8 FF FF FF FF          DEFB	0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH
+954   FAEC FF FF FF FF
+955   FAF0 00 00 00 00          DEFB	000H,000H,000H,000H,0FFH,0FFH,0FFH,0FFH
+955   FAF4 FF FF FF FF
+956   FAF8 F0 F0 F0 F0          DEFB	0F0H,0F0H,0F0H,0F0H,0F0H,0F0H,0F0H,0F0H
+956   FAFC F0 F0 F0 F0
+957   FB00 0F 0F 0F 0F          DEFB	00FH,00FH,00FH,00FH,00FH,00FH,00FH,00FH
+957   FB04 0F 0F 0F 0F
+958   FB08 FF FF FF FF          DEFB	0FFH,0FFH,0FFH,0FFH,000H,000H,000H,000H
+958   FB0C 00 00 00 00
+959   FB10 00 00 68 90          DEFB	000H,000H,068H,090H,090H,090H,068H,000H
+959   FB14 90 90 68 00
+960   FB18 30 48 48 70          DEFB	030H,048H,048H,070H,048H,048H,070H,0C0H
+960   FB1C 48 48 70 C0
+961   FB20 F8 88 80 80          DEFB	0F8H,088H,080H,080H,080H,080H,080H,000H
+961   FB24 80 80 80 00
+962   FB28 F8 50 50 50          DEFB	0F8H,050H,050H,050H,050H,050H,098H,000H
+962   FB2C 50 50 98 00
+963   FB30 F8 88 40 20          DEFB	0F8H,088H,040H,020H,040H,088H,0F8H,000H
+963   FB34 40 88 F8 00
+964   FB38 00 00 78 90          DEFB	000H,000H,078H,090H,090H,090H,060H,000H
+964   FB3C 90 90 60 00
+965   FB40 00 50 50 50          DEFB	000H,050H,050H,050H,050H,068H,080H,080H
+965   FB44 50 68 80 80
+966   FB48 00 50 A0 20          DEFB	000H,050H,0A0H,020H,020H,020H,020H,000H
+966   FB4C 20 20 20 00
+967   FB50 F8 20 70 A8          DEFB	0F8H,020H,070H,0A8H,0A8H,070H,020H,0F8H
+967   FB54 A8 70 20 F8
+968   FB58 20 50 88 F8          DEFB	020H,050H,088H,0F8H,088H,050H,020H,000H
+968   FB5C 88 50 20 00
+969   FB60 70 88 88 88          DEFB	070H,088H,088H,088H,050H,050H,0D8H,000H
+969   FB64 50 50 D8 00
+970   FB68 30 40 40 20          DEFB	030H,040H,040H,020H,050H,050H,050H,020H
+970   FB6C 50 50 50 20
+971   FB70 00 00 00 50          DEFB	000H,000H,000H,050H,0A8H,0A8H,050H,000H
+971   FB74 A8 A8 50 00
+972   FB78 08 70 A8 A8          DEFB	008H,070H,0A8H,0A8H,0A8H,070H,080H,000H
+972   FB7C A8 70 80 00
+973   FB80 38 40 80 F8          DEFB	038H,040H,080H,0F8H,080H,040H,038H,000H
+973   FB84 80 40 38 00
+974   FB88 70 88 88 88          DEFB	070H,088H,088H,088H,088H,088H,088H,000H
+974   FB8C 88 88 88 00
+975   FB90 00 F8 00 F8          DEFB	000H,0F8H,000H,0F8H,000H,0F8H,000H,000H
+975   FB94 00 F8 00 00
+976   FB98 20 20 F8 20          DEFB	020H,020H,0F8H,020H,020H,000H,0F8H,000H
+976   FB9C 20 00 F8 00
+977   FBA0 C0 30 08 30          DEFB	0C0H,030H,008H,030H,0C0H,000H,0F8H,000H
+977   FBA4 C0 00 F8 00
+978   FBA8 18 60 80 60          DEFB	018H,060H,080H,060H,018H,000H,0F8H,000H
+978   FBAC 18 00 F8 00
+979   FBB0 10 28 20 20          DEFB	010H,028H,020H,020H,020H,020H,020H,020H
+979   FBB4 20 20 20 20
+980   FBB8 20 20 20 20          DEFB	020H,020H,020H,020H,020H,020H,0A0H,040H
+980   FBBC 20 20 A0 40
+981   FBC0 00 20 00 F8          DEFB	000H,020H,000H,0F8H,000H,020H,000H,000H
+981   FBC4 00 20 00 00
+982   FBC8 00 50 A0 00          DEFB	000H,050H,0A0H,000H,050H,0A0H,000H,000H
+982   FBCC 50 A0 00 00
+983   FBD0 00 18 24 24          DEFB	000H,018H,024H,024H,018H,000H,000H,000H
+983   FBD4 18 00 00 00
+984   FBD8 00 30 78 78          DEFB	000H,030H,078H,078H,030H,000H,000H,000H
+984   FBDC 30 00 00 00
+985   FBE0 00 00 00 00          DEFB	000H,000H,000H,000H,030H,000H,000H,000H
+985   FBE4 30 00 00 00
+986   FBE8 3E 20 20 20          DEFB	03EH,020H,020H,020H,0A0H,060H,020H,000H
+986   FBEC A0 60 20 00
+987   FBF0 A0 50 50 50          DEFB	0A0H,050H,050H,050H,000H,000H,000H,000H
+987   FBF4 00 00 00 00
+988   FBF8 40 A0 20 40          DEFB	040H,0A0H,020H,040H,0E0H,000H,000H,000H
+988   FBFC E0 00 00 00
+989   FC00 00 38 38 38          DEFB	000H,038H,038H,038H,038H,038H,038H,000H
+989   FC04 38 38 38 00
+990   FC08 00 00 00 00          DEFB	000H,000H,000H,000H,000H,000H,000H,000H
+990   FC0C 00 00 00 00
+991   FC10
+992   FC10                      .DEPHASE
+993   0C1A              ENDADR:
+994   0C1A
 # file closed: bios.asm

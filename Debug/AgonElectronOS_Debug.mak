@@ -450,6 +450,7 @@ $(WORKDIR_ESCSPACE)\machine.obj :  \
             $(INCLUDE_ESCSPACE)\zilog\uartdefs.h  \
             $(PRJDIR_ESCSPACE)\include\machine.h  \
             $(PRJDIR_ESCSPACE)\include\misc.h  \
+            $(PRJDIR_ESCSPACE)\include\vectors16.h  \
             $(PRJDIR_ESCSPACE)\src_fatfs\ff.h  \
             $(PRJDIR_ESCSPACE)\src_fatfs\ffconf.h
 	 $(CC) $(CFLAGS) "$(PRJDIR)\src\machine.c"

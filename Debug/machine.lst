@@ -1,4 +1,4 @@
-Zilog eZ80 Macro Assembler Version 4.3 (19073001)25-Jun-23     10:17:32     page:   1
+Zilog eZ80 Macro Assembler Version 4.3 (19073001)04-Jul-23     22:04:29     page:   1
 
 
 PC     Object              I  Line    Source 
@@ -447,1401 +447,1509 @@ PC     Object              I  Line    Source
                            A   443    .VALUE __secsize
                            A   444    .TYPE 4
                            A   445    .ENDEF
-                           A   446    ;    1	#include <eZ80.h>
-                           A   447    ;    2	#include <defines.h>
-                           A   448    ;    3	#include <stdio.h>
-                           A   449    ;    4	#include "machine.h"
-                           A   450    ;    5	#include "misc.h"
-                           A   451    ;    6	#include <String.h>
-                           A   452    ;    7	
-                           A   453    ;    8	INT8 *ram;
-                           A   454    ;    9	INT8  mbase;
-                           A   455    ;   10	FIL disks[8]; // A-H
-                           A   456    ;   11	char szWarmBootImage[255];
-                           A   457    ;   12	UINT8 wb_bank;
-                           A   458    ;   13	int _secsize;
-                           A   459    	SEGMENT CODE
-                           A   460    ;   14	
-                           A   461    ;   15	BOOL machine_load_image (UINT8 bank,TCH
-                           A   462    ;   16	{
-000000                     A   463    _machine_load_image:
-                           A   464    .DEFINE "_machine_load_image"
-                           A   465    
-                           A   466    .VALUE _machine_load_image
-                           A   467    
-                           A   468    .CLASS 2
-                           A   469    
-                           A   470    .TYPE 76
-                           A   471    
-                           A   472    .ENDEF
-                           A   473    
-                           A   474    .BEGFUNC "machine_load_image",16,"_machine_load
-                           A   475    
-                           A   476    .LINE 16
-                           A   477    
-                           A   478    .DEFINE "bank"
-                           A   479    
-                           A   480    .CLASS 65
-                           A   481    
-                           A   482    .VALUE 6
-                           A   483    
-                           A   484    .TYPE 12
-                           A   485    
-                           A   486    .ENDEF
-                           A   487    
-                           A   488    .DEFINE "filename"
-                           A   489    
-                           A   490    .CLASS 65
-                           A   491    
-                           A   492    .VALUE 9
-                           A   493    
-                           A   494    .TYPE 34
-                           A   495    
-                           A   496    .ENDEF
-                           A   497    
-                           A   498    .DEFINE "bytes_read"
-                           A   499    
-                           A   500    .CLASS 65
-                           A   501    
-                           A   502    .VALUE -3
-                           A   503    
-                           A   504    .TYPE 14
-                           A   505    
-                           A   506    .ENDEF
-                           A   507    
-                           A   508    .DEFINE "header"
-                           A   509    
-                           A   510    .CLASS 65
-                           A   511    
-                           A   512    .VALUE -10
-                           A   513    
-                           A   514    .TAG "HEADER"
-                           A   515    
-                           A   516    .TYPE 8
-                           A   517    
-                           A   518    .ENDEF
-                           A   519    
-                           A   520    .DEFINE "f"
-                           A   521    
-                           A   522    .CLASS 65
-                           A   523    
-                           A   524    .VALUE -46
-                           A   525    
-                           A   526    .TAG "NONAME2"
-                           A   527    
-                           A   528    .TYPE 8
-                           A   529    
-                           A   530    .ENDEF
-                           A   531    
-000000 DDE5                A   532    	PUSH	IX
-000002 DD210000 00         A   533    	LD	IX,0
-000007 DD39                A   534    	ADD	IX,SP
-000009 ED22D1              A   535    	LEA	HL,IX+%FFFFFFD1
-00000C F9                  A   536    	LD	SP,HL
-                           A   537    ;   17		FIL f;
-                           A   538    ;   18		UINT bytes_read;
-                           A   539    ;   19		struct HEADER header;
-                           A   540    ;   20	
-                           A   541    ;   21		if (f_open(&f, filename, ( FA_READ 
-                           A   542    .LINE 21
-                           A   543    
-00000D 01010000            A   544    	LD	BC,1
-000011 C5                  A   545    	PUSH	BC
-000012 DD0709              A   546    	LD	BC,(IX+%9)
-000015 C5                  A   547    	PUSH	BC
-000016 ED65D2              A   548    	PEA	IX+%FFFFFFD2
-000019 DD77D1              A   549    	LD	(IX+%FFFFFFD1),A
-00001C CD 00 00 00         A   550    	CALL	_f_open
-000020 DD7ED1              A   551    	LD	A,(IX+%FFFFFFD1)
-000023 C1                  A   552    	POP	BC
-000024 C1                  A   553    	POP	BC
-000025 C1                  A   554    	POP	BC
-000026 01000000            A   555    	LD	BC,0
-00002A B7                  A   556    	OR	A,A
-00002B ED42                A   557    	SBC	HL,BC
-00002D 20 78               A   558    	JR	NZ,L_3
-                           A   559    ;   22		{
-                           A   560    ;   23			if (f_read (&f,&header,sizeof(h
-                           A   561    .LINE 23
+000227                     A   446    _machine_vsync_address:
+000227                     A   447    	DS	2*1
+                           A   448    .DEFINE "machine_vsync_address"
+                           A   449    .ALIAS "_machine_vsync_address"
+                           A   450    .CLASS 83
+                           A   451    .VALUE _machine_vsync_address
+                           A   452    .TYPE 13
+                           A   453    .ENDEF
+000229                     A   454    _machine_vsync:
+000229                     A   455    	DS	1
+                           A   456    .DEFINE "machine_vsync"
+                           A   457    .ALIAS "_machine_vsync"
+                           A   458    .CLASS 83
+                           A   459    .VALUE _machine_vsync
+                           A   460    .TYPE 12
+                           A   461    .ENDEF
+                           A   462    ;    1	#include <eZ80.h>
+                           A   463    ;    2	#include <defines.h>
+                           A   464    ;    3	#include <stdio.h>
+                           A   465    ;    4	#include "machine.h"
+                           A   466    ;    5	#include "misc.h"
+                           A   467    ;    6	#include <String.h>
+                           A   468    ;    7	#include "vectors16.h"
+                           A   469    ;    8	
+                           A   470    ;    9	INT8 *ram;
+                           A   471    ;   10	INT8  mbase;
+                           A   472    ;   11	FIL disks[8]; // A-H
+                           A   473    ;   12	char szWarmBootImage[255];
+                           A   474    ;   13	UINT8 wb_bank;
+                           A   475    ;   14	int _secsize;
+                           A   476    ;   15	UINT16 machine_vsync_address;
+                           A   477    ;   16	UINT8 machine_vsync;
+                           A   478    	SEGMENT CODE
+                           A   479    ;   17	
+                           A   480    ;   18	BOOL machine_load_image (UINT8 bank,TCH
+                           A   481    ;   19	{
+000000                     A   482    _machine_load_image:
+                           A   483    .DEFINE "_machine_load_image"
+                           A   484    
+                           A   485    .VALUE _machine_load_image
+                           A   486    
+                           A   487    .CLASS 2
+                           A   488    
+                           A   489    .TYPE 76
+                           A   490    
+                           A   491    .ENDEF
+                           A   492    
+                           A   493    .BEGFUNC "machine_load_image",19,"_machine_load
+                           A   494    
+                           A   495    .LINE 19
+                           A   496    
+                           A   497    .DEFINE "bank"
+                           A   498    
+                           A   499    .CLASS 65
+                           A   500    
+                           A   501    .VALUE 6
+                           A   502    
+                           A   503    .TYPE 12
+                           A   504    
+                           A   505    .ENDEF
+                           A   506    
+                           A   507    .DEFINE "filename"
+                           A   508    
+                           A   509    .CLASS 65
+                           A   510    
+                           A   511    .VALUE 9
+                           A   512    
+                           A   513    .TYPE 34
+                           A   514    
+                           A   515    .ENDEF
+                           A   516    
+                           A   517    .DEFINE "bytes_read"
+                           A   518    
+                           A   519    .CLASS 65
+                           A   520    
+                           A   521    .VALUE -3
+                           A   522    
+                           A   523    .TYPE 14
+                           A   524    
+                           A   525    .ENDEF
+                           A   526    
+                           A   527    .DEFINE "header"
+                           A   528    
+                           A   529    .CLASS 65
+                           A   530    
+                           A   531    .VALUE -10
+                           A   532    
+                           A   533    .TAG "HEADER"
+                           A   534    
+                           A   535    .TYPE 8
+                           A   536    
+                           A   537    .ENDEF
+                           A   538    
+                           A   539    .DEFINE "f"
+                           A   540    
+                           A   541    .CLASS 65
+                           A   542    
+                           A   543    .VALUE -46
+                           A   544    
+                           A   545    .TAG "NONAME2"
+                           A   546    
+                           A   547    .TYPE 8
+                           A   548    
+                           A   549    .ENDEF
+                           A   550    
+000000 DDE5                A   551    	PUSH	IX
+000002 DD210000 00         A   552    	LD	IX,0
+000007 DD39                A   553    	ADD	IX,SP
+000009 ED22D1              A   554    	LEA	HL,IX+%FFFFFFD1
+00000C F9                  A   555    	LD	SP,HL
+                           A   556    ;   20		FIL f;
+                           A   557    ;   21		UINT bytes_read;
+                           A   558    ;   22		struct HEADER header;
+                           A   559    ;   23	
+                           A   560    ;   24		if (f_open(&f, filename, ( FA_READ 
+                           A   561    .LINE 24
                            A   562    
-00002F ED65FD              A   563    	PEA	IX+%FFFFFFFD
-000032 01070000            A   564    	LD	BC,7
-000036 C5                  A   565    	PUSH	BC
-000037 ED65F6              A   566    	PEA	IX+%FFFFFFF6
-00003A ED65D2              A   567    	PEA	IX+%FFFFFFD2
-00003D DD77D1              A   568    	LD	(IX+%FFFFFFD1),A
-000040 CD 00 00 00         A   569    	CALL	_f_read
-000044 DD7ED1              A   570    	LD	A,(IX+%FFFFFFD1)
-000047 C1                  A   571    	POP	BC
-000048 C1                  A   572    	POP	BC
-000049 C1                  A   573    	POP	BC
-00004A C1                  A   574    	POP	BC
-00004B 01000000            A   575    	LD	BC,0
-00004F B7                  A   576    	OR	A,A
-000050 ED42                A   577    	SBC	HL,BC
-000052 20 47               A   578    	JR	NZ,L_1
-                           A   579    ;   24			{
-                           A   580    ;   25				f_read (&f,&ram[header.begi
-                           A   581    .LINE 25
-                           A   582    
-000054 ED65FD              A   583    	PEA	IX+%FFFFFFFD
-000057 DD07F9              A   584    	LD	BC,(IX+%FFFFFFF9)
-00005A CD 00 00 00         A   585    	CALL	__stoiu
-00005E E5D1                A   586    	LD	DE,HL
-000060 DD07F7              A   587    	LD	BC,(IX+%FFFFFFF7)
-000063 CD 00 00 00         A   588    	CALL	__stoiu
-000067 E5C1                A   589    	LD	BC,HL
-000069 D5E1                A   590    	LD	HL,DE
-00006B B7                  A   591    	OR	A,A
-00006C ED42                A   592    	SBC	HL,BC
-00006E E5                  A   593    	PUSH	HL
-00006F DD07F7              A   594    	LD	BC,(IX+%FFFFFFF7)
-000072 CD 00 00 00         A   595    	CALL	__stoiu
-000076 E5C1                A   596    	LD	BC,HL
-000078 DD7E06              A   597    	LD	A,(IX+%6)
-00007B B7ED62              A   598    	UEXT	HL
-00007E 6F                  A   599    	LD	L,A
-00007F E5                  A   600    	PUSH	HL
-000080 B7ED62              A   601    	UEXT	HL
-000083 E5                  A   602    	PUSH	HL
-000084 33                  A   603    	INC	SP
-000085 E1                  A   604    	POP	HL
-000086 33                  A   605    	INC	SP
-000087 33                  A   606    	INC	SP
-000088 09                  A   607    	ADD	HL,BC
-000089 ED4B 00 00 00       A   608    	LD	BC,(_ram)
-00008E 09                  A   609    	ADD	HL,BC
-00008F E5                  A   610    	PUSH	HL
-000090 ED65D2              A   611    	PEA	IX+%FFFFFFD2
-000093 CD 00 00 00         A   612    	CALL	_f_read
-000097 C1                  A   613    	POP	BC
-000098 C1                  A   614    	POP	BC
-000099 C1                  A   615    	POP	BC
-00009A C1                  A   616    	POP	BC
-                           A   617    ;   26				//printf ("[%s loaded]\r\n"
-                           A   618    ;   27			}
-00009B                     A   619    L_1:
-                           A   620    .LINE 27
-                           A   621    
-                           A   622    ;   28			f_close (&f);
-                           A   623    .LINE 28
-                           A   624    
-00009B ED65D2              A   625    	PEA	IX+%FFFFFFD2
-00009E CD 00 00 00         A   626    	CALL	_f_close
-0000A2 C1                  A   627    	POP	BC
-                           A   628    ;   29			return TRUE;
-                           A   629    .LINE 29
-                           A   630    
-0000A3 3E01                A   631    	LD	A,%1
-0000A5 18 01               A   632    	JR	L_4
-                           A   633    ;   30		}
-                           A   634    ;   31		else
-0000A7                     A   635    L_3:
-                           A   636    .LINE 31
-                           A   637    
-                           A   638    ;   32		{
-                           A   639    ;   33			//printf ("[%s NOT loaded]\r\n"
-                           A   640    ;   34			return FALSE;
-                           A   641    .LINE 34
-                           A   642    
-0000A7 AF                  A   643    	XOR	A,A
-                           A   644    ;   35		}
-                           A   645    ;   36	}
-0000A8                     A   646    L_4:
-                           A   647    .LINE 36
-                           A   648    
-0000A8 DDF9                A   649    	LD	SP,IX
-0000AA DDE1                A   650    	POP	IX
-0000AC C9                  A   651    	RET	
-                           A   652    
-                           A   653    
-                           A   654    ;**************************** _machine_load_ima
-                           A   655    ;Name                         Addr/Register   S
-                           A   656    ;_f_close                            IMPORT  --
-                           A   657    ;_ram                                STATIC    
-                           A   658    ;_f_read                             IMPORT  --
-                           A   659    ;_f_open                             IMPORT  --
-                           A   660    ;f                                    IX-46    
-                           A   661    ;header                               IX-10    
-                           A   662    ;bytes_read                            IX-3    
-                           A   663    ;filename                              IX+9    
-                           A   664    ;bank                                  IX+6    
-                           A   665    
-                           A   666    
-                           A   667    ; Stack Frame Size: 59 (bytes)
-                           A   668    ;       Spill Code: 0 (instruction)
-                           A   669    
-                           A   670    
-                           A   671    .ENDFUNC "machine_load_image",36,"_machine_load
-                           A   672    ;   37	
-                           A   673    ;   38	BOOL machine_save_image (UINT8 bank, UI
-                           A   674    ;   39	{
-0000AD                     A   675    _machine_save_image:
-                           A   676    .DEFINE "_machine_save_image"
-                           A   677    
-                           A   678    .VALUE _machine_save_image
-                           A   679    
-                           A   680    .CLASS 2
-                           A   681    
-                           A   682    .TYPE 76
-                           A   683    
-                           A   684    .ENDEF
+00000D 01010000            A   563    	LD	BC,1
+000011 C5                  A   564    	PUSH	BC
+000012 DD0709              A   565    	LD	BC,(IX+%9)
+000015 C5                  A   566    	PUSH	BC
+000016 ED65D2              A   567    	PEA	IX+%FFFFFFD2
+000019 DD77D1              A   568    	LD	(IX+%FFFFFFD1),A
+00001C CD 00 00 00         A   569    	CALL	_f_open
+000020 DD7ED1              A   570    	LD	A,(IX+%FFFFFFD1)
+000023 C1                  A   571    	POP	BC
+000024 C1                  A   572    	POP	BC
+000025 C1                  A   573    	POP	BC
+000026 01000000            A   574    	LD	BC,0
+00002A B7                  A   575    	OR	A,A
+00002B ED42                A   576    	SBC	HL,BC
+00002D 20 78               A   577    	JR	NZ,L_3
+                           A   578    ;   25		{
+                           A   579    ;   26			if (f_read (&f,&header,sizeof(h
+                           A   580    .LINE 26
+                           A   581    
+00002F ED65FD              A   582    	PEA	IX+%FFFFFFFD
+000032 01070000            A   583    	LD	BC,7
+000036 C5                  A   584    	PUSH	BC
+000037 ED65F6              A   585    	PEA	IX+%FFFFFFF6
+00003A ED65D2              A   586    	PEA	IX+%FFFFFFD2
+00003D DD77D1              A   587    	LD	(IX+%FFFFFFD1),A
+000040 CD 00 00 00         A   588    	CALL	_f_read
+000044 DD7ED1              A   589    	LD	A,(IX+%FFFFFFD1)
+000047 C1                  A   590    	POP	BC
+000048 C1                  A   591    	POP	BC
+000049 C1                  A   592    	POP	BC
+00004A C1                  A   593    	POP	BC
+00004B 01000000            A   594    	LD	BC,0
+00004F B7                  A   595    	OR	A,A
+000050 ED42                A   596    	SBC	HL,BC
+000052 20 47               A   597    	JR	NZ,L_1
+                           A   598    ;   27			{
+                           A   599    ;   28				f_read (&f,&ram[header.begi
+                           A   600    .LINE 28
+                           A   601    
+000054 ED65FD              A   602    	PEA	IX+%FFFFFFFD
+000057 DD07F9              A   603    	LD	BC,(IX+%FFFFFFF9)
+00005A CD 00 00 00         A   604    	CALL	__stoiu
+00005E E5D1                A   605    	LD	DE,HL
+000060 DD07F7              A   606    	LD	BC,(IX+%FFFFFFF7)
+000063 CD 00 00 00         A   607    	CALL	__stoiu
+000067 E5C1                A   608    	LD	BC,HL
+000069 D5E1                A   609    	LD	HL,DE
+00006B B7                  A   610    	OR	A,A
+00006C ED42                A   611    	SBC	HL,BC
+00006E E5                  A   612    	PUSH	HL
+00006F DD07F7              A   613    	LD	BC,(IX+%FFFFFFF7)
+000072 CD 00 00 00         A   614    	CALL	__stoiu
+000076 E5C1                A   615    	LD	BC,HL
+000078 DD7E06              A   616    	LD	A,(IX+%6)
+00007B B7ED62              A   617    	UEXT	HL
+00007E 6F                  A   618    	LD	L,A
+00007F E5                  A   619    	PUSH	HL
+000080 B7ED62              A   620    	UEXT	HL
+000083 E5                  A   621    	PUSH	HL
+000084 33                  A   622    	INC	SP
+000085 E1                  A   623    	POP	HL
+000086 33                  A   624    	INC	SP
+000087 33                  A   625    	INC	SP
+000088 09                  A   626    	ADD	HL,BC
+000089 ED4B 00 00 00       A   627    	LD	BC,(_ram)
+00008E 09                  A   628    	ADD	HL,BC
+00008F E5                  A   629    	PUSH	HL
+000090 ED65D2              A   630    	PEA	IX+%FFFFFFD2
+000093 CD 00 00 00         A   631    	CALL	_f_read
+000097 C1                  A   632    	POP	BC
+000098 C1                  A   633    	POP	BC
+000099 C1                  A   634    	POP	BC
+00009A C1                  A   635    	POP	BC
+                           A   636    ;   29				//printf ("[%s loaded]\r\n"
+                           A   637    ;   30			}
+00009B                     A   638    L_1:
+                           A   639    .LINE 30
+                           A   640    
+                           A   641    ;   31			f_close (&f);
+                           A   642    .LINE 31
+                           A   643    
+00009B ED65D2              A   644    	PEA	IX+%FFFFFFD2
+00009E CD 00 00 00         A   645    	CALL	_f_close
+0000A2 C1                  A   646    	POP	BC
+                           A   647    ;   32			return TRUE;
+                           A   648    .LINE 32
+                           A   649    
+0000A3 3E01                A   650    	LD	A,%1
+0000A5 18 01               A   651    	JR	L_4
+                           A   652    ;   33		}
+                           A   653    ;   34		else
+0000A7                     A   654    L_3:
+                           A   655    .LINE 34
+                           A   656    
+                           A   657    ;   35		{
+                           A   658    ;   36			//printf ("[%s NOT loaded]\r\n"
+                           A   659    ;   37			return FALSE;
+                           A   660    .LINE 37
+                           A   661    
+0000A7 AF                  A   662    	XOR	A,A
+                           A   663    ;   38		}
+                           A   664    ;   39	}
+0000A8                     A   665    L_4:
+                           A   666    .LINE 39
+                           A   667    
+0000A8 DDF9                A   668    	LD	SP,IX
+0000AA DDE1                A   669    	POP	IX
+0000AC C9                  A   670    	RET	
+                           A   671    
+                           A   672    
+                           A   673    ;**************************** _machine_load_ima
+                           A   674    ;Name                         Addr/Register   S
+                           A   675    ;_f_close                            IMPORT  --
+                           A   676    ;_ram                                STATIC    
+                           A   677    ;_f_read                             IMPORT  --
+                           A   678    ;_f_open                             IMPORT  --
+                           A   679    ;f                                    IX-46    
+                           A   680    ;header                               IX-10    
+                           A   681    ;bytes_read                            IX-3    
+                           A   682    ;filename                              IX+9    
+                           A   683    ;bank                                  IX+6    
+                           A   684    
                            A   685    
-                           A   686    .BEGFUNC "machine_save_image",39,"_machine_save
-                           A   687    
-                           A   688    .LINE 39
+                           A   686    ; Stack Frame Size: 59 (bytes)
+                           A   687    ;       Spill Code: 0 (instruction)
+                           A   688    
                            A   689    
-                           A   690    .DEFINE "bank"
-                           A   691    
-                           A   692    .CLASS 65
-                           A   693    
-                           A   694    .VALUE 6
-                           A   695    
-                           A   696    .TYPE 12
-                           A   697    
-                           A   698    .ENDEF
-                           A   699    
-                           A   700    .DEFINE "begin"
-                           A   701    
-                           A   702    .CLASS 65
-                           A   703    
-                           A   704    .VALUE 9
-                           A   705    
-                           A   706    .TYPE 13
-                           A   707    
-                           A   708    .ENDEF
-                           A   709    
-                           A   710    .DEFINE "end"
-                           A   711    
-                           A   712    .CLASS 65
-                           A   713    
-                           A   714    .VALUE 12
-                           A   715    
-                           A   716    .TYPE 13
-                           A   717    
-                           A   718    .ENDEF
-                           A   719    
-                           A   720    .DEFINE "start"
-                           A   721    
-                           A   722    .CLASS 65
-                           A   723    
-                           A   724    .VALUE 15
-                           A   725    
-                           A   726    .TYPE 13
-                           A   727    
-                           A   728    .ENDEF
-                           A   729    
-                           A   730    .DEFINE "filename"
-                           A   731    
-                           A   732    .CLASS 65
-                           A   733    
-                           A   734    .VALUE 18
-                           A   735    
-                           A   736    .TYPE 34
-                           A   737    
-                           A   738    .ENDEF
-                           A   739    
-                           A   740    .DEFINE "header"
-                           A   741    
-                           A   742    .CLASS 65
-                           A   743    
-                           A   744    .VALUE -7
-                           A   745    
-                           A   746    .TAG "HEADER"
-                           A   747    
-                           A   748    .TYPE 8
-                           A   749    
-                           A   750    .ENDEF
-                           A   751    
-                           A   752    .DEFINE "bytes_written"
-                           A   753    
-                           A   754    .CLASS 65
-                           A   755    
-                           A   756    .VALUE -10
-                           A   757    
-                           A   758    .TYPE 14
-                           A   759    
-                           A   760    .ENDEF
-                           A   761    
-                           A   762    .DEFINE "f"
-                           A   763    
-                           A   764    .CLASS 65
-                           A   765    
-                           A   766    .VALUE -46
-                           A   767    
-                           A   768    .TAG "NONAME2"
-                           A   769    
-                           A   770    .TYPE 8
-                           A   771    
-                           A   772    .ENDEF
-                           A   773    
-0000AD DDE5                A   774    	PUSH	IX
-0000AF DD210000 00         A   775    	LD	IX,0
-0000B4 DD39                A   776    	ADD	IX,SP
-0000B6 ED22D1              A   777    	LEA	HL,IX+%FFFFFFD1
-0000B9 F9                  A   778    	LD	SP,HL
-                           A   779    ;   40		FIL f;
-                           A   780    ;   41		UINT bytes_written;
-                           A   781    ;   42		struct HEADER header;
-                           A   782    ;   43	
-                           A   783    ;   44		if (f_open(&f, filename, ( FA_CREAT
-                           A   784    .LINE 44
-                           A   785    
-0000BA 01060000            A   786    	LD	BC,6
-0000BE C5                  A   787    	PUSH	BC
-0000BF DD0712              A   788    	LD	BC,(IX+%12)
-0000C2 C5                  A   789    	PUSH	BC
-0000C3 ED65D2              A   790    	PEA	IX+%FFFFFFD2
-0000C6 DD77D1              A   791    	LD	(IX+%FFFFFFD1),A
-0000C9 CD 00 00 00         A   792    	CALL	_f_open
-0000CD DD7ED1              A   793    	LD	A,(IX+%FFFFFFD1)
-0000D0 C1                  A   794    	POP	BC
-0000D1 C1                  A   795    	POP	BC
-0000D2 C1                  A   796    	POP	BC
-0000D3 01000000            A   797    	LD	BC,0
-0000D7 B7                  A   798    	OR	A,A
-0000D8 ED42                A   799    	SBC	HL,BC
-0000DA C2 75 01 00         A   800    	JR	NZ,L_8
-                           A   801    ;   45		{
-                           A   802    ;   46			header.start = start;
-                           A   803    .LINE 46
+                           A   690    .ENDFUNC "machine_load_image",39,"_machine_load
+                           A   691    ;   40	
+                           A   692    ;   41	BOOL machine_save_image (UINT8 bank, UI
+                           A   693    ;   42	{
+0000AD                     A   694    _machine_save_image:
+                           A   695    .DEFINE "_machine_save_image"
+                           A   696    
+                           A   697    .VALUE _machine_save_image
+                           A   698    
+                           A   699    .CLASS 2
+                           A   700    
+                           A   701    .TYPE 76
+                           A   702    
+                           A   703    .ENDEF
+                           A   704    
+                           A   705    .BEGFUNC "machine_save_image",42,"_machine_save
+                           A   706    
+                           A   707    .LINE 42
+                           A   708    
+                           A   709    .DEFINE "bank"
+                           A   710    
+                           A   711    .CLASS 65
+                           A   712    
+                           A   713    .VALUE 6
+                           A   714    
+                           A   715    .TYPE 12
+                           A   716    
+                           A   717    .ENDEF
+                           A   718    
+                           A   719    .DEFINE "begin"
+                           A   720    
+                           A   721    .CLASS 65
+                           A   722    
+                           A   723    .VALUE 9
+                           A   724    
+                           A   725    .TYPE 13
+                           A   726    
+                           A   727    .ENDEF
+                           A   728    
+                           A   729    .DEFINE "end"
+                           A   730    
+                           A   731    .CLASS 65
+                           A   732    
+                           A   733    .VALUE 12
+                           A   734    
+                           A   735    .TYPE 13
+                           A   736    
+                           A   737    .ENDEF
+                           A   738    
+                           A   739    .DEFINE "start"
+                           A   740    
+                           A   741    .CLASS 65
+                           A   742    
+                           A   743    .VALUE 15
+                           A   744    
+                           A   745    .TYPE 13
+                           A   746    
+                           A   747    .ENDEF
+                           A   748    
+                           A   749    .DEFINE "filename"
+                           A   750    
+                           A   751    .CLASS 65
+                           A   752    
+                           A   753    .VALUE 18
+                           A   754    
+                           A   755    .TYPE 34
+                           A   756    
+                           A   757    .ENDEF
+                           A   758    
+                           A   759    .DEFINE "header"
+                           A   760    
+                           A   761    .CLASS 65
+                           A   762    
+                           A   763    .VALUE -7
+                           A   764    
+                           A   765    .TAG "HEADER"
+                           A   766    
+                           A   767    .TYPE 8
+                           A   768    
+                           A   769    .ENDEF
+                           A   770    
+                           A   771    .DEFINE "bytes_written"
+                           A   772    
+                           A   773    .CLASS 65
+                           A   774    
+                           A   775    .VALUE -10
+                           A   776    
+                           A   777    .TYPE 14
+                           A   778    
+                           A   779    .ENDEF
+                           A   780    
+                           A   781    .DEFINE "f"
+                           A   782    
+                           A   783    .CLASS 65
+                           A   784    
+                           A   785    .VALUE -46
+                           A   786    
+                           A   787    .TAG "NONAME2"
+                           A   788    
+                           A   789    .TYPE 8
+                           A   790    
+                           A   791    .ENDEF
+                           A   792    
+0000AD DDE5                A   793    	PUSH	IX
+0000AF DD210000 00         A   794    	LD	IX,0
+0000B4 DD39                A   795    	ADD	IX,SP
+0000B6 ED22D1              A   796    	LEA	HL,IX+%FFFFFFD1
+0000B9 F9                  A   797    	LD	SP,HL
+                           A   798    ;   43		FIL f;
+                           A   799    ;   44		UINT bytes_written;
+                           A   800    ;   45		struct HEADER header;
+                           A   801    ;   46	
+                           A   802    ;   47		if (f_open(&f, filename, ( FA_CREAT
+                           A   803    .LINE 47
                            A   804    
-0000DE DD070F              A   805    	LD	BC,(IX+%F)
-0000E1 DD71FE              A   806    	LD	(IX+%FFFFFFFE),C
-0000E4 DD70FF              A   807    	LD	(IX+%FFFFFFFF),B
-                           A   808    ;   47			header.begin = begin;
-                           A   809    .LINE 47
-                           A   810    
-0000E7 DD0709              A   811    	LD	BC,(IX+%9)
-0000EA DD71FA              A   812    	LD	(IX+%FFFFFFFA),C
-0000ED DD70FB              A   813    	LD	(IX+%FFFFFFFB),B
-                           A   814    ;   48			header.end = end;
-                           A   815    .LINE 48
-                           A   816    
-0000F0 DD070C              A   817    	LD	BC,(IX+%C)
-0000F3 DD71FC              A   818    	LD	(IX+%FFFFFFFC),C
-0000F6 DD70FD              A   819    	LD	(IX+%FFFFFFFD),B
-                           A   820    ;   49			header.magic = 0xaa;
-                           A   821    .LINE 49
-                           A   822    
-0000F9 DD36F9AA            A   823    	LD	(IX+%FFFFFFF9),%AA
-                           A   824    ;   50	
-                           A   825    ;   51			if (f_write (&f,&header,sizeof(
-                           A   826    .LINE 51
-                           A   827    
-0000FD ED65F6              A   828    	PEA	IX+%FFFFFFF6
-000100 01070000            A   829    	LD	BC,7
-000104 C5                  A   830    	PUSH	BC
-000105 ED65F9              A   831    	PEA	IX+%FFFFFFF9
-000108 ED65D2              A   832    	PEA	IX+%FFFFFFD2
-00010B DD77D1              A   833    	LD	(IX+%FFFFFFD1),A
-00010E CD 00 00 00         A   834    	CALL	_f_write
-000112 DD7ED1              A   835    	LD	A,(IX+%FFFFFFD1)
-000115 C1                  A   836    	POP	BC
-000116 C1                  A   837    	POP	BC
-000117 C1                  A   838    	POP	BC
-000118 C1                  A   839    	POP	BC
-000119 01000000            A   840    	LD	BC,0
-00011D B7                  A   841    	OR	A,A
-00011E ED42                A   842    	SBC	HL,BC
-000120 20 47               A   843    	JR	NZ,L_6
-                           A   844    ;   52			{
-                           A   845    ;   53				f_write (&f,&ram[header.beg
-                           A   846    .LINE 53
-                           A   847    
-000122 ED65F6              A   848    	PEA	IX+%FFFFFFF6
-000125 DD07FC              A   849    	LD	BC,(IX+%FFFFFFFC)
-000128 CD 00 00 00         A   850    	CALL	__stoiu
-00012C E5D1                A   851    	LD	DE,HL
-00012E DD07FA              A   852    	LD	BC,(IX+%FFFFFFFA)
-000131 CD 00 00 00         A   853    	CALL	__stoiu
-000135 E5C1                A   854    	LD	BC,HL
-000137 D5E1                A   855    	LD	HL,DE
-000139 B7                  A   856    	OR	A,A
-00013A ED42                A   857    	SBC	HL,BC
-00013C E5                  A   858    	PUSH	HL
-00013D DD07FA              A   859    	LD	BC,(IX+%FFFFFFFA)
-000140 CD 00 00 00         A   860    	CALL	__stoiu
-000144 E5C1                A   861    	LD	BC,HL
-000146 DD7E06              A   862    	LD	A,(IX+%6)
-000149 B7ED62              A   863    	UEXT	HL
-00014C 6F                  A   864    	LD	L,A
-00014D E5                  A   865    	PUSH	HL
-00014E B7ED62              A   866    	UEXT	HL
-000151 E5                  A   867    	PUSH	HL
-000152 33                  A   868    	INC	SP
-000153 E1                  A   869    	POP	HL
-000154 33                  A   870    	INC	SP
-000155 33                  A   871    	INC	SP
-000156 09                  A   872    	ADD	HL,BC
-000157 ED4B 00 00 00       A   873    	LD	BC,(_ram)
-00015C 09                  A   874    	ADD	HL,BC
-00015D E5                  A   875    	PUSH	HL
-00015E ED65D2              A   876    	PEA	IX+%FFFFFFD2
-000161 CD 00 00 00         A   877    	CALL	_f_write
-000165 C1                  A   878    	POP	BC
-000166 C1                  A   879    	POP	BC
-000167 C1                  A   880    	POP	BC
-000168 C1                  A   881    	POP	BC
-                           A   882    ;   54				//printf ("[%s saved from %
-                           A   883    ;   55			}
-000169                     A   884    L_6:
-                           A   885    .LINE 55
-                           A   886    
-                           A   887    ;   56			f_close (&f);
-                           A   888    .LINE 56
-                           A   889    
-000169 ED65D2              A   890    	PEA	IX+%FFFFFFD2
-00016C CD 00 00 00         A   891    	CALL	_f_close
-000170 C1                  A   892    	POP	BC
-                           A   893    ;   57			return TRUE;
-                           A   894    .LINE 57
-                           A   895    
-000171 3E01                A   896    	LD	A,%1
-000173 18 01               A   897    	JR	L_9
-                           A   898    ;   58		}
-                           A   899    ;   59		else
-000175                     A   900    L_8:
-                           A   901    .LINE 59
-                           A   902    
-                           A   903    ;   60		{
-                           A   904    ;   61			//printf ("[%s NOT loaded]\r\n"
-                           A   905    ;   62			return FALSE;
-                           A   906    .LINE 62
-                           A   907    
-000175 AF                  A   908    	XOR	A,A
-                           A   909    ;   63		}
-                           A   910    ;   64	}
-000176                     A   911    L_9:
-                           A   912    .LINE 64
-                           A   913    
-000176 DDF9                A   914    	LD	SP,IX
-000178 DDE1                A   915    	POP	IX
-00017A C9                  A   916    	RET	
-                           A   917    
-                           A   918    
-                           A   919    ;**************************** _machine_save_ima
-                           A   920    ;Name                         Addr/Register   S
-                           A   921    ;_f_close                            IMPORT  --
-                           A   922    ;_ram                                STATIC    
-                           A   923    ;_f_write                            IMPORT  --
-                           A   924    ;_f_open                             IMPORT  --
-                           A   925    ;f                                    IX-46    
-                           A   926    ;bytes_written                        IX-10    
-                           A   927    ;header                                IX-7    
-                           A   928    ;filename                             IX+18    
-                           A   929    ;start                                IX+15    
-                           A   930    ;end                                  IX+12    
-                           A   931    ;begin                                 IX+9    
-                           A   932    ;bank                                  IX+6    
-                           A   933    
-                           A   934    
-                           A   935    ; Stack Frame Size: 68 (bytes)
-                           A   936    ;       Spill Code: 0 (instruction)
+0000BA 01060000            A   805    	LD	BC,6
+0000BE C5                  A   806    	PUSH	BC
+0000BF DD0712              A   807    	LD	BC,(IX+%12)
+0000C2 C5                  A   808    	PUSH	BC
+0000C3 ED65D2              A   809    	PEA	IX+%FFFFFFD2
+0000C6 DD77D1              A   810    	LD	(IX+%FFFFFFD1),A
+0000C9 CD 00 00 00         A   811    	CALL	_f_open
+0000CD DD7ED1              A   812    	LD	A,(IX+%FFFFFFD1)
+0000D0 C1                  A   813    	POP	BC
+0000D1 C1                  A   814    	POP	BC
+0000D2 C1                  A   815    	POP	BC
+0000D3 01000000            A   816    	LD	BC,0
+0000D7 B7                  A   817    	OR	A,A
+0000D8 ED42                A   818    	SBC	HL,BC
+0000DA C2 75 01 00         A   819    	JR	NZ,L_8
+                           A   820    ;   48		{
+                           A   821    ;   49			header.start = start;
+                           A   822    .LINE 49
+                           A   823    
+0000DE DD070F              A   824    	LD	BC,(IX+%F)
+0000E1 DD71FE              A   825    	LD	(IX+%FFFFFFFE),C
+0000E4 DD70FF              A   826    	LD	(IX+%FFFFFFFF),B
+                           A   827    ;   50			header.begin = begin;
+                           A   828    .LINE 50
+                           A   829    
+0000E7 DD0709              A   830    	LD	BC,(IX+%9)
+0000EA DD71FA              A   831    	LD	(IX+%FFFFFFFA),C
+0000ED DD70FB              A   832    	LD	(IX+%FFFFFFFB),B
+                           A   833    ;   51			header.end = end;
+                           A   834    .LINE 51
+                           A   835    
+0000F0 DD070C              A   836    	LD	BC,(IX+%C)
+0000F3 DD71FC              A   837    	LD	(IX+%FFFFFFFC),C
+0000F6 DD70FD              A   838    	LD	(IX+%FFFFFFFD),B
+                           A   839    ;   52			header.magic = 0xaa;
+                           A   840    .LINE 52
+                           A   841    
+0000F9 DD36F9AA            A   842    	LD	(IX+%FFFFFFF9),%AA
+                           A   843    ;   53	
+                           A   844    ;   54			if (f_write (&f,&header,sizeof(
+                           A   845    .LINE 54
+                           A   846    
+0000FD ED65F6              A   847    	PEA	IX+%FFFFFFF6
+000100 01070000            A   848    	LD	BC,7
+000104 C5                  A   849    	PUSH	BC
+000105 ED65F9              A   850    	PEA	IX+%FFFFFFF9
+000108 ED65D2              A   851    	PEA	IX+%FFFFFFD2
+00010B DD77D1              A   852    	LD	(IX+%FFFFFFD1),A
+00010E CD 00 00 00         A   853    	CALL	_f_write
+000112 DD7ED1              A   854    	LD	A,(IX+%FFFFFFD1)
+000115 C1                  A   855    	POP	BC
+000116 C1                  A   856    	POP	BC
+000117 C1                  A   857    	POP	BC
+000118 C1                  A   858    	POP	BC
+000119 01000000            A   859    	LD	BC,0
+00011D B7                  A   860    	OR	A,A
+00011E ED42                A   861    	SBC	HL,BC
+000120 20 47               A   862    	JR	NZ,L_6
+                           A   863    ;   55			{
+                           A   864    ;   56				f_write (&f,&ram[header.beg
+                           A   865    .LINE 56
+                           A   866    
+000122 ED65F6              A   867    	PEA	IX+%FFFFFFF6
+000125 DD07FC              A   868    	LD	BC,(IX+%FFFFFFFC)
+000128 CD 00 00 00         A   869    	CALL	__stoiu
+00012C E5D1                A   870    	LD	DE,HL
+00012E DD07FA              A   871    	LD	BC,(IX+%FFFFFFFA)
+000131 CD 00 00 00         A   872    	CALL	__stoiu
+000135 E5C1                A   873    	LD	BC,HL
+000137 D5E1                A   874    	LD	HL,DE
+000139 B7                  A   875    	OR	A,A
+00013A ED42                A   876    	SBC	HL,BC
+00013C E5                  A   877    	PUSH	HL
+00013D DD07FA              A   878    	LD	BC,(IX+%FFFFFFFA)
+000140 CD 00 00 00         A   879    	CALL	__stoiu
+000144 E5C1                A   880    	LD	BC,HL
+000146 DD7E06              A   881    	LD	A,(IX+%6)
+000149 B7ED62              A   882    	UEXT	HL
+00014C 6F                  A   883    	LD	L,A
+00014D E5                  A   884    	PUSH	HL
+00014E B7ED62              A   885    	UEXT	HL
+000151 E5                  A   886    	PUSH	HL
+000152 33                  A   887    	INC	SP
+000153 E1                  A   888    	POP	HL
+000154 33                  A   889    	INC	SP
+000155 33                  A   890    	INC	SP
+000156 09                  A   891    	ADD	HL,BC
+000157 ED4B 00 00 00       A   892    	LD	BC,(_ram)
+00015C 09                  A   893    	ADD	HL,BC
+00015D E5                  A   894    	PUSH	HL
+00015E ED65D2              A   895    	PEA	IX+%FFFFFFD2
+000161 CD 00 00 00         A   896    	CALL	_f_write
+000165 C1                  A   897    	POP	BC
+000166 C1                  A   898    	POP	BC
+000167 C1                  A   899    	POP	BC
+000168 C1                  A   900    	POP	BC
+                           A   901    ;   57				//printf ("[%s saved from %
+                           A   902    ;   58			}
+000169                     A   903    L_6:
+                           A   904    .LINE 58
+                           A   905    
+                           A   906    ;   59			f_close (&f);
+                           A   907    .LINE 59
+                           A   908    
+000169 ED65D2              A   909    	PEA	IX+%FFFFFFD2
+00016C CD 00 00 00         A   910    	CALL	_f_close
+000170 C1                  A   911    	POP	BC
+                           A   912    ;   60			return TRUE;
+                           A   913    .LINE 60
+                           A   914    
+000171 3E01                A   915    	LD	A,%1
+000173 18 01               A   916    	JR	L_9
+                           A   917    ;   61		}
+                           A   918    ;   62		else
+000175                     A   919    L_8:
+                           A   920    .LINE 62
+                           A   921    
+                           A   922    ;   63		{
+                           A   923    ;   64			//printf ("[%s NOT loaded]\r\n"
+                           A   924    ;   65			return FALSE;
+                           A   925    .LINE 65
+                           A   926    
+000175 AF                  A   927    	XOR	A,A
+                           A   928    ;   66		}
+                           A   929    ;   67	}
+000176                     A   930    L_9:
+                           A   931    .LINE 67
+                           A   932    
+000176 DDF9                A   933    	LD	SP,IX
+000178 DDE1                A   934    	POP	IX
+00017A C9                  A   935    	RET	
+                           A   936    
                            A   937    
-                           A   938    
-                           A   939    .ENDFUNC "machine_save_image",64,"_machine_save
-                           A   940    ;   65	
-                           A   941    ;   66	BOOL machine_mount_disk (UINT8 drive_nr
-                           A   942    ;   67	{
-00017B                     A   943    _machine_mount_disk:
-                           A   944    .DEFINE "_machine_mount_disk"
-                           A   945    
-                           A   946    .VALUE _machine_mount_disk
-                           A   947    
-                           A   948    .CLASS 2
-                           A   949    
-                           A   950    .TYPE 76
-                           A   951    
-                           A   952    .ENDEF
+                           A   938    ;**************************** _machine_save_ima
+                           A   939    ;Name                         Addr/Register   S
+                           A   940    ;_f_close                            IMPORT  --
+                           A   941    ;_ram                                STATIC    
+                           A   942    ;_f_write                            IMPORT  --
+                           A   943    ;_f_open                             IMPORT  --
+                           A   944    ;f                                    IX-46    
+                           A   945    ;bytes_written                        IX-10    
+                           A   946    ;header                                IX-7    
+                           A   947    ;filename                             IX+18    
+                           A   948    ;start                                IX+15    
+                           A   949    ;end                                  IX+12    
+                           A   950    ;begin                                 IX+9    
+                           A   951    ;bank                                  IX+6    
+                           A   952    
                            A   953    
-                           A   954    .BEGFUNC "machine_mount_disk",67,"_machine_moun
-                           A   955    
-                           A   956    .LINE 67
+                           A   954    ; Stack Frame Size: 68 (bytes)
+                           A   955    ;       Spill Code: 0 (instruction)
+                           A   956    
                            A   957    
-                           A   958    .DEFINE "drive_nr"
-                           A   959    
-                           A   960    .CLASS 65
-                           A   961    
-                           A   962    .VALUE 6
-                           A   963    
-                           A   964    .TYPE 12
-                           A   965    
-                           A   966    .ENDEF
-                           A   967    
-                           A   968    .DEFINE "filename"
-                           A   969    
-                           A   970    .CLASS 65
-                           A   971    
-                           A   972    .VALUE 9
-                           A   973    
-                           A   974    .TYPE 34
-                           A   975    
-                           A   976    .ENDEF
-                           A   977    
-                           A   978    .DEFINE "secsize"
-                           A   979    
-                           A   980    .CLASS 65
-                           A   981    
-                           A   982    .VALUE 12
-                           A   983    
-                           A   984    .TYPE 4
-                           A   985    
-                           A   986    .ENDEF
-                           A   987    
-                           A   988    .DEFINE "drive_letter"
-                           A   989    
-                           A   990    .CLASS 65
-                           A   991    
-                           A   992    .VALUE -9
-                           A   993    
-                           A   994    .DIM 9
-                           A   995    
-                           A   996    .TYPE 98
-                           A   997    
-                           A   998    .ENDEF
-                           A   999    
-00017B DDE5                A  1000    	PUSH	IX
-00017D DD210000 00         A  1001    	LD	IX,0
-000182 DD39                A  1002    	ADD	IX,SP
-000184 C5                  A  1003    	PUSH	BC
-000185 C5                  A  1004    	PUSH	BC
-000186 C5                  A  1005    	PUSH	BC
-                           A  1006    ;   68		const char drive_letter[] = "ABCDEF
-                           A  1007    .LINE 68
+                           A   958    .ENDFUNC "machine_save_image",67,"_machine_save
+                           A   959    ;   68	
+                           A   960    ;   69	BOOL machine_mount_disk (UINT8 drive_nr
+                           A   961    ;   70	{
+00017B                     A   962    _machine_mount_disk:
+                           A   963    .DEFINE "_machine_mount_disk"
+                           A   964    
+                           A   965    .VALUE _machine_mount_disk
+                           A   966    
+                           A   967    .CLASS 2
+                           A   968    
+                           A   969    .TYPE 76
+                           A   970    
+                           A   971    .ENDEF
+                           A   972    
+                           A   973    .BEGFUNC "machine_mount_disk",70,"_machine_moun
+                           A   974    
+                           A   975    .LINE 70
+                           A   976    
+                           A   977    .DEFINE "drive_nr"
+                           A   978    
+                           A   979    .CLASS 65
+                           A   980    
+                           A   981    .VALUE 6
+                           A   982    
+                           A   983    .TYPE 12
+                           A   984    
+                           A   985    .ENDEF
+                           A   986    
+                           A   987    .DEFINE "filename"
+                           A   988    
+                           A   989    .CLASS 65
+                           A   990    
+                           A   991    .VALUE 9
+                           A   992    
+                           A   993    .TYPE 34
+                           A   994    
+                           A   995    .ENDEF
+                           A   996    
+                           A   997    .DEFINE "secsize"
+                           A   998    
+                           A   999    .CLASS 65
+                           A  1000    
+                           A  1001    .VALUE 12
+                           A  1002    
+                           A  1003    .TYPE 4
+                           A  1004    
+                           A  1005    .ENDEF
+                           A  1006    
+                           A  1007    .DEFINE "drive_letter"
                            A  1008    
-000187 ED12F7              A  1009    	LEA	DE,IX+%FFFFFFF7
-00018A 21 00 00 00         A  1010    	LD	HL,_0temp10
-00018E 01090000            A  1011    	LD	BC,9
-000192 EDB0                A  1012    	LDIR	
-                           A  1013    ;   69		if (f_open(&disks[drive_nr], filena
-                           A  1014    .LINE 69
-                           A  1015    
-000194 01030000            A  1016    	LD	BC,3
-000198 C5                  A  1017    	PUSH	BC
-000199 DD0709              A  1018    	LD	BC,(IX+%9)
-00019C C5                  A  1019    	PUSH	BC
-00019D DD7E06              A  1020    	LD	A,(IX+%6)
-0001A0 B7ED62              A  1021    	UEXT	HL
-0001A3 6F                  A  1022    	LD	L,A
-0001A4 3E24                A  1023    	LD	A,%24
-0001A6 CD 00 00 00         A  1024    	CALL	__imul_b
-0001AA 01 04 00 00         A  1025    	LD	BC,_disks
-0001AE 09                  A  1026    	ADD	HL,BC
-0001AF E5                  A  1027    	PUSH	HL
-0001B0 CD 00 00 00         A  1028    	CALL	_f_open
-0001B4 C1                  A  1029    	POP	BC
-0001B5 C1                  A  1030    	POP	BC
-0001B6 C1                  A  1031    	POP	BC
-0001B7 01000000            A  1032    	LD	BC,0
-0001BB B7                  A  1033    	OR	A,A
-0001BC ED42                A  1034    	SBC	HL,BC
-0001BE 20 0C               A  1035    	JR	NZ,L_12
-                           A  1036    ;   70		{
-                           A  1037    ;   71			//printf ("[%s mounted as disk 
-                           A  1038    ;   72			_secsize = secsize;
-                           A  1039    .LINE 72
-                           A  1040    
-0001C0 DD070C              A  1041    	LD	BC,(IX+%C)
-0001C3 ED43 24 02 00       A  1042    	LD	(__secsize),BC
-                           A  1043    ;   73			return TRUE;
-                           A  1044    .LINE 73
-                           A  1045    
-0001C8 3E01                A  1046    	LD	A,%1
-0001CA 18 01               A  1047    	JR	L_13
-                           A  1048    ;   74		}
-                           A  1049    ;   75		else
-0001CC                     A  1050    L_12:
-                           A  1051    .LINE 75
-                           A  1052    
-                           A  1053    ;   76		{
-                           A  1054    ;   77			//printf ("[%s NOT mounted]\r\n
-                           A  1055    ;   78			return FALSE;
-                           A  1056    .LINE 78
-                           A  1057    
-0001CC AF                  A  1058    	XOR	A,A
-                           A  1059    ;   79		}
-                           A  1060    ;   80	}
-0001CD                     A  1061    L_13:
-                           A  1062    .LINE 80
-                           A  1063    
-0001CD DDF9                A  1064    	LD	SP,IX
-0001CF DDE1                A  1065    	POP	IX
-0001D1 C9                  A  1066    	RET	
-                           A  1067    
-                           A  1068    
-                           A  1069    ;**************************** _machine_mount_di
-                           A  1070    ;Name                         Addr/Register   S
-                           A  1071    ;__secsize                           STATIC    
-                           A  1072    ;_disks                              STATIC    
-                           A  1073    ;_f_open                             IMPORT  --
-                           A  1074    ;_0temp10                            STATIC    
-                           A  1075    ;drive_letter                          IX-9    
-                           A  1076    ;secsize                              IX+12    
-                           A  1077    ;filename                              IX+9    
-                           A  1078    ;drive_nr                              IX+6    
-                           A  1079    
-                           A  1080    
-                           A  1081    ; Stack Frame Size: 24 (bytes)
-                           A  1082    ;       Spill Code: 0 (instruction)
-                           A  1083    
-                           A  1084    
-                           A  1085    .ENDFUNC "machine_mount_disk",80,"_machine_moun
-                           A  1086    	SEGMENT TEXT
-000000                     A  1087    _0temp10:
-000000 41                  A  1088    	DB	65
-000001 42                  A  1089    	DB	66
-000002 43                  A  1090    	DB	67
-000003 44                  A  1091    	DB	68
-000004 45                  A  1092    	DB	69
-000005 46                  A  1093    	DB	70
-000006 47                  A  1094    	DB	71
-000007 48                  A  1095    	DB	72
-000008 00                  A  1096    	DB	0
-                           A  1097    	SEGMENT CODE
-                           A  1098    ;   81	
-                           A  1099    ;   82	BOOL machine_init ()
-                           A  1100    ;   83	{
-0001D2                     A  1101    _machine_init:
-                           A  1102    .DEFINE "_machine_init"
+                           A  1009    .CLASS 65
+                           A  1010    
+                           A  1011    .VALUE -9
+                           A  1012    
+                           A  1013    .DIM 9
+                           A  1014    
+                           A  1015    .TYPE 98
+                           A  1016    
+                           A  1017    .ENDEF
+                           A  1018    
+00017B DDE5                A  1019    	PUSH	IX
+00017D DD210000 00         A  1020    	LD	IX,0
+000182 DD39                A  1021    	ADD	IX,SP
+000184 C5                  A  1022    	PUSH	BC
+000185 C5                  A  1023    	PUSH	BC
+000186 C5                  A  1024    	PUSH	BC
+                           A  1025    ;   71		const char drive_letter[] = "ABCDEF
+                           A  1026    .LINE 71
+                           A  1027    
+000187 ED12F7              A  1028    	LEA	DE,IX+%FFFFFFF7
+00018A 21 00 00 00         A  1029    	LD	HL,_0temp10
+00018E 01090000            A  1030    	LD	BC,9
+000192 EDB0                A  1031    	LDIR	
+                           A  1032    ;   72		if (f_open(&disks[drive_nr], filena
+                           A  1033    .LINE 72
+                           A  1034    
+000194 01030000            A  1035    	LD	BC,3
+000198 C5                  A  1036    	PUSH	BC
+000199 DD0709              A  1037    	LD	BC,(IX+%9)
+00019C C5                  A  1038    	PUSH	BC
+00019D DD7E06              A  1039    	LD	A,(IX+%6)
+0001A0 B7ED62              A  1040    	UEXT	HL
+0001A3 6F                  A  1041    	LD	L,A
+0001A4 3E24                A  1042    	LD	A,%24
+0001A6 CD 00 00 00         A  1043    	CALL	__imul_b
+0001AA 01 04 00 00         A  1044    	LD	BC,_disks
+0001AE 09                  A  1045    	ADD	HL,BC
+0001AF E5                  A  1046    	PUSH	HL
+0001B0 CD 00 00 00         A  1047    	CALL	_f_open
+0001B4 C1                  A  1048    	POP	BC
+0001B5 C1                  A  1049    	POP	BC
+0001B6 C1                  A  1050    	POP	BC
+0001B7 01000000            A  1051    	LD	BC,0
+0001BB B7                  A  1052    	OR	A,A
+0001BC ED42                A  1053    	SBC	HL,BC
+0001BE 20 0C               A  1054    	JR	NZ,L_12
+                           A  1055    ;   73		{
+                           A  1056    ;   74			//printf ("[%s mounted as disk 
+                           A  1057    ;   75			_secsize = secsize;
+                           A  1058    .LINE 75
+                           A  1059    
+0001C0 DD070C              A  1060    	LD	BC,(IX+%C)
+0001C3 ED43 24 02 00       A  1061    	LD	(__secsize),BC
+                           A  1062    ;   76			return TRUE;
+                           A  1063    .LINE 76
+                           A  1064    
+0001C8 3E01                A  1065    	LD	A,%1
+0001CA 18 01               A  1066    	JR	L_13
+                           A  1067    ;   77		}
+                           A  1068    ;   78		else
+0001CC                     A  1069    L_12:
+                           A  1070    .LINE 78
+                           A  1071    
+                           A  1072    ;   79		{
+                           A  1073    ;   80			//printf ("[%s NOT mounted]\r\n
+                           A  1074    ;   81			return FALSE;
+                           A  1075    .LINE 81
+                           A  1076    
+0001CC AF                  A  1077    	XOR	A,A
+                           A  1078    ;   82		}
+                           A  1079    ;   83	}
+0001CD                     A  1080    L_13:
+                           A  1081    .LINE 83
+                           A  1082    
+0001CD DDF9                A  1083    	LD	SP,IX
+0001CF DDE1                A  1084    	POP	IX
+0001D1 C9                  A  1085    	RET	
+                           A  1086    
+                           A  1087    
+                           A  1088    ;**************************** _machine_mount_di
+                           A  1089    ;Name                         Addr/Register   S
+                           A  1090    ;__secsize                           STATIC    
+                           A  1091    ;_disks                              STATIC    
+                           A  1092    ;_f_open                             IMPORT  --
+                           A  1093    ;_0temp10                            STATIC    
+                           A  1094    ;drive_letter                          IX-9    
+                           A  1095    ;secsize                              IX+12    
+                           A  1096    ;filename                              IX+9    
+                           A  1097    ;drive_nr                              IX+6    
+                           A  1098    
+                           A  1099    
+                           A  1100    ; Stack Frame Size: 24 (bytes)
+                           A  1101    ;       Spill Code: 0 (instruction)
+                           A  1102    
                            A  1103    
-                           A  1104    .VALUE _machine_init
-                           A  1105    
-                           A  1106    .CLASS 2
-                           A  1107    
-                           A  1108    .TYPE 76
-                           A  1109    
-                           A  1110    .ENDEF
-                           A  1111    
-                           A  1112    .BEGFUNC "machine_init",83,"_machine_init"
-                           A  1113    
-0001D2 DDE5                A  1114    	PUSH	IX
-0001D4 DD210000 00         A  1115    	LD	IX,0
-0001D9 DD39                A  1116    	ADD	IX,SP
-                           A  1117    ;   84		ram = (INT8*) 0x050000;
-                           A  1118    .LINE 84
-                           A  1119    
-0001DB 01000005            A  1120    	LD	BC,327680
-0001DF ED43 00 00 00       A  1121    	LD	(_ram),BC
-                           A  1122    ;   85		mbase = 0x05;
-                           A  1123    .LINE 85
+                           A  1104    .ENDFUNC "machine_mount_disk",83,"_machine_moun
+                           A  1105    	SEGMENT TEXT
+000000                     A  1106    _0temp10:
+000000 41                  A  1107    	DB	65
+000001 42                  A  1108    	DB	66
+000002 43                  A  1109    	DB	67
+000003 44                  A  1110    	DB	68
+000004 45                  A  1111    	DB	69
+000005 46                  A  1112    	DB	70
+000006 47                  A  1113    	DB	71
+000007 48                  A  1114    	DB	72
+000008 00                  A  1115    	DB	0
+                           A  1116    	SEGMENT CODE
+                           A  1117    ;   84	
+                           A  1118    ;   85	BOOL machine_init ()
+                           A  1119    ;   86	{
+0001D2                     A  1120    _machine_init:
+                           A  1121    .DEFINE "_machine_init"
+                           A  1122    
+                           A  1123    .VALUE _machine_init
                            A  1124    
-0001E4 3E05                A  1125    	LD	A,%5
-0001E6 32 03 00 00         A  1126    	LD	(_mbase),A
-                           A  1127    ;   86		RAM_ADDR_U = mbase; // MSM: map int
-                           A  1128    .LINE 86
-                           A  1129    
-0001EA ED39B5              A  1130    	OUT0	(181),A
-                           A  1131    ;   87		return TRUE;
-                           A  1132    .LINE 87
-                           A  1133    
-0001ED 3E01                A  1134    	LD	A,%1
-                           A  1135    ;   88	}
-                           A  1136    .LINE 88
-                           A  1137    
-0001EF DDF9                A  1138    	LD	SP,IX
-0001F1 DDE1                A  1139    	POP	IX
-0001F3 C9                  A  1140    	RET	
-                           A  1141    
-                           A  1142    
-                           A  1143    ;**************************** _machine_init ***
-                           A  1144    ;Name                         Addr/Register   S
-                           A  1145    ;_mbase                              STATIC    
-                           A  1146    ;_ram                                STATIC    
-                           A  1147    
+                           A  1125    .CLASS 2
+                           A  1126    
+                           A  1127    .TYPE 76
+                           A  1128    
+                           A  1129    .ENDEF
+                           A  1130    
+                           A  1131    .BEGFUNC "machine_init",86,"_machine_init"
+                           A  1132    
+0001D2 DDE5                A  1133    	PUSH	IX
+0001D4 DD210000 00         A  1134    	LD	IX,0
+0001D9 DD39                A  1135    	ADD	IX,SP
+                           A  1136    ;   87		ram = (INT8*) 0x050000;
+                           A  1137    .LINE 87
+                           A  1138    
+0001DB 01000005            A  1139    	LD	BC,327680
+0001DF ED43 00 00 00       A  1140    	LD	(_ram),BC
+                           A  1141    ;   88		mbase = 0x05;
+                           A  1142    .LINE 88
+                           A  1143    
+0001E4 3E05                A  1144    	LD	A,%5
+0001E6 32 03 00 00         A  1145    	LD	(_mbase),A
+                           A  1146    ;   89		RAM_ADDR_U = mbase; // MSM: map int
+                           A  1147    .LINE 89
                            A  1148    
-                           A  1149    ; Stack Frame Size: 6 (bytes)
-                           A  1150    ;       Spill Code: 0 (instruction)
-                           A  1151    
+0001EA ED39B5              A  1149    	OUT0	(181),A
+                           A  1150    ;   90		machine_vsync_address=0x0000;
+                           A  1151    .LINE 90
                            A  1152    
-                           A  1153    .ENDFUNC "machine_init",88,"_machine_init"
-                           A  1154    ;   89	
-                           A  1155    ;   90	void machine_start (UINT8 bank,UINT16 s
-                           A  1156    ;   91	{
-0001F4                     A  1157    _machine_start:
-                           A  1158    .DEFINE "_machine_start"
+0001ED AF                  A  1153    	XOR	A,A
+0001EE 32 27 02 00         A  1154    	LD	(_machine_vsync_address),A
+0001F2 AF                  A  1155    	XOR	A,A
+0001F3 32 28 02 00         A  1156    	LD	(_machine_vsync_address+1),A
+                           A  1157    ;   91		machine_vsync=0;
+                           A  1158    .LINE 91
                            A  1159    
-                           A  1160    .VALUE _machine_start
-                           A  1161    
-                           A  1162    .CLASS 2
-                           A  1163    
-                           A  1164    .TYPE 65
+0001F7 AF                  A  1160    	XOR	A,A
+0001F8 32 29 02 00         A  1161    	LD	(_machine_vsync),A
+                           A  1162    ;   92		
+                           A  1163    ;   93		return TRUE;
+                           A  1164    .LINE 93
                            A  1165    
-                           A  1166    .ENDEF
-                           A  1167    
-                           A  1168    .BEGFUNC "machine_start",91,"_machine_start"
+0001FC 3E01                A  1166    	LD	A,%1
+                           A  1167    ;   94	}
+                           A  1168    .LINE 94
                            A  1169    
-                           A  1170    .LINE 91
-                           A  1171    
-                           A  1172    .DEFINE "bank"
+0001FE DDF9                A  1170    	LD	SP,IX
+000200 DDE1                A  1171    	POP	IX
+000202 C9                  A  1172    	RET	
                            A  1173    
-                           A  1174    .CLASS 65
-                           A  1175    
-                           A  1176    .VALUE 6
-                           A  1177    
-                           A  1178    .TYPE 12
-                           A  1179    
-                           A  1180    .ENDEF
+                           A  1174    
+                           A  1175    ;**************************** _machine_init ***
+                           A  1176    ;Name                         Addr/Register   S
+                           A  1177    ;_machine_vsync                      STATIC    
+                           A  1178    ;_machine_vsync_address              STATIC    
+                           A  1179    ;_mbase                              STATIC    
+                           A  1180    ;_ram                                STATIC    
                            A  1181    
-                           A  1182    .DEFINE "start_address"
-                           A  1183    
-                           A  1184    .CLASS 65
+                           A  1182    
+                           A  1183    ; Stack Frame Size: 6 (bytes)
+                           A  1184    ;       Spill Code: 0 (instruction)
                            A  1185    
-                           A  1186    .VALUE 9
-                           A  1187    
-                           A  1188    .TYPE 13
-                           A  1189    
-                           A  1190    .ENDEF
-                           A  1191    
-0001F4 DDE5                A  1192    	PUSH	IX
-0001F6 DD210000 00         A  1193    	LD	IX,0
-0001FB DD39                A  1194    	ADD	IX,SP
-                           A  1195    ;   92		exec16((UINT24)(ram+start_address+b
-                           A  1196    .LINE 92
+                           A  1186    
+                           A  1187    .ENDFUNC "machine_init",94,"_machine_init"
+                           A  1188    ;   95	
+                           A  1189    ;   96	void machine_start (UINT8 bank,UINT16 s
+                           A  1190    ;   97	{
+000203                     A  1191    _machine_start:
+                           A  1192    .DEFINE "_machine_start"
+                           A  1193    
+                           A  1194    .VALUE _machine_start
+                           A  1195    
+                           A  1196    .CLASS 2
                            A  1197    
-0001FD 01000000            A  1198    	LD	BC,0
-000201 C5                  A  1199    	PUSH	BC
-000202 DD0709              A  1200    	LD	BC,(IX+%9)
-000205 CD 00 00 00         A  1201    	CALL	__stoiu
-000209 ED4B 00 00 00       A  1202    	LD	BC,(_ram)
-00020E 09                  A  1203    	ADD	HL,BC
-00020F E5C1                A  1204    	LD	BC,HL
-000211 DD7E06              A  1205    	LD	A,(IX+%6)
-000214 B7ED62              A  1206    	UEXT	HL
-000217 6F                  A  1207    	LD	L,A
-000218 E5                  A  1208    	PUSH	HL
-000219 B7ED62              A  1209    	UEXT	HL
-00021C E5                  A  1210    	PUSH	HL
-00021D 33                  A  1211    	INC	SP
-00021E E1                  A  1212    	POP	HL
-00021F 33                  A  1213    	INC	SP
-000220 33                  A  1214    	INC	SP
-000221 09                  A  1215    	ADD	HL,BC
-000222 E5                  A  1216    	PUSH	HL
-000223 CD 00 00 00         A  1217    	CALL	_exec16
-000227 C1                  A  1218    	POP	BC
-000228 C1                  A  1219    	POP	BC
-                           A  1220    ;   93	}
-                           A  1221    .LINE 93
-                           A  1222    
-000229 DDF9                A  1223    	LD	SP,IX
-00022B DDE1                A  1224    	POP	IX
-00022D C9                  A  1225    	RET	
-                           A  1226    
-                           A  1227    
-                           A  1228    ;**************************** _machine_start **
-                           A  1229    ;Name                         Addr/Register   S
-                           A  1230    ;_ram                                STATIC    
-                           A  1231    ;_exec16                             IMPORT  --
-                           A  1232    ;start_address                         IX+9    
-                           A  1233    ;bank                                  IX+6    
-                           A  1234    
-                           A  1235    
-                           A  1236    ; Stack Frame Size: 12 (bytes)
-                           A  1237    ;       Spill Code: 0 (instruction)
-                           A  1238    
-                           A  1239    
-                           A  1240    .ENDFUNC "machine_start",93,"_machine_start"
-                           A  1241    ;   94	
-                           A  1242    ;   95	BOOL machine_set_warmboot_image (UINT8 
-                           A  1243    ;   96	{
-00022E                     A  1244    _machine_set_warmboot_image:
-                           A  1245    .DEFINE "_machine_set_warmboot_image"
-                           A  1246    
-                           A  1247    .VALUE _machine_set_warmboot_image
-                           A  1248    
-                           A  1249    .CLASS 2
-                           A  1250    
-                           A  1251    .TYPE 76
-                           A  1252    
-                           A  1253    .ENDEF
-                           A  1254    
-                           A  1255    .BEGFUNC "machine_set_warmboot_image",96,"_mach
+                           A  1198    .TYPE 65
+                           A  1199    
+                           A  1200    .ENDEF
+                           A  1201    
+                           A  1202    .BEGFUNC "machine_start",97,"_machine_start"
+                           A  1203    
+                           A  1204    .LINE 97
+                           A  1205    
+                           A  1206    .DEFINE "bank"
+                           A  1207    
+                           A  1208    .CLASS 65
+                           A  1209    
+                           A  1210    .VALUE 6
+                           A  1211    
+                           A  1212    .TYPE 12
+                           A  1213    
+                           A  1214    .ENDEF
+                           A  1215    
+                           A  1216    .DEFINE "start_address"
+                           A  1217    
+                           A  1218    .CLASS 65
+                           A  1219    
+                           A  1220    .VALUE 9
+                           A  1221    
+                           A  1222    .TYPE 13
+                           A  1223    
+                           A  1224    .ENDEF
+                           A  1225    
+000203 DDE5                A  1226    	PUSH	IX
+000205 DD210000 00         A  1227    	LD	IX,0
+00020A DD39                A  1228    	ADD	IX,SP
+                           A  1229    ;   98		exec16((UINT24)(ram+start_address+b
+                           A  1230    .LINE 98
+                           A  1231    
+00020C 01000000            A  1232    	LD	BC,0
+000210 C5                  A  1233    	PUSH	BC
+000211 DD0709              A  1234    	LD	BC,(IX+%9)
+000214 CD 00 00 00         A  1235    	CALL	__stoiu
+000218 ED4B 00 00 00       A  1236    	LD	BC,(_ram)
+00021D 09                  A  1237    	ADD	HL,BC
+00021E E5C1                A  1238    	LD	BC,HL
+000220 DD7E06              A  1239    	LD	A,(IX+%6)
+000223 B7ED62              A  1240    	UEXT	HL
+000226 6F                  A  1241    	LD	L,A
+000227 E5                  A  1242    	PUSH	HL
+000228 B7ED62              A  1243    	UEXT	HL
+00022B E5                  A  1244    	PUSH	HL
+00022C 33                  A  1245    	INC	SP
+00022D E1                  A  1246    	POP	HL
+00022E 33                  A  1247    	INC	SP
+00022F 33                  A  1248    	INC	SP
+000230 09                  A  1249    	ADD	HL,BC
+000231 E5                  A  1250    	PUSH	HL
+000232 CD 00 00 00         A  1251    	CALL	_exec16
+000236 C1                  A  1252    	POP	BC
+000237 C1                  A  1253    	POP	BC
+                           A  1254    ;   99	}
+                           A  1255    .LINE 99
                            A  1256    
-                           A  1257    .LINE 96
-                           A  1258    
-                           A  1259    .DEFINE "bank"
+000238 DDF9                A  1257    	LD	SP,IX
+00023A DDE1                A  1258    	POP	IX
+00023C C9                  A  1259    	RET	
                            A  1260    
-                           A  1261    .CLASS 65
-                           A  1262    
-                           A  1263    .VALUE 6
-                           A  1264    
-                           A  1265    .TYPE 12
-                           A  1266    
-                           A  1267    .ENDEF
+                           A  1261    
+                           A  1262    ;**************************** _machine_start **
+                           A  1263    ;Name                         Addr/Register   S
+                           A  1264    ;_ram                                STATIC    
+                           A  1265    ;_exec16                             IMPORT  --
+                           A  1266    ;start_address                         IX+9    
+                           A  1267    ;bank                                  IX+6    
                            A  1268    
-                           A  1269    .DEFINE "szFilename"
-                           A  1270    
-                           A  1271    .CLASS 65
+                           A  1269    
+                           A  1270    ; Stack Frame Size: 12 (bytes)
+                           A  1271    ;       Spill Code: 0 (instruction)
                            A  1272    
-                           A  1273    .VALUE 9
-                           A  1274    
-                           A  1275    .TYPE 34
-                           A  1276    
-                           A  1277    .ENDEF
-                           A  1278    
-00022E DDE5                A  1279    	PUSH	IX
-000230 DD210000 00         A  1280    	LD	IX,0
-000235 DD39                A  1281    	ADD	IX,SP
-                           A  1282    ;   97		wb_bank = bank;
-                           A  1283    .LINE 97
+                           A  1273    
+                           A  1274    .ENDFUNC "machine_start",99,"_machine_start"
+                           A  1275    ;  100	
+                           A  1276    ;  101	BOOL machine_set_warmboot_image (UINT8 
+                           A  1277    ;  102	{
+00023D                     A  1278    _machine_set_warmboot_image:
+                           A  1279    .DEFINE "_machine_set_warmboot_image"
+                           A  1280    
+                           A  1281    .VALUE _machine_set_warmboot_image
+                           A  1282    
+                           A  1283    .CLASS 2
                            A  1284    
-000237 DD7E06              A  1285    	LD	A,(IX+%6)
-00023A 32 23 02 00         A  1286    	LD	(_wb_bank),A
-                           A  1287    ;   98		strcpy (szWarmBootImage,szFilename)
-                           A  1288    .LINE 98
-                           A  1289    
-00023E DD0709              A  1290    	LD	BC,(IX+%9)
-000241 C5                  A  1291    	PUSH	BC
-000242 01 24 01 00         A  1292    	LD	BC,_szWarmBootImage
-000246 C5                  A  1293    	PUSH	BC
-000247 CD 00 00 00         A  1294    	CALL	_strcpy
-00024B C1                  A  1295    	POP	BC
-00024C C1                  A  1296    	POP	BC
-                           A  1297    ;   99		return TRUE;
-                           A  1298    .LINE 99
-                           A  1299    
-00024D 3E01                A  1300    	LD	A,%1
-                           A  1301    ;  100	}
-                           A  1302    .LINE 100
-                           A  1303    
-00024F DDF9                A  1304    	LD	SP,IX
-000251 DDE1                A  1305    	POP	IX
-000253 C9                  A  1306    	RET	
-                           A  1307    
+                           A  1285    .TYPE 76
+                           A  1286    
+                           A  1287    .ENDEF
+                           A  1288    
+                           A  1289    .BEGFUNC "machine_set_warmboot_image",102,"_mac
+                           A  1290    
+                           A  1291    .LINE 102
+                           A  1292    
+                           A  1293    .DEFINE "bank"
+                           A  1294    
+                           A  1295    .CLASS 65
+                           A  1296    
+                           A  1297    .VALUE 6
+                           A  1298    
+                           A  1299    .TYPE 12
+                           A  1300    
+                           A  1301    .ENDEF
+                           A  1302    
+                           A  1303    .DEFINE "szFilename"
+                           A  1304    
+                           A  1305    .CLASS 65
+                           A  1306    
+                           A  1307    .VALUE 9
                            A  1308    
-                           A  1309    ;**************************** _machine_set_warm
-                           A  1310    ;Name                         Addr/Register   S
-                           A  1311    ;_szWarmBootImage                    STATIC    
-                           A  1312    ;_strcpy                             IMPORT  --
-                           A  1313    ;_wb_bank                            STATIC    
-                           A  1314    ;szFilename                            IX+9    
-                           A  1315    ;bank                                  IX+6    
-                           A  1316    
-                           A  1317    
-                           A  1318    ; Stack Frame Size: 12 (bytes)
-                           A  1319    ;       Spill Code: 0 (instruction)
-                           A  1320    
-                           A  1321    
-                           A  1322    .ENDFUNC "machine_set_warmboot_image",100,"_mac
-                           A  1323    ;  101	void machine_warm_boot ()
-                           A  1324    ;  102	{
-000254                     A  1325    _machine_warm_boot:
-                           A  1326    .DEFINE "_machine_warm_boot"
-                           A  1327    
-                           A  1328    .VALUE _machine_warm_boot
-                           A  1329    
-                           A  1330    .CLASS 2
-                           A  1331    
-                           A  1332    .TYPE 65
+                           A  1309    .TYPE 34
+                           A  1310    
+                           A  1311    .ENDEF
+                           A  1312    
+00023D DDE5                A  1313    	PUSH	IX
+00023F DD210000 00         A  1314    	LD	IX,0
+000244 DD39                A  1315    	ADD	IX,SP
+                           A  1316    ;  103		wb_bank = bank;
+                           A  1317    .LINE 103
+                           A  1318    
+000246 DD7E06              A  1319    	LD	A,(IX+%6)
+000249 32 23 02 00         A  1320    	LD	(_wb_bank),A
+                           A  1321    ;  104		strcpy (szWarmBootImage,szFilename)
+                           A  1322    .LINE 104
+                           A  1323    
+00024D DD0709              A  1324    	LD	BC,(IX+%9)
+000250 C5                  A  1325    	PUSH	BC
+000251 01 24 01 00         A  1326    	LD	BC,_szWarmBootImage
+000255 C5                  A  1327    	PUSH	BC
+000256 CD 00 00 00         A  1328    	CALL	_strcpy
+00025A C1                  A  1329    	POP	BC
+00025B C1                  A  1330    	POP	BC
+                           A  1331    ;  105		return TRUE;
+                           A  1332    .LINE 105
                            A  1333    
-                           A  1334    .ENDEF
-                           A  1335    
-                           A  1336    .BEGFUNC "machine_warm_boot",102,"_machine_warm
+00025C 3E01                A  1334    	LD	A,%1
+                           A  1335    ;  106	}
+                           A  1336    .LINE 106
                            A  1337    
-000254 DDE5                A  1338    	PUSH	IX
-000256 DD210000 00         A  1339    	LD	IX,0
-00025B DD39                A  1340    	ADD	IX,SP
-                           A  1341    ;  103		machine_load_image (wb_bank,szWarmB
-                           A  1342    .LINE 103
-                           A  1343    
-00025D 01 24 01 00         A  1344    	LD	BC,_szWarmBootImage
-000261 C5                  A  1345    	PUSH	BC
-000262 3A 23 02 00         A  1346    	LD	A,(_wb_bank)
-000266 4F                  A  1347    	LD	C,A
-000267 0600                A  1348    	LD	B,%0
-000269 C5                  A  1349    	PUSH	BC
-00026A CD 00 00 00         A  1350    	CALL	_machine_load_image
-00026E C1                  A  1351    	POP	BC
-00026F C1                  A  1352    	POP	BC
-                           A  1353    ;  104	}
-                           A  1354    .LINE 104
+00025E DDF9                A  1338    	LD	SP,IX
+000260 DDE1                A  1339    	POP	IX
+000262 C9                  A  1340    	RET	
+                           A  1341    
+                           A  1342    
+                           A  1343    ;**************************** _machine_set_warm
+                           A  1344    ;Name                         Addr/Register   S
+                           A  1345    ;_szWarmBootImage                    STATIC    
+                           A  1346    ;_strcpy                             IMPORT  --
+                           A  1347    ;_wb_bank                            STATIC    
+                           A  1348    ;szFilename                            IX+9    
+                           A  1349    ;bank                                  IX+6    
+                           A  1350    
+                           A  1351    
+                           A  1352    ; Stack Frame Size: 12 (bytes)
+                           A  1353    ;       Spill Code: 0 (instruction)
+                           A  1354    
                            A  1355    
-000270 DDF9                A  1356    	LD	SP,IX
-000272 DDE1                A  1357    	POP	IX
-000274 C9                  A  1358    	RET	
-                           A  1359    
-                           A  1360    
-                           A  1361    ;**************************** _machine_warm_boo
-                           A  1362    ;Name                         Addr/Register   S
-                           A  1363    ;_wb_bank                            STATIC    
-                           A  1364    ;_szWarmBootImage                    STATIC    
-                           A  1365    ;_machine_load_image                 IMPORT  --
-                           A  1366    
+                           A  1356    .ENDFUNC "machine_set_warmboot_image",106,"_mac
+                           A  1357    ;  107	void machine_warm_boot ()
+                           A  1358    ;  108	{
+000263                     A  1359    _machine_warm_boot:
+                           A  1360    .DEFINE "_machine_warm_boot"
+                           A  1361    
+                           A  1362    .VALUE _machine_warm_boot
+                           A  1363    
+                           A  1364    .CLASS 2
+                           A  1365    
+                           A  1366    .TYPE 65
                            A  1367    
-                           A  1368    ; Stack Frame Size: 6 (bytes)
-                           A  1369    ;       Spill Code: 0 (instruction)
-                           A  1370    
+                           A  1368    .ENDEF
+                           A  1369    
+                           A  1370    .BEGFUNC "machine_warm_boot",108,"_machine_warm
                            A  1371    
-                           A  1372    .ENDFUNC "machine_warm_boot",104,"_machine_warm
-                           A  1373    ;  105	
-                           A  1374    ;  106	UINT16 machine_read_write_disk (UINT16 
-                           A  1375    ;  107	{
-000275                     A  1376    _machine_read_write_disk:
-                           A  1377    .DEFINE "_machine_read_write_disk"
-                           A  1378    
-                           A  1379    .VALUE _machine_read_write_disk
-                           A  1380    
-                           A  1381    .CLASS 2
-                           A  1382    
-                           A  1383    .TYPE 77
-                           A  1384    
-                           A  1385    .ENDEF
-                           A  1386    
-                           A  1387    .BEGFUNC "machine_read_write_disk",107,"_machin
-                           A  1388    
-                           A  1389    .LINE 107
-                           A  1390    
-                           A  1391    .DEFINE "mbase"
-                           A  1392    
-                           A  1393    .CLASS 65
+000263 DDE5                A  1372    	PUSH	IX
+000265 DD210000 00         A  1373    	LD	IX,0
+00026A DD39                A  1374    	ADD	IX,SP
+                           A  1375    ;  109		machine_load_image (wb_bank,szWarmB
+                           A  1376    .LINE 109
+                           A  1377    
+00026C 01 24 01 00         A  1378    	LD	BC,_szWarmBootImage
+000270 C5                  A  1379    	PUSH	BC
+000271 3A 23 02 00         A  1380    	LD	A,(_wb_bank)
+000275 4F                  A  1381    	LD	C,A
+000276 0600                A  1382    	LD	B,%0
+000278 C5                  A  1383    	PUSH	BC
+000279 CD 00 00 00         A  1384    	CALL	_machine_load_image
+00027D C1                  A  1385    	POP	BC
+00027E C1                  A  1386    	POP	BC
+                           A  1387    ;  110	}
+                           A  1388    .LINE 110
+                           A  1389    
+00027F DDF9                A  1390    	LD	SP,IX
+000281 DDE1                A  1391    	POP	IX
+000283 C9                  A  1392    	RET	
+                           A  1393    
                            A  1394    
-                           A  1395    .VALUE 6
-                           A  1396    
-                           A  1397    .TYPE 13
-                           A  1398    
-                           A  1399    .ENDEF
+                           A  1395    ;**************************** _machine_warm_boo
+                           A  1396    ;Name                         Addr/Register   S
+                           A  1397    ;_wb_bank                            STATIC    
+                           A  1398    ;_szWarmBootImage                    STATIC    
+                           A  1399    ;_machine_load_image                 IMPORT  --
                            A  1400    
-                           A  1401    .DEFINE "af"
-                           A  1402    
-                           A  1403    .CLASS 65
+                           A  1401    
+                           A  1402    ; Stack Frame Size: 6 (bytes)
+                           A  1403    ;       Spill Code: 0 (instruction)
                            A  1404    
-                           A  1405    .VALUE 9
-                           A  1406    
-                           A  1407    .TYPE 13
-                           A  1408    
-                           A  1409    .ENDEF
-                           A  1410    
-                           A  1411    .DEFINE "bc"
+                           A  1405    
+                           A  1406    .ENDFUNC "machine_warm_boot",110,"_machine_warm
+                           A  1407    ;  111	
+                           A  1408    ;  112	UINT16 machine_read_write_disk (UINT16 
+                           A  1409    ;  113	{
+000284                     A  1410    _machine_read_write_disk:
+                           A  1411    .DEFINE "_machine_read_write_disk"
                            A  1412    
-                           A  1413    .CLASS 65
+                           A  1413    .VALUE _machine_read_write_disk
                            A  1414    
-                           A  1415    .VALUE 12
+                           A  1415    .CLASS 2
                            A  1416    
-                           A  1417    .TYPE 13
+                           A  1417    .TYPE 77
                            A  1418    
                            A  1419    .ENDEF
                            A  1420    
-                           A  1421    .DEFINE "de"
+                           A  1421    .BEGFUNC "machine_read_write_disk",113,"_machin
                            A  1422    
-                           A  1423    .CLASS 65
+                           A  1423    .LINE 113
                            A  1424    
-                           A  1425    .VALUE 15
+                           A  1425    .DEFINE "mbase"
                            A  1426    
-                           A  1427    .TYPE 13
+                           A  1427    .CLASS 65
                            A  1428    
-                           A  1429    .ENDEF
+                           A  1429    .VALUE 6
                            A  1430    
-                           A  1431    .DEFINE "hl"
+                           A  1431    .TYPE 13
                            A  1432    
-                           A  1433    .CLASS 65
+                           A  1433    .ENDEF
                            A  1434    
-                           A  1435    .VALUE 18
+                           A  1435    .DEFINE "af"
                            A  1436    
-                           A  1437    .TYPE 13
+                           A  1437    .CLASS 65
                            A  1438    
-                           A  1439    .ENDEF
+                           A  1439    .VALUE 9
                            A  1440    
-                           A  1441    .DEFINE "a"
+                           A  1441    .TYPE 13
                            A  1442    
-                           A  1443    .CLASS 65
+                           A  1443    .ENDEF
                            A  1444    
-                           A  1445    .VALUE -1
+                           A  1445    .DEFINE "bc"
                            A  1446    
-                           A  1447    .TYPE 12
+                           A  1447    .CLASS 65
                            A  1448    
-                           A  1449    .ENDEF
+                           A  1449    .VALUE 12
                            A  1450    
-                           A  1451    .DEFINE "b"
+                           A  1451    .TYPE 13
                            A  1452    
-                           A  1453    .CLASS 65
+                           A  1453    .ENDEF
                            A  1454    
-                           A  1455    .VALUE -2
+                           A  1455    .DEFINE "de"
                            A  1456    
-                           A  1457    .TYPE 12
+                           A  1457    .CLASS 65
                            A  1458    
-                           A  1459    .ENDEF
+                           A  1459    .VALUE 15
                            A  1460    
-                           A  1461    .DEFINE "mb"
+                           A  1461    .TYPE 13
                            A  1462    
-                           A  1463    .CLASS 65
+                           A  1463    .ENDEF
                            A  1464    
-                           A  1465    .VALUE -3
+                           A  1465    .DEFINE "hl"
                            A  1466    
-                           A  1467    .TYPE 12
+                           A  1467    .CLASS 65
                            A  1468    
-                           A  1469    .ENDEF
+                           A  1469    .VALUE 18
                            A  1470    
-                           A  1471    .DEFINE "carry"
+                           A  1471    .TYPE 13
                            A  1472    
-                           A  1473    .CLASS 65
+                           A  1473    .ENDEF
                            A  1474    
-                           A  1475    .VALUE -4
+                           A  1475    .DEFINE "a"
                            A  1476    
-                           A  1477    .TYPE 12
+                           A  1477    .CLASS 65
                            A  1478    
-                           A  1479    .ENDEF
+                           A  1479    .VALUE -1
                            A  1480    
-                           A  1481    .DEFINE "sectorbuffer"
+                           A  1481    .TYPE 12
                            A  1482    
-                           A  1483    .CLASS 65
+                           A  1483    .ENDEF
                            A  1484    
-                           A  1485    .VALUE -7
+                           A  1485    .DEFINE "b"
                            A  1486    
-                           A  1487    .TYPE 34
+                           A  1487    .CLASS 65
                            A  1488    
-                           A  1489    .ENDEF
+                           A  1489    .VALUE -2
                            A  1490    
-                           A  1491    .DEFINE "bytes_written"
+                           A  1491    .TYPE 12
                            A  1492    
-                           A  1493    .CLASS 65
+                           A  1493    .ENDEF
                            A  1494    
-                           A  1495    .VALUE -10
+                           A  1495    .DEFINE "mb"
                            A  1496    
-                           A  1497    .TYPE 14
+                           A  1497    .CLASS 65
                            A  1498    
-                           A  1499    .ENDEF
+                           A  1499    .VALUE -3
                            A  1500    
-                           A  1501    .DEFINE "bytes_read"
+                           A  1501    .TYPE 12
                            A  1502    
-                           A  1503    .CLASS 65
+                           A  1503    .ENDEF
                            A  1504    
-                           A  1505    .VALUE -13
+                           A  1505    .DEFINE "carry"
                            A  1506    
-                           A  1507    .TYPE 14
+                           A  1507    .CLASS 65
                            A  1508    
-                           A  1509    .ENDEF
+                           A  1509    .VALUE -4
                            A  1510    
-                           A  1511    .DEFINE "drive_letter"
+                           A  1511    .TYPE 12
                            A  1512    
-                           A  1513    .CLASS 65
+                           A  1513    .ENDEF
                            A  1514    
-                           A  1515    .VALUE -22
+                           A  1515    .DEFINE "sectorbuffer"
                            A  1516    
-                           A  1517    .DIM 9
+                           A  1517    .CLASS 65
                            A  1518    
-                           A  1519    .TYPE 98
+                           A  1519    .VALUE -7
                            A  1520    
-                           A  1521    .ENDEF
+                           A  1521    .TYPE 34
                            A  1522    
-000275 DDE5                A  1523    	PUSH	IX
-000277 DD210000 00         A  1524    	LD	IX,0
-00027C DD39                A  1525    	ADD	IX,SP
-00027E ED22E7              A  1526    	LEA	HL,IX+%FFFFFFE7
-000281 F9                  A  1527    	LD	SP,HL
-                           A  1528    ;  108		const char drive_letter[] = "ABCDEF
-                           A  1529    .LINE 108
+                           A  1523    .ENDEF
+                           A  1524    
+                           A  1525    .DEFINE "bytes_written"
+                           A  1526    
+                           A  1527    .CLASS 65
+                           A  1528    
+                           A  1529    .VALUE -10
                            A  1530    
-000282 ED12EA              A  1531    	LEA	DE,IX+%FFFFFFEA
-000285 21 09 00 00         A  1532    	LD	HL,_1temp18
-000289 01090000            A  1533    	LD	BC,9
-00028D EDB0                A  1534    	LDIR	
-                           A  1535    ;  109		UINT bytes_read,bytes_written;
-                           A  1536    ;  110		INT8* sectorbuffer;
-                           A  1537    ;  111		UINT8 mb = (mbase>>8)-5;
-                           A  1538    .LINE 111
-                           A  1539    
-00028F DD0706              A  1540    	LD	BC,(IX+%6)
-000292 CD 00 00 00         A  1541    	CALL	__stoiu
-000296 E5C1                A  1542    	LD	BC,HL
-000298 3B                  A  1543    	DEC	SP
-000299 C5                  A  1544    	PUSH	BC
-00029A 33                  A  1545    	INC	SP
-00029B F1                  A  1546    	POP	AF
-00029C 17ED62              A  1547    	SEXT	HL
-00029F E5                  A  1548    	PUSH	HL
-0002A0 C5                  A  1549    	PUSH	BC
-0002A1 33                  A  1550    	INC	SP
-0002A2 E1                  A  1551    	POP	HL
-0002A3 33                  A  1552    	INC	SP
-0002A4 33                  A  1553    	INC	SP
-0002A5 7D                  A  1554    	LD	A,L
-0002A6 D605                A  1555    	SUB	A,%5
-0002A8 DD77FD              A  1556    	LD	(IX+%FFFFFFFD),A
-                           A  1557    ;  112		UINT8 a = af>>8;
-                           A  1558    .LINE 112
-                           A  1559    
-0002AB DD0709              A  1560    	LD	BC,(IX+%9)
-0002AE CD 00 00 00         A  1561    	CALL	__stoiu
-0002B2 E5C1                A  1562    	LD	BC,HL
-0002B4 3B                  A  1563    	DEC	SP
-0002B5 C5                  A  1564    	PUSH	BC
-0002B6 33                  A  1565    	INC	SP
-0002B7 F1                  A  1566    	POP	AF
-0002B8 17ED62              A  1567    	SEXT	HL
-0002BB E5                  A  1568    	PUSH	HL
-0002BC C5                  A  1569    	PUSH	BC
-0002BD 33                  A  1570    	INC	SP
-0002BE E1                  A  1571    	POP	HL
-0002BF 33                  A  1572    	INC	SP
-0002C0 33                  A  1573    	INC	SP
-0002C1 DD75FF              A  1574    	LD	(IX+%FFFFFFFF),L
-                           A  1575    ;  113		UINT8 b = bc>>8;
-                           A  1576    .LINE 113
-                           A  1577    
-0002C4 DD070C              A  1578    	LD	BC,(IX+%C)
-0002C7 CD 00 00 00         A  1579    	CALL	__stoiu
-0002CB E5C1                A  1580    	LD	BC,HL
-0002CD 3B                  A  1581    	DEC	SP
-0002CE C5                  A  1582    	PUSH	BC
-0002CF 33                  A  1583    	INC	SP
-0002D0 F1                  A  1584    	POP	AF
-0002D1 17ED62              A  1585    	SEXT	HL
-0002D4 E5                  A  1586    	PUSH	HL
-0002D5 C5                  A  1587    	PUSH	BC
-0002D6 33                  A  1588    	INC	SP
-0002D7 E1                  A  1589    	POP	HL
-0002D8 33                  A  1590    	INC	SP
-0002D9 33                  A  1591    	INC	SP
-0002DA DD75FE              A  1592    	LD	(IX+%FFFFFFFE),L
-                           A  1593    ;  114		BOOL carry = af & 1;
-                           A  1594    .LINE 114
-                           A  1595    
-0002DD DD7E09              A  1596    	LD	A,(IX+%9)
-0002E0 E601                A  1597    	AND	A,%1
-0002E2 DD77FC              A  1598    	LD	(IX+%FFFFFFFC),A
-                           A  1599    ;  115	
-                           A  1600    ;  116		/*
-                           A  1601    ;  117		printf ("%04x %04x %04x %04x\r\n",a
-                           A  1602    ;  118		printf ("%s %d bytes from location 
-                           A  1603    ;  119			carry?"Written":"Read",
-                           A  1604    ;  120			b*_secsize,
-                           A  1605    ;  121			de*_secsize,
-                           A  1606    ;  122			hl,
-                           A  1607    ;  123			drive_letter[a]);
-                           A  1608    ;  124		*/
-                           A  1609    ;  125	
-                           A  1610    ;  126		if (f_lseek(&disks[a], de*_secsize)
-                           A  1611    .LINE 126
-                           A  1612    
-0002E5 ED4B 24 02 00       A  1613    	LD	BC,(__secsize)
-0002EA CD 00 00 00         A  1614    	CALL	__itol
-0002EE DD0FE7              A  1615    	LD	(IX+%FFFFFFE7),BC
-0002F1 5F                  A  1616    	LD	E,A
-0002F2 DD070F              A  1617    	LD	BC,(IX+%F)
-0002F5 CD 00 00 00         A  1618    	CALL	__stoiu
-0002F9 E5C1                A  1619    	LD	BC,HL
-0002FB AF                  A  1620    	XOR	A,A
-0002FC DD27E7              A  1621    	LD	HL,(IX+%FFFFFFE7)
-0002FF CD 00 00 00         A  1622    	CALL	__lmulu
-000303 4B                  A  1623    	LD	C,E
-000304 0600                A  1624    	LD	B,%0
-000306 C5                  A  1625    	PUSH	BC
-000307 E5                  A  1626    	PUSH	HL
-000308 DD7EFF              A  1627    	LD	A,(IX+%FFFFFFFF)
-00030B B7ED62              A  1628    	UEXT	HL
-00030E 6F                  A  1629    	LD	L,A
-00030F 3E24                A  1630    	LD	A,%24
-000311 CD 00 00 00         A  1631    	CALL	__imul_b
-000315 01 04 00 00         A  1632    	LD	BC,_disks
-000319 09                  A  1633    	ADD	HL,BC
-00031A E5                  A  1634    	PUSH	HL
-00031B CD 00 00 00         A  1635    	CALL	_f_lseek
-00031F C1                  A  1636    	POP	BC
-000320 C1                  A  1637    	POP	BC
-000321 C1                  A  1638    	POP	BC
-000322 01000000            A  1639    	LD	BC,0
-000326 B7                  A  1640    	OR	A,A
-000327 ED42                A  1641    	SBC	HL,BC
-000329 28 08               A  1642    	JR	Z,L_20
-                           A  1643    ;  127	        return 0x0101; // return A=1 + 
-                           A  1644    .LINE 127
-                           A  1645    
-00032B 49210101            A  1646    	LD.LIS	HL,257
-00032F C3 E5 03 00         A  1647    	JR	L_26
-000333                     A  1648    L_20:
-                           A  1649    ;  128	
-                           A  1650    ;  129		sectorbuffer = ram + hl + mb*0x1000
-                           A  1651    .LINE 129
-                           A  1652    
-000333 DD0712              A  1653    	LD	BC,(IX+%12)
-000336 CD 00 00 00         A  1654    	CALL	__stoiu
-00033A ED4B 00 00 00       A  1655    	LD	BC,(_ram)
-00033F 09                  A  1656    	ADD	HL,BC
-000340 E5C1                A  1657    	LD	BC,HL
-000342 DD7EFD              A  1658    	LD	A,(IX+%FFFFFFFD)
-000345 B7ED62              A  1659    	UEXT	HL
-000348 6F                  A  1660    	LD	L,A
-000349 E5                  A  1661    	PUSH	HL
-00034A B7ED62              A  1662    	UEXT	HL
-00034D E5                  A  1663    	PUSH	HL
-00034E 33                  A  1664    	INC	SP
-00034F E1                  A  1665    	POP	HL
-000350 33                  A  1666    	INC	SP
-000351 33                  A  1667    	INC	SP
-000352 09                  A  1668    	ADD	HL,BC
-000353 DD2FF9              A  1669    	LD	(IX+%FFFFFFF9),HL
-                           A  1670    ;  130		if (carry==FALSE)
-                           A  1671    .LINE 130
-                           A  1672    
-000356 DD7EFC              A  1673    	LD	A,(IX+%FFFFFFFC)
-000359 B7                  A  1674    	OR	A,A
-00035A 20 43               A  1675    	JR	NZ,L_24
-                           A  1676    ;  131		{
-                           A  1677    ;  132			// read
-                           A  1678    ;  133			if (f_read(&disks[a], sectorbuf
-                           A  1679    .LINE 133
-                           A  1680    
-00035C ED65F3              A  1681    	PEA	IX+%FFFFFFF3
-00035F DD7EFE              A  1682    	LD	A,(IX+%FFFFFFFE)
-000362 B7ED62              A  1683    	UEXT	HL
-000365 6F                  A  1684    	LD	L,A
-000366 E5C1                A  1685    	LD	BC,HL
-000368 2A 24 02 00         A  1686    	LD	HL,(__secsize)
-00036C CD 00 00 00         A  1687    	CALL	__imulu
-000370 E5                  A  1688    	PUSH	HL
-000371 DD07F9              A  1689    	LD	BC,(IX+%FFFFFFF9)
-000374 C5                  A  1690    	PUSH	BC
-000375 DD7EFF              A  1691    	LD	A,(IX+%FFFFFFFF)
-000378 B7ED62              A  1692    	UEXT	HL
-00037B 6F                  A  1693    	LD	L,A
-00037C 3E24                A  1694    	LD	A,%24
-00037E CD 00 00 00         A  1695    	CALL	__imul_b
-000382 01 04 00 00         A  1696    	LD	BC,_disks
-000386 09                  A  1697    	ADD	HL,BC
-000387 E5                  A  1698    	PUSH	HL
-000388 CD 00 00 00         A  1699    	CALL	_f_read
-00038C C1                  A  1700    	POP	BC
-00038D C1                  A  1701    	POP	BC
-00038E C1                  A  1702    	POP	BC
-00038F C1                  A  1703    	POP	BC
-000390 01000000            A  1704    	LD	BC,0
-000394 B7                  A  1705    	OR	A,A
-000395 ED42                A  1706    	SBC	HL,BC
-000397 28 49               A  1707    	JR	Z,L_25
-                           A  1708    ;  134				return 0x0101; // return A=
-                           A  1709    .LINE 134
-                           A  1710    
-000399 49210101            A  1711    	LD.LIS	HL,257
-00039D 18 46               A  1712    	JR	L_26
-                           A  1713    ;  135		}
-                           A  1714    ;  136		else
-00039F                     A  1715    L_24:
-                           A  1716    .LINE 136
-                           A  1717    
-                           A  1718    ;  137		{
-                           A  1719    ;  138			// write
-                           A  1720    ;  139			if (f_write(&disks[a], sectorbu
-                           A  1721    .LINE 139
-                           A  1722    
-00039F ED65F6              A  1723    	PEA	IX+%FFFFFFF6
-0003A2 DD7EFE              A  1724    	LD	A,(IX+%FFFFFFFE)
-0003A5 B7ED62              A  1725    	UEXT	HL
-0003A8 6F                  A  1726    	LD	L,A
-0003A9 E5C1                A  1727    	LD	BC,HL
-0003AB 2A 24 02 00         A  1728    	LD	HL,(__secsize)
-0003AF CD 00 00 00         A  1729    	CALL	__imulu
-0003B3 E5                  A  1730    	PUSH	HL
-0003B4 DD07F9              A  1731    	LD	BC,(IX+%FFFFFFF9)
-0003B7 C5                  A  1732    	PUSH	BC
-0003B8 DD7EFF              A  1733    	LD	A,(IX+%FFFFFFFF)
-0003BB B7ED62              A  1734    	UEXT	HL
-0003BE 6F                  A  1735    	LD	L,A
-0003BF 3E24                A  1736    	LD	A,%24
-0003C1 CD 00 00 00         A  1737    	CALL	__imul_b
-0003C5 01 04 00 00         A  1738    	LD	BC,_disks
-0003C9 09                  A  1739    	ADD	HL,BC
-0003CA E5                  A  1740    	PUSH	HL
-0003CB CD 00 00 00         A  1741    	CALL	_f_write
-0003CF C1                  A  1742    	POP	BC
-0003D0 C1                  A  1743    	POP	BC
-0003D1 C1                  A  1744    	POP	BC
-0003D2 C1                  A  1745    	POP	BC
-0003D3 01000000            A  1746    	LD	BC,0
-0003D7 B7                  A  1747    	OR	A,A
-0003D8 ED42                A  1748    	SBC	HL,BC
-0003DA 28 06               A  1749    	JR	Z,L_25
-                           A  1750    ;  140				return 0x0101; // return A=
-                           A  1751    .LINE 140
-                           A  1752    
-0003DC 49210101            A  1753    	LD.LIS	HL,257
-0003E0 18 03               A  1754    	JR	L_26
-                           A  1755    ;  141		}
-0003E2                     A  1756    L_25:
-                           A  1757    .LINE 141
-                           A  1758    
-                           A  1759    ;  142		return 0x0000; // no error-code, no
-                           A  1760    .LINE 142
-                           A  1761    
-0003E2 B7                  A  1762    	OR	A,A
-0003E3 ED62                A  1763    	SBC	HL,HL
-0003E5                     A  1764    L_26:
-                           A  1765    .LINE 143
-                           A  1766    
-0003E5 DDF9                A  1767    	LD	SP,IX
-0003E7 DDE1                A  1768    	POP	IX
-0003E9 C9                  A  1769    	RET	
-                           A  1770    
-                           A  1771    
-                           A  1772    ;**************************** _machine_read_wri
-                           A  1773    ;Name                         Addr/Register   S
-                           A  1774    ;_f_write                            IMPORT  --
-                           A  1775    ;_f_read                             IMPORT  --
-                           A  1776    ;_ram                                STATIC    
-                           A  1777    ;_disks                              STATIC    
-                           A  1778    ;__secsize                           STATIC    
-                           A  1779    ;_f_lseek                            IMPORT  --
-                           A  1780    ;_1temp18                            STATIC    
-                           A  1781    ;drive_letter                         IX-22    
-                           A  1782    ;bytes_read                           IX-13    
-                           A  1783    ;bytes_written                        IX-10    
-                           A  1784    ;sectorbuffer                          IX-7    
-                           A  1785    ;carry                                 IX-4    
-                           A  1786    ;mb                                    IX-3    
-                           A  1787    ;b                                     IX-2    
-                           A  1788    ;a                                     IX-1    
-                           A  1789    ;hl                                   IX+18    
-                           A  1790    ;de                                   IX+15    
-                           A  1791    ;bc                                   IX+12    
-                           A  1792    ;af                                    IX+9    
-                           A  1793    ;mbase                                 IX+6    
-                           A  1794    
+                           A  1531    .TYPE 14
+                           A  1532    
+                           A  1533    .ENDEF
+                           A  1534    
+                           A  1535    .DEFINE "bytes_read"
+                           A  1536    
+                           A  1537    .CLASS 65
+                           A  1538    
+                           A  1539    .VALUE -13
+                           A  1540    
+                           A  1541    .TYPE 14
+                           A  1542    
+                           A  1543    .ENDEF
+                           A  1544    
+                           A  1545    .DEFINE "drive_letter"
+                           A  1546    
+                           A  1547    .CLASS 65
+                           A  1548    
+                           A  1549    .VALUE -22
+                           A  1550    
+                           A  1551    .DIM 9
+                           A  1552    
+                           A  1553    .TYPE 98
+                           A  1554    
+                           A  1555    .ENDEF
+                           A  1556    
+000284 DDE5                A  1557    	PUSH	IX
+000286 DD210000 00         A  1558    	LD	IX,0
+00028B DD39                A  1559    	ADD	IX,SP
+00028D ED22E7              A  1560    	LEA	HL,IX+%FFFFFFE7
+000290 F9                  A  1561    	LD	SP,HL
+                           A  1562    ;  114		const char drive_letter[] = "ABCDEF
+                           A  1563    .LINE 114
+                           A  1564    
+000291 ED12EA              A  1565    	LEA	DE,IX+%FFFFFFEA
+000294 21 09 00 00         A  1566    	LD	HL,_1temp18
+000298 01090000            A  1567    	LD	BC,9
+00029C EDB0                A  1568    	LDIR	
+                           A  1569    ;  115		UINT bytes_read,bytes_written;
+                           A  1570    ;  116		INT8* sectorbuffer;
+                           A  1571    ;  117		UINT8 mb = (mbase>>8)-5;
+                           A  1572    .LINE 117
+                           A  1573    
+00029E DD0706              A  1574    	LD	BC,(IX+%6)
+0002A1 CD 00 00 00         A  1575    	CALL	__stoiu
+0002A5 E5C1                A  1576    	LD	BC,HL
+0002A7 3B                  A  1577    	DEC	SP
+0002A8 C5                  A  1578    	PUSH	BC
+0002A9 33                  A  1579    	INC	SP
+0002AA F1                  A  1580    	POP	AF
+0002AB 17ED62              A  1581    	SEXT	HL
+0002AE E5                  A  1582    	PUSH	HL
+0002AF C5                  A  1583    	PUSH	BC
+0002B0 33                  A  1584    	INC	SP
+0002B1 E1                  A  1585    	POP	HL
+0002B2 33                  A  1586    	INC	SP
+0002B3 33                  A  1587    	INC	SP
+0002B4 7D                  A  1588    	LD	A,L
+0002B5 D605                A  1589    	SUB	A,%5
+0002B7 DD77FD              A  1590    	LD	(IX+%FFFFFFFD),A
+                           A  1591    ;  118		UINT8 a = af>>8;
+                           A  1592    .LINE 118
+                           A  1593    
+0002BA DD0709              A  1594    	LD	BC,(IX+%9)
+0002BD CD 00 00 00         A  1595    	CALL	__stoiu
+0002C1 E5C1                A  1596    	LD	BC,HL
+0002C3 3B                  A  1597    	DEC	SP
+0002C4 C5                  A  1598    	PUSH	BC
+0002C5 33                  A  1599    	INC	SP
+0002C6 F1                  A  1600    	POP	AF
+0002C7 17ED62              A  1601    	SEXT	HL
+0002CA E5                  A  1602    	PUSH	HL
+0002CB C5                  A  1603    	PUSH	BC
+0002CC 33                  A  1604    	INC	SP
+0002CD E1                  A  1605    	POP	HL
+0002CE 33                  A  1606    	INC	SP
+0002CF 33                  A  1607    	INC	SP
+0002D0 DD75FF              A  1608    	LD	(IX+%FFFFFFFF),L
+                           A  1609    ;  119		UINT8 b = bc>>8;
+                           A  1610    .LINE 119
+                           A  1611    
+0002D3 DD070C              A  1612    	LD	BC,(IX+%C)
+0002D6 CD 00 00 00         A  1613    	CALL	__stoiu
+0002DA E5C1                A  1614    	LD	BC,HL
+0002DC 3B                  A  1615    	DEC	SP
+0002DD C5                  A  1616    	PUSH	BC
+0002DE 33                  A  1617    	INC	SP
+0002DF F1                  A  1618    	POP	AF
+0002E0 17ED62              A  1619    	SEXT	HL
+0002E3 E5                  A  1620    	PUSH	HL
+0002E4 C5                  A  1621    	PUSH	BC
+0002E5 33                  A  1622    	INC	SP
+0002E6 E1                  A  1623    	POP	HL
+0002E7 33                  A  1624    	INC	SP
+0002E8 33                  A  1625    	INC	SP
+0002E9 DD75FE              A  1626    	LD	(IX+%FFFFFFFE),L
+                           A  1627    ;  120		BOOL carry = af & 1;
+                           A  1628    .LINE 120
+                           A  1629    
+0002EC DD7E09              A  1630    	LD	A,(IX+%9)
+0002EF E601                A  1631    	AND	A,%1
+0002F1 DD77FC              A  1632    	LD	(IX+%FFFFFFFC),A
+                           A  1633    ;  121	
+                           A  1634    ;  122		/*
+                           A  1635    ;  123		printf ("%04x %04x %04x %04x\r\n",a
+                           A  1636    ;  124		printf ("%s %d bytes from location 
+                           A  1637    ;  125			carry?"Written":"Read",
+                           A  1638    ;  126			b*_secsize,
+                           A  1639    ;  127			de*_secsize,
+                           A  1640    ;  128			hl,
+                           A  1641    ;  129			drive_letter[a]);
+                           A  1642    ;  130		*/
+                           A  1643    ;  131	
+                           A  1644    ;  132		if (f_lseek(&disks[a], de*_secsize)
+                           A  1645    .LINE 132
+                           A  1646    
+0002F4 ED4B 24 02 00       A  1647    	LD	BC,(__secsize)
+0002F9 CD 00 00 00         A  1648    	CALL	__itol
+0002FD DD0FE7              A  1649    	LD	(IX+%FFFFFFE7),BC
+000300 5F                  A  1650    	LD	E,A
+000301 DD070F              A  1651    	LD	BC,(IX+%F)
+000304 CD 00 00 00         A  1652    	CALL	__stoiu
+000308 E5C1                A  1653    	LD	BC,HL
+00030A AF                  A  1654    	XOR	A,A
+00030B DD27E7              A  1655    	LD	HL,(IX+%FFFFFFE7)
+00030E CD 00 00 00         A  1656    	CALL	__lmulu
+000312 4B                  A  1657    	LD	C,E
+000313 0600                A  1658    	LD	B,%0
+000315 C5                  A  1659    	PUSH	BC
+000316 E5                  A  1660    	PUSH	HL
+000317 DD7EFF              A  1661    	LD	A,(IX+%FFFFFFFF)
+00031A B7ED62              A  1662    	UEXT	HL
+00031D 6F                  A  1663    	LD	L,A
+00031E 3E24                A  1664    	LD	A,%24
+000320 CD 00 00 00         A  1665    	CALL	__imul_b
+000324 01 04 00 00         A  1666    	LD	BC,_disks
+000328 09                  A  1667    	ADD	HL,BC
+000329 E5                  A  1668    	PUSH	HL
+00032A CD 00 00 00         A  1669    	CALL	_f_lseek
+00032E C1                  A  1670    	POP	BC
+00032F C1                  A  1671    	POP	BC
+000330 C1                  A  1672    	POP	BC
+000331 01000000            A  1673    	LD	BC,0
+000335 B7                  A  1674    	OR	A,A
+000336 ED42                A  1675    	SBC	HL,BC
+000338 28 08               A  1676    	JR	Z,L_20
+                           A  1677    ;  133	        return 0x0101; // return A=1 + 
+                           A  1678    .LINE 133
+                           A  1679    
+00033A 49210101            A  1680    	LD.LIS	HL,257
+00033E C3 F4 03 00         A  1681    	JR	L_26
+000342                     A  1682    L_20:
+                           A  1683    ;  134	
+                           A  1684    ;  135		sectorbuffer = ram + hl + mb*0x1000
+                           A  1685    .LINE 135
+                           A  1686    
+000342 DD0712              A  1687    	LD	BC,(IX+%12)
+000345 CD 00 00 00         A  1688    	CALL	__stoiu
+000349 ED4B 00 00 00       A  1689    	LD	BC,(_ram)
+00034E 09                  A  1690    	ADD	HL,BC
+00034F E5C1                A  1691    	LD	BC,HL
+000351 DD7EFD              A  1692    	LD	A,(IX+%FFFFFFFD)
+000354 B7ED62              A  1693    	UEXT	HL
+000357 6F                  A  1694    	LD	L,A
+000358 E5                  A  1695    	PUSH	HL
+000359 B7ED62              A  1696    	UEXT	HL
+00035C E5                  A  1697    	PUSH	HL
+00035D 33                  A  1698    	INC	SP
+00035E E1                  A  1699    	POP	HL
+00035F 33                  A  1700    	INC	SP
+000360 33                  A  1701    	INC	SP
+000361 09                  A  1702    	ADD	HL,BC
+000362 DD2FF9              A  1703    	LD	(IX+%FFFFFFF9),HL
+                           A  1704    ;  136		if (carry==FALSE)
+                           A  1705    .LINE 136
+                           A  1706    
+000365 DD7EFC              A  1707    	LD	A,(IX+%FFFFFFFC)
+000368 B7                  A  1708    	OR	A,A
+000369 20 43               A  1709    	JR	NZ,L_24
+                           A  1710    ;  137		{
+                           A  1711    ;  138			// read
+                           A  1712    ;  139			if (f_read(&disks[a], sectorbuf
+                           A  1713    .LINE 139
+                           A  1714    
+00036B ED65F3              A  1715    	PEA	IX+%FFFFFFF3
+00036E DD7EFE              A  1716    	LD	A,(IX+%FFFFFFFE)
+000371 B7ED62              A  1717    	UEXT	HL
+000374 6F                  A  1718    	LD	L,A
+000375 E5C1                A  1719    	LD	BC,HL
+000377 2A 24 02 00         A  1720    	LD	HL,(__secsize)
+00037B CD 00 00 00         A  1721    	CALL	__imulu
+00037F E5                  A  1722    	PUSH	HL
+000380 DD07F9              A  1723    	LD	BC,(IX+%FFFFFFF9)
+000383 C5                  A  1724    	PUSH	BC
+000384 DD7EFF              A  1725    	LD	A,(IX+%FFFFFFFF)
+000387 B7ED62              A  1726    	UEXT	HL
+00038A 6F                  A  1727    	LD	L,A
+00038B 3E24                A  1728    	LD	A,%24
+00038D CD 00 00 00         A  1729    	CALL	__imul_b
+000391 01 04 00 00         A  1730    	LD	BC,_disks
+000395 09                  A  1731    	ADD	HL,BC
+000396 E5                  A  1732    	PUSH	HL
+000397 CD 00 00 00         A  1733    	CALL	_f_read
+00039B C1                  A  1734    	POP	BC
+00039C C1                  A  1735    	POP	BC
+00039D C1                  A  1736    	POP	BC
+00039E C1                  A  1737    	POP	BC
+00039F 01000000            A  1738    	LD	BC,0
+0003A3 B7                  A  1739    	OR	A,A
+0003A4 ED42                A  1740    	SBC	HL,BC
+0003A6 28 49               A  1741    	JR	Z,L_25
+                           A  1742    ;  140				return 0x0101; // return A=
+                           A  1743    .LINE 140
+                           A  1744    
+0003A8 49210101            A  1745    	LD.LIS	HL,257
+0003AC 18 46               A  1746    	JR	L_26
+                           A  1747    ;  141		}
+                           A  1748    ;  142		else
+0003AE                     A  1749    L_24:
+                           A  1750    .LINE 142
+                           A  1751    
+                           A  1752    ;  143		{
+                           A  1753    ;  144			// write
+                           A  1754    ;  145			if (f_write(&disks[a], sectorbu
+                           A  1755    .LINE 145
+                           A  1756    
+0003AE ED65F6              A  1757    	PEA	IX+%FFFFFFF6
+0003B1 DD7EFE              A  1758    	LD	A,(IX+%FFFFFFFE)
+0003B4 B7ED62              A  1759    	UEXT	HL
+0003B7 6F                  A  1760    	LD	L,A
+0003B8 E5C1                A  1761    	LD	BC,HL
+0003BA 2A 24 02 00         A  1762    	LD	HL,(__secsize)
+0003BE CD 00 00 00         A  1763    	CALL	__imulu
+0003C2 E5                  A  1764    	PUSH	HL
+0003C3 DD07F9              A  1765    	LD	BC,(IX+%FFFFFFF9)
+0003C6 C5                  A  1766    	PUSH	BC
+0003C7 DD7EFF              A  1767    	LD	A,(IX+%FFFFFFFF)
+0003CA B7ED62              A  1768    	UEXT	HL
+0003CD 6F                  A  1769    	LD	L,A
+0003CE 3E24                A  1770    	LD	A,%24
+0003D0 CD 00 00 00         A  1771    	CALL	__imul_b
+0003D4 01 04 00 00         A  1772    	LD	BC,_disks
+0003D8 09                  A  1773    	ADD	HL,BC
+0003D9 E5                  A  1774    	PUSH	HL
+0003DA CD 00 00 00         A  1775    	CALL	_f_write
+0003DE C1                  A  1776    	POP	BC
+0003DF C1                  A  1777    	POP	BC
+0003E0 C1                  A  1778    	POP	BC
+0003E1 C1                  A  1779    	POP	BC
+0003E2 01000000            A  1780    	LD	BC,0
+0003E6 B7                  A  1781    	OR	A,A
+0003E7 ED42                A  1782    	SBC	HL,BC
+0003E9 28 06               A  1783    	JR	Z,L_25
+                           A  1784    ;  146				return 0x0101; // return A=
+                           A  1785    .LINE 146
+                           A  1786    
+0003EB 49210101            A  1787    	LD.LIS	HL,257
+0003EF 18 03               A  1788    	JR	L_26
+                           A  1789    ;  147		}
+0003F1                     A  1790    L_25:
+                           A  1791    .LINE 147
+                           A  1792    
+                           A  1793    ;  148		return 0x0000; // no error-code, no
+                           A  1794    .LINE 148
                            A  1795    
-                           A  1796    ; Stack Frame Size: 46 (bytes)
-                           A  1797    ;       Spill Code: 0 (instruction)
-                           A  1798    
-                           A  1799    
-                           A  1800    .ENDFUNC "machine_read_write_disk",143,"_machin
-                           A  1801    	SEGMENT TEXT
-000009                     A  1802    _1temp18:
-000009 41                  A  1803    	DB	65
-00000A 42                  A  1804    	DB	66
-00000B 43                  A  1805    	DB	67
-00000C 44                  A  1806    	DB	68
-00000D 45                  A  1807    	DB	69
-00000E 46                  A  1808    	DB	70
-00000F 47                  A  1809    	DB	71
-000010 48                  A  1810    	DB	72
-000011 00                  A  1811    	DB	0
-                           A  1812    	XREF _strcpy:ROM
-                           A  1813    	XREF _exec16:ROM
-                           A  1814    	XREF _f_lseek:ROM
-                           A  1815    	XREF _f_write:ROM
-                           A  1816    	XREF _f_read:ROM
-                           A  1817    	XREF _f_close:ROM
-                           A  1818    	XREF _f_open:ROM
-                           A  1819    	XREF __imulu:ROM
-                           A  1820    	XREF __lmulu:ROM
-                           A  1821    	XREF __stoiu:ROM
-                           A  1822    	XREF __itol:ROM
-                           A  1823    	XREF __imul_b:ROM
-                           A  1824    	XDEF _machine_read_write_disk
-                           A  1825    	XDEF _machine_warm_boot
-                           A  1826    	XDEF _machine_set_warmboot_image
-                           A  1827    	XDEF _machine_start
-                           A  1828    	XDEF _machine_init
-                           A  1829    	XDEF _machine_mount_disk
-                           A  1830    	XDEF _machine_save_image
-                           A  1831    	XDEF _machine_load_image
-                           A  1832    	XDEF __secsize
-                           A  1833    	XDEF _wb_bank
-                           A  1834    	XDEF _szWarmBootImage
-                           A  1835    	XDEF _disks
-                           A  1836    	XDEF _mbase
-                           A  1837    	XDEF _ram
-                           A  1838    	END
+0003F1 B7                  A  1796    	OR	A,A
+0003F2 ED62                A  1797    	SBC	HL,HL
+                           A  1798    ;  149	}
+0003F4                     A  1799    L_26:
+                           A  1800    .LINE 149
+                           A  1801    
+0003F4 DDF9                A  1802    	LD	SP,IX
+0003F6 DDE1                A  1803    	POP	IX
+0003F8 C9                  A  1804    	RET	
+                           A  1805    
+                           A  1806    
+                           A  1807    ;**************************** _machine_read_wri
+                           A  1808    ;Name                         Addr/Register   S
+                           A  1809    ;_f_write                            IMPORT  --
+                           A  1810    ;_f_read                             IMPORT  --
+                           A  1811    ;_ram                                STATIC    
+                           A  1812    ;_disks                              STATIC    
+                           A  1813    ;__secsize                           STATIC    
+                           A  1814    ;_f_lseek                            IMPORT  --
+                           A  1815    ;_1temp18                            STATIC    
+                           A  1816    ;drive_letter                         IX-22    
+                           A  1817    ;bytes_read                           IX-13    
+                           A  1818    ;bytes_written                        IX-10    
+                           A  1819    ;sectorbuffer                          IX-7    
+                           A  1820    ;carry                                 IX-4    
+                           A  1821    ;mb                                    IX-3    
+                           A  1822    ;b                                     IX-2    
+                           A  1823    ;a                                     IX-1    
+                           A  1824    ;hl                                   IX+18    
+                           A  1825    ;de                                   IX+15    
+                           A  1826    ;bc                                   IX+12    
+                           A  1827    ;af                                    IX+9    
+                           A  1828    ;mbase                                 IX+6    
+                           A  1829    
+                           A  1830    
+                           A  1831    ; Stack Frame Size: 46 (bytes)
+                           A  1832    ;       Spill Code: 0 (instruction)
+                           A  1833    
+                           A  1834    
+                           A  1835    .ENDFUNC "machine_read_write_disk",149,"_machin
+                           A  1836    	SEGMENT TEXT
+000009                     A  1837    _1temp18:
+000009 41                  A  1838    	DB	65
+00000A 42                  A  1839    	DB	66
+00000B 43                  A  1840    	DB	67
+00000C 44                  A  1841    	DB	68
+00000D 45                  A  1842    	DB	69
+00000E 46                  A  1843    	DB	70
+00000F 47                  A  1844    	DB	71
+000010 48                  A  1845    	DB	72
+000011 00                  A  1846    	DB	0
+                           A  1847    	SEGMENT CODE
+                           A  1848    ;  150	
+                           A  1849    ;  151	void machine_set_vsync (BOOL vsync)
+                           A  1850    ;  152	{
+0003F9                     A  1851    _machine_set_vsync:
+                           A  1852    .DEFINE "_machine_set_vsync"
+                           A  1853    
+                           A  1854    .VALUE _machine_set_vsync
+                           A  1855    
+                           A  1856    .CLASS 2
+                           A  1857    
+                           A  1858    .TYPE 65
+                           A  1859    
+                           A  1860    .ENDEF
+                           A  1861    
+                           A  1862    .BEGFUNC "machine_set_vsync",152,"_machine_set_
+                           A  1863    
+                           A  1864    .LINE 152
+                           A  1865    
+                           A  1866    .DEFINE "vsync"
+                           A  1867    
+                           A  1868    .CLASS 65
+                           A  1869    
+                           A  1870    .VALUE 6
+                           A  1871    
+                           A  1872    .TYPE 12
+                           A  1873    
+                           A  1874    .ENDEF
+                           A  1875    
+0003F9 DDE5                A  1876    	PUSH	IX
+0003FB DD210000 00         A  1877    	LD	IX,0
+000400 DD39                A  1878    	ADD	IX,SP
+                           A  1879    ;  153		if (vsync==TRUE)
+                           A  1880    .LINE 153
+                           A  1881    
+000402 DD7E06              A  1882    	LD	A,(IX+%6)
+000405 FE01                A  1883    	CP	A,%1
+000407 20 10               A  1884    	JR	NZ,L_28
+                           A  1885    ;  154			set_vector(PORTB1_IVECT, machin
+                           A  1886    .LINE 154
+                           A  1887    
+000409 01 00 00 00         A  1888    	LD	BC,_machine_vblank_handler
+00040D C5                  A  1889    	PUSH	BC
+00040E 01320000            A  1890    	LD	BC,50
+000412 C5                  A  1891    	PUSH	BC
+000413 CD 00 00 00         A  1892    	CALL	_set_vector
+000417 C1                  A  1893    	POP	BC
+000418 C1                  A  1894    	POP	BC
+000419                     A  1895    L_28:
+                           A  1896    .LINE 155
+                           A  1897    
+000419 DDF9                A  1898    	LD	SP,IX
+00041B DDE1                A  1899    	POP	IX
+00041D C9                  A  1900    	RET	
+                           A  1901    
+                           A  1902    
+                           A  1903    ;**************************** _machine_set_vsyn
+                           A  1904    ;Name                         Addr/Register   S
+                           A  1905    ;_machine_vblank_handler             IMPORT  --
+                           A  1906    ;_set_vector                         IMPORT  --
+                           A  1907    ;vsync                                 IX+6    
+                           A  1908    
+                           A  1909    
+                           A  1910    ; Stack Frame Size: 9 (bytes)
+                           A  1911    ;       Spill Code: 0 (instruction)
+                           A  1912    
+                           A  1913    
+                           A  1914    .ENDFUNC "machine_set_vsync",155,"_machine_set_
+                           A  1915    	XREF _set_vector:ROM
+                           A  1916    	XREF _strcpy:ROM
+                           A  1917    	XREF _exec16:ROM
+                           A  1918    	XREF _machine_vblank_handler:ROM
+                           A  1919    	XREF _f_lseek:ROM
+                           A  1920    	XREF _f_write:ROM
+                           A  1921    	XREF _f_read:ROM
+                           A  1922    	XREF _f_close:ROM
+                           A  1923    	XREF _f_open:ROM
+                           A  1924    	XREF __imulu:ROM
+                           A  1925    	XREF __lmulu:ROM
+                           A  1926    	XREF __stoiu:ROM
+                           A  1927    	XREF __itol:ROM
+                           A  1928    	XREF __imul_b:ROM
+                           A  1929    	XDEF _machine_set_vsync
+                           A  1930    	XDEF _machine_read_write_disk
+                           A  1931    	XDEF _machine_warm_boot
+                           A  1932    	XDEF _machine_set_warmboot_image
+                           A  1933    	XDEF _machine_start
+                           A  1934    	XDEF _machine_init
+                           A  1935    	XDEF _machine_mount_disk
+                           A  1936    	XDEF _machine_save_image
+                           A  1937    	XDEF _machine_load_image
+                           A  1938    	XDEF _machine_vsync
+                           A  1939    	XDEF _machine_vsync_address
+                           A  1940    	XDEF __secsize
+                           A  1941    	XDEF _wb_bank
+                           A  1942    	XDEF _szWarmBootImage
+                           A  1943    	XDEF _disks
+                           A  1944    	XDEF _mbase
+                           A  1945    	XDEF _ram
+                           A  1946    	END
 
 
 Errors: 0
 Warnings: 0
-Lines Assembled: 1839
+Lines Assembled: 1947
