@@ -7,6 +7,7 @@
 	XDEF	electron_os_api
 	XDEF	electron_os_inout
 	XDEF	_machine_vblank_handler
+	XDEF	checkEIstate
 
 	XREF	_machine_read_write_disk
     XREF 	_machine_warm_boot
@@ -20,6 +21,8 @@
 	;
 	XREF	uart0_send_fifo_add
 	XREF	uart0_recv_fifo_get
+	XREF	uart0_recv
+	XREF	uart0_send
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
 
@@ -105,8 +108,6 @@ eos_msx_machine_rdslt:
 	; we have no expanded slots
 	; we only do primary slots
 	; ROM, slot 0, in 0x50000-0x5ffff , other slots RAM 0x60000 - 0x8ffff
-	and a
-	jr z, _rdslt_rom
 	push ix
 	push hl
 	; add start ram slot
@@ -125,9 +126,7 @@ eos_msx_machine_rdslt:
 	pop hl
 	pop ix
 	ret
-_rdslt_rom
-	ld a, 0aah
-	ret
+	
 eos_msx_machine_wrslt:
 	and a
 	ret z ; do not attempt to write ROM section
@@ -242,6 +241,8 @@ _machine_vblank_handler:
 	push de
 	push hl
 	push iy
+	; reset GPIO edge-trigger
+	SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 	;
 	ld hl,(_machine_vsync_address)
 	ld a, l
@@ -292,11 +293,36 @@ _no_address:
 	EI	
 	RETI.L
 
+
+	IF $ < 100H
+        ERROR "Must be at address >= 100H"
+    ENDIF
+; Workaround for LD A,I / LD A,R lying to us if an interrupt occurs during the
+; instruction. We detect this by examining if (sp - 1) was overwritten.
+; f: pe <- interrupts enabled, po <- interrupts disabled
+; Modifies: af
+checkEIstate:
+    xor a
+    push af  ; set (sp - 1) to 0
+    pop af
+    ld a,i	; check IFF2, 1 is EI, 0 is DI
+    ret pe  ; interrupts enabled? 1 is pe is EI, 0 is po is DI
+	; interrupts disabled (DI)? let's check to be sure
+    dec sp
+	dec sp
+    dec sp  ; check whether the Z80 lied about ints being disabled
+    pop af  ; (sp - 1) is overwritten w/ MSB of ret address if an ISR occurred
+	sub 1
+    sbc a,a
+    and 1   ; (sp - 1) is not 0? return with pe, otherwise po
+    ret
+
+
 ; IN/OUT to port specified in IYl
 ; OUT value in IYh
 ; Cy = write, No Cy = read
 electron_os_inout:
-	push af
+	push af ; A
 	ld a, iyl
 	cp 0a8h
 	jr z, _electron_os_inout_slotregister
@@ -304,35 +330,42 @@ electron_os_inout:
 	jr nz, _electron_os_inout_next_1
 	ld iyl, c
 _electron_os_inout_next_1:	
-	pop af
-	push af
+	pop af  ; A
+	push af	; A
 	; send command to HAL
 	ld a, 080h ; 0b10000000 ; send
+	; check OUT=C or IN=NC
 	jr c, _electron_os_inout_next_2
+	; IN mode
 	or 001h ; 0b00000001 ; recv
+	; switch off uart0 receive interrupts
+	; we go direct mode
+	push af ; B
+	in0 a, (UART0_IER)
+	and 0feh ;0b11111110
+    out0 (UART0_IER),a
+	pop af  ; B
 _electron_os_inout_next_2:
 	; send command 0x80 (out) or 0x81 (in)
-	call uart0_send_fifo_add
+	call uart0_send
 	; send port number
 	ld a, iyl
-	call uart0_send_fifo_add
-	pop af
+	call uart0_send
+	pop af  ; A
+	; check OUT=C or IN=NC
 	jr nc, _electron_os_inout_recv_1
 	; send last byte, value
 	ld a, iyh
-	call uart0_send_fifo_add
+	call uart0_send
 	ret
 _electron_os_inout_recv_1:
-	; wait for result
-	call uart0_recv_fifo_get
-	jr c, _electron_os_inout_recv_1
-	cp 081h ; 0b10000001
-	; skip responses we do not expect
-	jr nz, _electron_os_inout_recv_1
-_electron_os_inout_recv_2:
-	; wait for result
-	call uart0_recv_fifo_get
-	jr c, _electron_os_inout_recv_2
+	call uart0_recv
+	; switch uart0 receive interrupts on again
+	push af
+	in0 a, (UART0_IER)
+	or 001h ;0b00000001
+    out0 (UART0_IER),a
+	pop af
 	; value returned in A
 	ret
 _electron_os_inout_slotregister:

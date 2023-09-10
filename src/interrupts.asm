@@ -17,12 +17,12 @@
 			DEFINE .STARTUP, SPACE = ROM
 			SEGMENT .STARTUP
 			
-			XDEF	_vblank_handler
+			XDEF	_generic_vblank_handler
 			XREF	_clock
 			
 ; Vertical Blank Interrupt handler
 ;
-_vblank_handler:	
+_generic_vblank_handler:	
 			DI
 			PUSH	AF
 			PUSH	BC

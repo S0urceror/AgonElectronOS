@@ -37,6 +37,7 @@ _uart0_send_tail DS 3
 _uart0_recv_buffer DS UART0_RECV_BUFFER_SIZE
 _uart0_recv_head DS 3
 _uart0_recv_tail DS 3
+
 		
 			SECTION DATA		; This section is copied to RAM in cstartup.asm
 

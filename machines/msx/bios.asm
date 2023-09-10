@@ -1,3 +1,6 @@
+    DEVICE NOSLOT64K
+    PAGE 5
+
 ;   .ASSUME ADL=0
 
 ;       symbols used to procedure alternate code
@@ -48,14 +51,7 @@ H.KEYI  EQU     0FD9AH
 
 RG0SAV  EQU     0F3DFH
 
-; BLOAD header
-    db 0x0fe
-    dw BEGIN, ENDADR, START_BASIC
-
-    .ORG 0000h
-BEGIN:
-START_BASIC:
-
+    ORG 0000H
 BOOT:                   ; 0000h
     JP _BOOT
     DW CGTABL           ; 0004h Location MSX font in ROM
@@ -188,8 +184,8 @@ _BOOT:
     ; assume that 4000-7FFF is in slot 00 - ROM
     ; assume that 8000-BFFF is in slot 01 - RAM
     ; assume that C000-FFFF is in slot 01 - RAM
-    ld a, 0b01010100
-    ld ix, 0x0004
+    ld a, 0b01010000
+    ld ix, 0x0004 // eos_msx_machine_slotregister
     scf ; set carry = write
     DB 0x5b ; .LIL
     rst 38h
@@ -224,7 +220,7 @@ _BOOT:
     LD      SP,HL
     
     ; set vsync address
-    ld ix, 0x000e
+    ld ix, 0x000e // eos_msx_machine_setvblankaddress
     ld hl, H.KEYI
     DB 0x5b ; .LIL
     rst 38h
@@ -234,36 +230,60 @@ _BOOT:
     ld hl, MSX_INTRO
     call _print
     ld      b,010h
-A7D0D:  
+BOOT_WAIT:  
     dec     hl
     ld      a,l
     or      h
-    jr      nz,A7D0D
-    djnz    A7D0D                   ; wait 3 seconds
+    jr      nz,BOOT_WAIT
+    djnz    BOOT_WAIT                   ; wait 3 seconds
 
     ; get contents of diskrom start address in slot 1
+    ld b, 0
+CHECKROMS:
+    ;
+    ld a, b
+    ld hl, 04000h
+    call _RDSLT
+    cp 'A'
+    jr nz, SKIPROM
+    ld a, b
+    ld hl, 04001h
+    call _RDSLT
+    cp 'B'
+    jr nz, SKIPROM
+    ; found a rom, let's call INIT
     ld ix,0
-    ld a, 1
+    ld a, b
     ld hl, 04002h
     call _RDSLT
     ld ixl, a
-    ld a, 1
+    ld a, b
     ld hl, 04003h
     call _RDSLT
     ld ixh, a
+    ld a, b
+    ld iyh, a
+    ld iyl, 0
     ; jump there
-    ld iy, 0100h
     call CALSLT
+    jr BOOT_CONTINUE
+SKIPROM:
+    inc b
+    ld a, b
+    cp 4
+    jr nz,CHECKROMS
 
+BOOT_CONTINUE:
     ; emulate BASIC continuing init and then calling H.RUNC
     call H.RUNC
     ; diskrom should now have attempted to run MSXDOS
     ; if there is no disk mounted or not a valid disk we return here
-    EI
     ld hl, FAKE_BASIC_PROMPT
     call _print
-_forever:
-    jr _forever
+
+    ; try to return to ElectronOS
+    DB 049h ; .LIL
+    RET
 
 _print:
 _next_character:
@@ -282,11 +302,11 @@ MSX_INTRO:
     DB "      Copyright 1983 by Microsoft\r\n"
     DB "\r\n\r\n",0
 FAKE_BASIC_PROMPT:
-    DB "MSX BASIC version 5.0\r\n"
+    DB 12,"MSX BASIC version 5.0\r\n"
     DB "Copyright 2023 by S0urceror\r\n"
     DB "65535 Bytes free\r\n"
     DB "Disk BASIC version 1.0\r\n"
-    DB "Ok\r\n"
+    DB "Ok\r\n",0
 
 _DCOMPR:
 ;       Subroutine      DCOMPR
@@ -574,8 +594,6 @@ _SETWRT:
 ;Registers: AF
 _RDVRM:
     call    SETRD                   ; SETRD
-    ex      (sp),hl
-    ex      (sp),hl
     ;in      a,(098H)
     RST 38h
     DB 098h
@@ -590,8 +608,6 @@ _RDVRM:
 _WRTVRM:
     push    af
     call    SETWRT                  ; SETWRT
-    ex      (sp),hl
-    ex      (sp),hl
     pop     af
     RST 28h
     DB 098h
@@ -602,6 +618,17 @@ _WRTVRM:
 ;Input    : A  - PSG register number
 ;           E  - Data write
 _WRTPSG:
+    di
+    RST 28h
+    DB 0A0h
+    ;out     (0A0H),a
+    push    af
+    ld      a,e
+    RST 28h
+    DB 0A1h
+    ;out     (0A1H),a
+    ei
+    pop     af
     ret
 
 ;Address  : #0096
@@ -609,6 +636,12 @@ _WRTPSG:
 ;Input    : A  - PSG register read
 ;Output   : A  - Value read
 _RDPSG:
+    RST 28h
+    DB 0A0h
+    ;out     (0A0H),a
+    RST 38h
+    DB 0A2h
+    ;in      a,(0A2H)
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -991,4 +1024,3 @@ CGTABL:
         DEFB	000H,000H,000H,000H,000H,000H,000H,000H
 
         .DEPHASE
-ENDADR:

@@ -7,9 +7,6 @@
 			INCLUDE	"../src/macros.inc"
 			INCLUDE	"../src/equs.inc"
 
-			XREF 	__init
-			XREF 	__low_rom
-			
 			XDEF 	_reset
 			XDEF 	__default_nmi_handler
 			XDEF 	__default_mi_handler
@@ -22,12 +19,21 @@
 			XDEF	__1st_jump_table
 			XDEF	__vector_table
 			
+			; ZDS
+			XREF 	__init
+			XREF 	__low_rom
+			; uart_.asm
 			XREF	uart0_send_fifo_add
 			XREF	uart0_recv_fifo_get
 			XREF	uart0_recv_fifo_nrchars
+			; globals.asm
+			XREF	call_address_ix
+			; eos_api.asm
 			XREF	electron_os_api
 			XREF	electron_os_inout
-			XREF	call_address_ix
+			XREF	checkEIstate
+			; machine.c
+			XREF	_semaphore
 
 NVECTORS 	EQU 48			; Number of interrupt vectors
 
@@ -117,8 +123,46 @@ _rst_20_handler:
 	RET.L
 
 _rst_28_handler:
+	push af	; store AF
+	call checkEIstate
+	di 		; interrupts off
+	jp pe, _rst_28_interrupt_enabled
+	; interrupts were disabled, keep it like this
+	pop af	; restore AF
 	CALL electron_os_inout
 	RET.L
+_rst_28_interrupt_enabled:	
+	; interrupts were enabled, now disabled
+   	pop af	; restore AF
+	CALL electron_os_inout
+	EI	; enable them again
+	RET.L
+	
+_rst_28_handler_alt2:
+	push af
+	push hl
+	ld hl, _semaphore
+_rst_28_wait:
+	; this will protect re-entry if another inout is running already
+	; since the EZ80 is not multi-threaded this works
+	; during interrupts the main routine is halted
+	bit 0, (hl)
+	jr nz, _rst_28_wait
+	set 0, (hl)
+	pop hl
+	pop af
+	CALL electron_os_inout
+	push af
+	push hl
+	ld hl, _semaphore
+	res 0, (hl)
+	pop hl
+	pop af
+	RET.L
+_rst_28_handler_org:
+	CALL electron_os_inout
+	RET.L
+	
 _rst_30_handler:
 	RET.L
 

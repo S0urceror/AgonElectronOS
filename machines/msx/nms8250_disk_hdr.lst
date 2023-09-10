@@ -1,8 +1,0 @@
-# file opened: nms8250_disk_hdr.asm
-1     0000
-2     0000              ; BLOAD header
-3     0000 FE               db 0x0fe
-4     0001 00 40 FF 7F      dw 4000h, 8000h-1, 4000h
-4     0005 00 40
-5     0007
-# file closed: nms8250_disk_hdr.asm

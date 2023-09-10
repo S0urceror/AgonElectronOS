@@ -24,8 +24,8 @@ static FATFS 	fs;						// Handle for the file system
 //
 void init_interrupts(void) 
 {
-	set_vector(PORTB1_IVECT, vblank_handler); 	// 0x32
-	set_vector(UART0_IVECT,  uart0_handler);	// 0x18
+	set_vector(PORTB1_IVECT, generic_vblank_handler); 	// 0x32
+	set_vector(UART0_IVECT,  uart0_handler);			// 0x18
 }
 
 

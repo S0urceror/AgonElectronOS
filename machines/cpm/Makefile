@@ -11,14 +11,14 @@ all: cpm deploy
 cpm: $(OUTPUT_DIR)/CPM22-ccp-bdos.bin $(OUTPUT_DIR)/CPM22-bios.bin $(OUTPUT_DIR)/bios.bin
 
 deploy:
-	cp bios.bin /Volumes/AGONLITE/cpm
-	cp CPM22-ccp-bdos.bin /Volumes/AGONLITE/cpm
-	cp CPM22-bios.bin /Volumes/AGONLITE/cpm
-	#$(BINHEX) -a 0x4fff9 -i bios.bin -o bios.hex
+	$(BINHEX) -a 0x4fff9 -i bios.bin -o bios.hex
+	$(BINHEX) -a 0x5dbf9 -i CPM22-ccp-bdos.bin -v -o CPM22-ccp-bdos.hex
+	$(BINHEX) -a 0x5f1f9 -i CPM22-bios.bin -o CPM22-bios.hex
+	#cp bios.bin /Volumes/AGONLITE/cpm
+	#cp CPM22-ccp-bdos.bin /Volumes/AGONLITE/cpm
+	#cp CPM22-bios.bin /Volumes/AGONLITE/cpm
 	#python3 $(AGON-ZDI-LOAD) bios.hex 0
-	#$(BINHEX) -a 0x5dbf9 -i CPM22-ccp-bdos.bin -v -o CPM22-ccp-bdos.hex
 	#python3 $(AGON-ZDI-LOAD) CPM22-ccp-bdos.hex 0
-	#$(BINHEX) -a 0x5f1f9 -i CPM22-bios.bin -o CPM22-bios.hex
 	#python3 $(AGON-ZDI-LOAD) CPM22-bios.hex 0
 
 $(OUTPUT_DIR)/CPM22-ccp-bdos.bin: $(OUTPUT_DIR)/CPM22.asm
@@ -31,7 +31,8 @@ $(OUTPUT_DIR)/bios.bin: $(OUTPUT_DIR)/bios.asm
 	$(ASM) $(ASMFLAGS) $< 
 
 clean:
-	rm *.hex
 	rm *.bin
 	rm *.lst
 	rm *.sym
+	rm *.hex
+	

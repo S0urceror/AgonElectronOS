@@ -11,21 +11,28 @@
     DEFINE .STARTUP, SPACE = ROM
     SEGMENT .STARTUP
 
+    ; C functions
     XDEF    _init_uart
+    XDEF    _uart0_init_fifo
     XDEF    _getch
     XDEF    _putch
     XDEF	_uart0_handler
-    XDEF    uart0_recv_fifo_get
-    XDEF    uart0_send_fifo_add
-    XDEF    uart0_recv_fifo_nrchars
 
-    XDEF    _uart0_init_fifo
+    ; ASM functions
+    XDEF    uart0_recv_fifo_get
+    XDEF    uart0_recv
+    XDEF    uart0_send_fifo_add
+    XDEF    uart0_send
+    XDEF    uart0_recv_fifo_nrchars
+    
+    ; globals.asm
     XREF    _uart0_send_head
     XREF    _uart0_send_tail
     XREF    _uart0_send_buffer
     XREF    _uart0_recv_head
     XREF    _uart0_recv_tail
     XREF    _uart0_recv_buffer
+
 
 PORTD_DRVAL_DEF       EQU    0ffh			;The default value for Port D data register (set for Mode 2).
 PORTD_DDRVAL_DEF      EQU    0ffh			;The default value for Port D data direction register (set for Mode 2).
@@ -198,8 +205,6 @@ _uart0_init_fifo:
     pop hl
     ret
 
-	IF UART0_SEND_INTERRUPTS
-
 ; Write a character to the SEND buffer
 ; Parameters:
 ; - A: The character to write (least significant byte)
@@ -234,14 +239,12 @@ _uart0_send_interrupt:
     pop hl
     ret
 
-	ELSE
-
 ; Write a character to the SEND buffer
 ; Parameters:
 ; - A: The character to write (least significant byte)
 ; Returns:
 ; - A: The character written
-uart0_send_fifo_add:
+uart0_send:
     push af
 _uart0_send_wait    
     ; check if host is ready to receive, otherwise wait
@@ -253,7 +256,6 @@ _uart0_send_wait
     out0 (UART0_THR),a
     RET
 	
-	ENDIF
 ; Write a received character to the RECV buffer
 ; Parameters:
 ; - A: The character to write (least significant byte)
@@ -363,6 +365,18 @@ _uart0_recv_empty:
     pop de
     pop hl
     ret        
+
+; Get a character directly from the UART (blocking)
+; Returns:
+; A - character in buffer
+uart0_recv:
+_uart0_recv_loop
+    ; while characters in fifo => process
+    in0 a, (UART0_LSR)
+    bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
+    jr	z, _uart0_recv_loop
+    in0 a,(UART0_RBR)
+    ret
 
 uart0_recv_fifo_nrchars:
     push hl
