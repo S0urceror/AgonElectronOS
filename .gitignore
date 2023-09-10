@@ -1,1 +1,6 @@
 .tmp
+Debug
+*.hex
+*.lst
+*.sym
+*.sld
