@@ -1,5 +1,4 @@
 	INCLUDE "ez80f92.inc"
-	INCLUDE	"macros.inc"	
 	.ASSUME ADL=1
 
 	;DEFINE .STARTUP, SPACE = ROM

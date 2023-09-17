@@ -6,8 +6,6 @@ WRTVDP:		equ	#47
 WRTVRM:		equ	#4d
 CHGET:      equ #9f
 INITXT:     equ #6c
-H.KEYI      EQU 0FD9AH
-RDVDP:		equ	#13e
 
     org 4000h
 
@@ -120,28 +118,19 @@ sprite_atts:
     inc hl
     djnz sprite_atts
 
-    ; set start position
+    ld b,0
     ld a, 256/2 - 8
-    ld (XPOS),a
-
-    ; setup interrupt routine
-    DI
-    ld	a, 0C3h
-    ld	(H.KEYI), a
-    ld	hl, tickMain
-    ld	(H.KEYI+1), hl	; Pone la rutina de interrupcion que lleva la logica del juego
-    EI
-    
-forever:
-    jr forever
-    
-tickMain:
-    call	RDVDP		; clear interrupt flag
-    ld a, (XPOS)
     ld hl, 0x3b00+1 ; x-coord
+loop:
+    push af
+    call CHGET
+    pop af
     inc a
-    ld (XPOS),a
     call WRTVRM
+    djnz loop
+    
+    call INITXT
+
     ret
 
 print:
@@ -258,5 +247,4 @@ Sprite_Pattern:
     db 00000000b
 strHello db "Testing!",13,10,0
 
-    ORG 0x8000
-XPOS db 0
+ENDADR:

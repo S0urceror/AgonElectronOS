@@ -36,7 +36,8 @@
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-211240",
-				"baudrate": 460800
+				"baudrate": 460800,
+				"loadObjBank": 5
 			},
 			"sjasmplus": [
 				{
@@ -48,9 +49,8 @@
 			],
 			"startAutomatically": true,
 			"loadObjs": [
-				{ "path": "bios.bin", "start": "0x0000.5" },
-				{ "path": "bios.bin", "start": "0x0000.6" },
-				{ "path": "hello.bin", "start": "0x4000.6" }
+				{ "path": "bios.bin", "start": "0x0000" },
+				{ "path": "hello.bin", "start": "0x4000" }
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
@@ -70,7 +70,8 @@
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-211240",
-				"baudrate": 460800
+				"baudrate": 460800,
+				"loadObjBank": 5
 			},
 			"sjasmplus": [
 				{
@@ -82,9 +83,8 @@
 			],
 			"startAutomatically": true,
 			"loadObjs": [
-				{ "path": "bios.bin", "start": "0x0000.5" },
-				{ "path": "bios.bin", "start": "0x0000.6" },
-				{ "path": "test.rom", "start": "0x4000.6" }
+				{ "path": "bios.bin", "start": "0x0000" },
+				{ "path": "test.bin", "start": "0x4000" }
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
@@ -93,30 +93,6 @@
 				//"-exec e load -0 msx/kvalley.bin",
                 // "-exec e load msx/hello.bin",
 				// "-exec e run"
-            ],
-			"preLaunchTask": "build"
-		},
-        {
-			"type": "dezog",
-			"request": "launch",
-			"name": "Dezog-MOS-BBC",
-			"rootFolder": "${workspaceFolder}/machines/msx",
-			"remoteType": "agonelectronhal",
-			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-211240",
-				"baudrate": 460800
-			},
-			"sjasmplus": [
-				{
-					"path": "bios.sld",
-				}
-			],
-			"startAutomatically": false,
-			"loadObjs": [
-			],
-			"topOfStack": "0xf380",
-			"commandsAfterLaunch": [
-                "-exec e load bbc/bbcbasic.bin"
             ],
 			"preLaunchTask": "build"
 		}
