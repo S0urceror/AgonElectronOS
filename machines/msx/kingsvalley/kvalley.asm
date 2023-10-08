@@ -106,13 +106,7 @@ SNSMAT:		equ	#141	;  Read	keyboard row
 
 H_KEYI:		equ	#fd9a
 
-MSM:		equ 1
-
-	IF MSM=1
-		; BLOAD header
-		db 0x0fe
-		dw BEGIN, ENDADR, START_BASIC
-	ENDIF
+AGONELECTRON:		equ 1
 
 ;-------------------------------------------------------------------------------
 ;
@@ -199,7 +193,7 @@ tickMain2:
 ;----------------------------------------------------
 
 ReadKeys_AC:
-	IF MSM=0
+	IF AGONELECTRON=0
 		ld	hl, KonamiLogo2
 		ld	a, (JumpIndex2)
 		ld	(hl), a
@@ -282,7 +276,7 @@ writeDataVRAM3:
 
 startCode:
 		di
-		IF MSM=0
+		IF AGONELECTRON=0
 			im	1
 		ENDIF
 		ld	a, 0C3h
@@ -315,7 +309,7 @@ dummyLoop:
 ;----------------------------------------------------
 
 VRAM_writeAC:
-		IF MSM=0
+		IF AGONELECTRON=0
 			ld	(copyProtect_+1), de ; Proteccion anticopia (!?)
 		ENDIF
 		jp	setFillVRAM
@@ -1272,7 +1266,7 @@ fillVRAM:
 VRAM_write2:
 		ex	af, af'
 		exx
-		IF MSM=0
+		IF AGONELECTRON=0
 			out	(c), a
 		ELSE
 			RST 28h ; MSM
@@ -1320,7 +1314,7 @@ DEtoVRAMset:
 DEtoVRAM:
 		ld	a, (de)
 		exx
-		IF MSM=0
+		IF AGONELECTRON=0
 			out	(c), a
 		ELSE
 			RST 28h ; MSM
@@ -5225,7 +5219,7 @@ drawRoom3:
 		ld	a, (de)		; ID tile
 		call	getTileFromID
 		exx
-		IF MSM=0
+		IF AGONELECTRON=0
 			out	(c), a
 		ELSE
 			RST 28h ; MSM

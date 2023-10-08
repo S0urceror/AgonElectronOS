@@ -30,7 +30,7 @@ _generic_vblank_handler:
 			PUSH	HL	
 			SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 			LD 		HL, (_clock)		; Increment the 32-bit clock counter
-			LD		BC, 2			; By 2, effectively timing in centiseconds
+			LD		BC, 2				; By 2, effectively timing in centiseconds
 			ADD		HL, BC
 			LD		(_clock), HL
 			LD		A, (_clock + 3)

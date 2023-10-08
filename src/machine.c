@@ -13,8 +13,8 @@ char szWarmBootImage[255];
 UINT8 wb_bank;
 int _secsize;
 UINT32 machine_vsync_address;
-UINT8 machine_vsync;
-UINT8 semaphore;
+UINT8 machine_vsync_register;
+UINT8 machine_vsync_running;
 
 BOOL machine_load_image (UINT8 bank,TCHAR* filename)
 {
@@ -85,13 +85,14 @@ BOOL machine_mount_disk (UINT8 drive_nr, TCHAR* filename,int secsize)
 
 BOOL machine_init ()
 {
+	int i;
 	ram = (INT8*) 0x050000;
 	mbase = 0x05;
 	RAM_ADDR_U = mbase; // MSM: map internal ram to upper 4k of selected 64kB
 	machine_vsync_address=0x0000;
-	machine_vsync=0;
-	semaphore = 0x00;
-	
+	machine_vsync_register=0;
+	machine_vsync_running=0;
+
 	return TRUE;
 }
 

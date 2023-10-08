@@ -1,5 +1,5 @@
     DEVICE NOSLOT64K
-    PAGE 6
+    PAGE 5
 
 CHPUT       equ 00a2h
 WRTVDP:		equ	#47
@@ -8,6 +8,8 @@ CHGET:      equ #9f
 INITXT:     equ #6c
 H.KEYI      EQU 0FD9AH
 RDVDP:		equ	#13e
+SETWRT:     equ #53
+SNSMAT:		equ	#141	;  Read	keyboard row
 
     org 4000h
 
@@ -18,107 +20,108 @@ RDVDP:		equ	#13e
     defw    0
     defs    6
 
+; Fill a contiguous area in VRAM
+; A  = value to fill
+; BC = nr of bytes
+; assumes VRAM ptr has been set prior with SETWRT
+fillVRAM:
+    IFDEF AGONELECTRON
+        RST 28h
+	    DB 098h
+    ELSE
+        out ($98),a
+    ENDIF
+    
+    ex af,af' ; store A
+    dec bc
+    ld a, c
+    or b
+    ret z
+    ex af,af' ; restore A
+    jr fillVRAM
+
+; Copy from memory to VRAM
+; HL = origin from memory
+; DE = destination in VRAM
+; BC = nr of bytes
+copytoVRAM:
+    push hl
+    ld hl, de
+    call SETWRT
+    pop hl
+copytoVRAMbyte:
+    ld a, (hl)
+    IFDEF AGONELECTRON
+        RST 28h
+	    DB 098h
+    ELSE
+        out ($98),a
+    ENDIF
+    ex af,af' ; store A
+    inc hl
+    dec bc
+    ld a, c
+    or b
+    ret z
+    ex af,af' ; restore A
+    jr copytoVRAMbyte
+
 START:  
     ld hl, strHello
     call print
 
     call SetVideoMode
 
+    ; set all entries in nametable to pattern 0
     ld hl, 0x3800
+    call SETWRT
     ld bc, 32*24
-again0:    
-    ld a, 0 ; index to pattern 0
-    call WRTVRM
-    inc hl
-    dec bc
-    ld a, c
-    or b
-    jr nz,again0
+    xor a
+    call fillVRAM
 
-    ; set pattern 0
-    ld b,8
-    ld hl, 0x2000
-    ld de, VDP_Pattern
-again:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz again
+    ; set pattern 0 in uppper 1/3th
+    ld bc,8
+    ld de, 0x2000
+    ld hl, VDP_Pattern
+    call copytoVRAM
+    ; set pattern 0 in middle 1/3th
+    ld bc,8
+    ld de, 0x2000+0x800*1
+    ld hl, VDP_Pattern2
+    call copytoVRAM
+    ; set pattern 0 in bottom 1/3th
+    ld bc,8
+    ld de, 0x2000+0x800*2
+    ld hl, VDP_Pattern
+    call copytoVRAM
 
-    ; set pattern 0
-    ld b,8
-    ld hl, 0x2000+0x800*1
-    ld de, VDP_Pattern+7
-again3:
-    ld a, (de)
-    call WRTVRM
-    dec de
-    inc hl
-    djnz again3
+    ; set colours in upper 1/3th
+    ld bc,8
+    ld de, 0x0000
+    ld hl, VDP_Color
+    call copytoVRAM
+    ; set colours in middle 1/3th
+    ld bc,8
+    ld de, 0x0000+0x800*1
+    ld hl, VDP_Color2
+    call copytoVRAM
+    ; set colours in bottom 1/3th
+    ld bc,8
+    ld de, 0x0000+0x800*2
+    ld hl, VDP_Color
+    call copytoVRAM
 
-    ; set pattern 0
-    ld b,8
-    ld hl, 0x2000+0x800*2
-    ld de, VDP_Pattern
-again5:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz again5
+    ; set sprite 0 pattern
+    ld bc,8*4
+    ld de, 0x1800
+    ld hl, Sprite_Pattern
+    call copytoVRAM
 
-    ld b,8
-    ld hl, 0x0000
-    ld de, VDP_Color
-again2:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz again2
-
-    ld b,8
-    ld hl, 0x0000+0x800*1
-    ld de, VDP_Color
-again4:
-    ld a, (de)
-    xor 255
-    call WRTVRM
-    inc de
-    inc hl
-    djnz again4
-
-    ld b,8
-    ld hl, 0x0000+0x800*2
-    ld de, VDP_Color
-again6:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz again6    
-
-sprites:
-    ld b,8*4
-    ld hl, 0x1800
-    ld de, Sprite_Pattern
-sprite_pattern:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz sprite_pattern
-
-    ld b,4*2
-    ld hl, 0x3b00
-    ld de, Sprite_Attributes
-sprite_atts:
-    ld a, (de)
-    call WRTVRM
-    inc de
-    inc hl
-    djnz sprite_atts
+    ; set sprite 0 attributes
+    ld bc,4*2
+    ld de, 0x3b00
+    ld hl, Sprite_Attributes
+    call copytoVRAM
 
     ; set start position
     ld a, 256/2 - 8
@@ -137,9 +140,18 @@ forever:
     
 tickMain:
     call	RDVDP		; clear interrupt flag
-    ld a, (XPOS)
     ld hl, 0x3b00+1 ; x-coord
+    ld a, 8
+    call SNSMAT
+    cpl
+    bit 4,a
+    ld a, (XPOS)
+    jr nz, moveleft
     inc a
+    jr move
+moveleft:
+    dec a
+move:
     ld (XPOS),a
     call WRTVRM
     ret
@@ -200,6 +212,16 @@ VDP_Pattern:
     db 00000010b
     db 00000001b
 
+VDP_Pattern2:
+    db 00000001b
+    db 00000010b
+    db 00000100b
+    db 00001000b
+    db 00010000b
+    db 00100000b
+    db 01000000b
+    db 10000000b
+    
 VDP_Color:
     db 0f0h
     db 0f0h
@@ -209,6 +231,15 @@ VDP_Color:
     db 0f0h
     db 0f0h
     db 0f0h
+VDP_Color2:
+    db 0fh
+    db 0fh
+    db 0fh
+    db 0fh
+    db 0fh
+    db 0fh
+    db 0fh
+    db 0fh
 
 Sprite_Attributes:
     db 192/2 - 8 

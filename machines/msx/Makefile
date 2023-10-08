@@ -9,12 +9,21 @@ AGON-ZDI-LOAD=../../../../development/agon-zdi-load/agon-zdi-load.py
 all: compile 
 	make -C kingsvalley -f Makefile
 
-compile: $(OUTPUT_DIR)/general/bios.rom $(OUTPUT_DIR)/general/diskrom.rom $(OUTPUT_DIR)/helloworld/hello.rom $(OUTPUT_DIR)/screen2-test/test.rom
+compile: $(OUTPUT_DIR)/general/bios.rom $(OUTPUT_DIR)/general/diskrom.rom $(OUTPUT_DIR)/helloworld/hello.rom $(OUTPUT_DIR)/screen2-test/test.rom $(OUTPUT_DIR)/screen2-test/testmsx.rom $(OUTPUT_DIR)/snsmat/snsmat.rom $(OUTPUT_DIR)/wrtpsg/wrtpsg.rom
 
 $(OUTPUT_DIR)/screen2-test/test.rom: $(OUTPUT_DIR)/screen2-test/test.asm
+	$(ASM) $(ASMFLAGS) -DAGONELECTRON $< 
+
+$(OUTPUT_DIR)/screen2-test/testmsx.rom: $(OUTPUT_DIR)/screen2-test/test.asm
 	$(ASM) $(ASMFLAGS) $< 
 
 $(OUTPUT_DIR)/helloworld/hello.rom: $(OUTPUT_DIR)/helloworld/helloworld.asm
+	$(ASM) $(ASMFLAGS) $< 
+
+$(OUTPUT_DIR)/snsmat/snsmat.rom: $(OUTPUT_DIR)/snsmat/snsmat.asm
+	$(ASM) $(ASMFLAGS) $< 
+
+$(OUTPUT_DIR)/wrtpsg/wrtpsg.rom: $(OUTPUT_DIR)/wrtpsg/wrtpsg.asm
 	$(ASM) $(ASMFLAGS) $< 
 
 $(OUTPUT_DIR)/general/bios.rom: $(OUTPUT_DIR)/general/bios.asm

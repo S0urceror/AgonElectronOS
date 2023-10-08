@@ -8,12 +8,15 @@
 	XDEF	electron_os_api
 	XDEF	electron_os_inout
 	XDEF	_machine_vblank_handler
+	XDEF	_vdp_test
 	XDEF	checkEIstate
 
 	XREF	_machine_read_write_disk
     XREF 	_machine_warm_boot
 	XREF	_machine_vsync_address
-	XREF	_machine_vsync
+	XREF	_machine_vsync_register
+	XREF    _machine_vsync_running
+	XREF	_eos_msx_keyboard_scanline
 	;
 	XREF	SLOT_REGISTER
 	XREF	call_address_ix
@@ -58,6 +61,7 @@ jumptable:
     DW eos_msx_machine_enaslt					;0x000c
 	DW eos_msx_machine_setvblankaddress			;0x000e
 	DW eos_msx_machine_getvdpstatus				;0x0010
+	DW eos_msx_machine_getscanline				;0x0012
 
 ; read/write a sector from/to the disk
 ; 
@@ -229,10 +233,10 @@ eos_msx_machine_setvblankaddress:
 	ret
 
 eos_msx_machine_getvdpstatus:
-	ld a, (_machine_vsync)
+	ld a, (_machine_vsync_register)
 	push af
 	xor a
-	ld (_machine_vsync),a
+	ld (_machine_vsync_register),a
 	pop af
 	ret
 	
@@ -245,13 +249,19 @@ _machine_vblank_handler:
 	; reset GPIO edge-trigger
 	SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 	;
+	ld a, (_machine_vsync_running)
+	and 1
+	jr nz,_exit_vblank_handler
+	inc a
+	ld (_machine_vsync_running),a
+	;
 	ld hl,(_machine_vsync_address)
 	ld a, l
 	or h
-	jr z, _no_address	
+	jr z, _exit_vblank_handler	
 	; set vsync status
 	ld a, 080h
-	ld (_machine_vsync), a
+	ld (_machine_vsync_register), a
 	; push de to stack which gives:
 	; SP   - E
 	; SP+1 - D
@@ -286,14 +296,16 @@ _machine_vblank_handler:
 	;
 	call.is JUMPER ; JUMPER routine	
 	;
-_no_address:
+	xor a
+	ld (_machine_vsync_running),a
+	;
+_exit_vblank_handler:
 	pop iy
 	pop hl
 	pop de
 	pop af
 	EI	
 	RETI.L
-
 
 	IF $ < 100H
         ERROR "Must be at address >= 100H"
@@ -372,3 +384,27 @@ _electron_os_inout_recv_1:
 _electron_os_inout_slotregister:
 	pop af
 	jp eos_msx_machine_slotregister
+
+_vdp_test:
+	ld b, 10
+_vdp_test_again:
+	ld a, 080h
+	call uart0_send
+	ld a, 098h
+	call uart0_send
+	ld a, 00h
+	call uart0_send
+	djnz _vdp_test_again
+	ret
+
+eos_msx_machine_getscanline:
+	push bc
+	push hl
+	ld bc,0
+	ld c,a
+	ld hl,_eos_msx_keyboard_scanline
+	add hl,bc
+	ld a, (hl)
+	pop hl
+	pop bc
+	ret

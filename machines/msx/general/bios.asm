@@ -345,23 +345,71 @@ _CHSNS
 ;Output   : A  - For data (the bit corresponding to the pressed key will be 0)
 ;Registers: AF
 _SNSMAT:
-    push bc
-    ld b,a ; preserve matrix line nr.
-    ;
-    ; read character from fifo
+    ld ix, 0x0012 // eos_msx_machine_getscanline
     DB 0x5b ; .LIL
-    RST 10h
-    jr c, HANDLE_SNSMAT_NOPRESS
-    
-    ; TODO check ASCII with line-nr
-    ld a, 0xff ; no presses for now
-    pop bc
+    rst 38h
     RET
+;     push hl
+;     push bc
+;     ld b,a ; preserve matrix line nr.
+;     ;
+;     ; read character from fifo
+;     DB 0x5b ; .LIL
+;     RST 10h
+;     jr c, HANDLE_SNSMAT_NOPRESS
 
-HANDLE_SNSMAT_NOPRESS:
-    ld a, 0xff
-    pop bc
-    RET
+;     push af
+;     ld a, b
+;     sla a ; x2
+;     sla a ; x4
+;     sla a ; x8
+;     sla a ; x16
+;     ld c, a
+;     ld b, 0
+;     ld hl, SNSMAT_ROW_0
+;     add hl,bc
+;     ld b, 8
+;     pop af
+; _SNSMAT_CHECK_NEXT:
+;     cp (hl)
+;     inc hl
+;     jr z, HANDLE_SNSMAT_PRESS
+;     inc hl
+;     djnz _SNSMAT_CHECK_NEXT
+
+; HANDLE_SNSMAT_NOPRESS:
+;     ld a, 0xff
+;     pop bc
+;     pop hl
+;     ret
+; HANDLE_SNSMAT_PRESS:
+;     ld a, (hl)
+;     pop bc
+;     pop hl
+;     RET
+
+; SNSMAT_ROW_0:
+;     ds 7*16
+; SNSMAT_ROW_7:
+;     db 00dh,01111111b ; ret
+;     db 018h,10111111b ; select
+;     db 008h,11011111b ; bs
+;     db 000h,11101111b ; stop
+;     db 007h,11110111b ; tab
+;     db 01bh,11111011b ; esc
+;     db 000h,11111101b ; f5
+;     db 000h,11111110b ; f4
+
+; SNSMAT_ROW_8:
+;     db 01ch,01111111b ; right
+;     db 01fh,10111111b ; down
+;     db 01eh,11011111b ; up
+;     db 01dh,11101111b ; left
+;     db 000h,11110111b ; del
+;     db 000h,11111011b ; ins
+;     db 000h,11111101b ; home
+;     db 020h,11111110b ; space
+
 
 _READ_PORT:
     POP IY
@@ -373,6 +421,22 @@ _READ_PORT:
     DB 0x5b ; .LIL
     rst 28h
     ret
+
+; 	push af	; store AF
+; 	call checkEIstate
+; 	jp pe, _rst_28_interrupts_where_enabled
+; _rst_28_interrupts_where_disabled:
+; 	; interrupts were disabled, keep it like this
+; 	pop af	; restore AF
+; 	CALL electron_os_inout
+; 	RET.L
+; _rst_28_interrupts_where_enabled:	
+; 	; interrupts were enabled, now disable them
+;    	pop af	; restore AF
+; 	DI 		; interrupts off
+; 	CALL electron_os_inout
+; 	EI		; interrupts on
+; 	RET.L
 
 _WRITE_PORT:
     POP IY      ; get address of following instruction

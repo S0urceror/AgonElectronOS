@@ -10,6 +10,7 @@
 
 char szCommandLine[255];
 char *ptrCommandLine;
+void vdp_test ();
 
 // Change directory
 // Parameters:
@@ -274,6 +275,11 @@ BOOL cp_process ()
 	{
 		return TRUE;
 	}
+	if (strstr (szCommandLine,"vdp_test")==szCommandLine)
+	{
+		vdp_test ();
+		return TRUE;
+	}
 	return FALSE;
 }
 
@@ -303,17 +309,23 @@ void process_character (INT ch)
 		}
 	}
 }
-void process_cmd (INT ch)
-{
-	UINT8 cmd = ch & 0x7f; //0b01111111;
-	printf ("\r\nreceived command %d\r\n",cmd);
-	switch (cmd)
-	{
-		case 0:
-			
-			break;
-	}
-}
+// void process_cmd (INT ch)
+// {
+// 	UINT8 vk, down;
+// 	UINT8 cmd = ch & 0x7f; //0b01111111;
+// 	switch (cmd)
+// 	{
+// 		case 0: // virtual key code
+// 			vk = getch();
+// 			down = getch();
+// 			//printf ("\r\nElectronOS received virtual key %d %s\r\n",vk,down?"down":"up");
+// 			machine_virtualkey (vk,down);
+// 			break;
+// 		default:
+// 			printf ("\r\nElectronOS received unsupported command %d\r\n",cmd);
+// 			break;
+// 	}
+// }
 
 void cp_run ()
 {
@@ -324,10 +336,10 @@ void cp_run ()
 	while (TRUE)
 	{
 		ch = getch();
-		if (ch & 0x80 /*0b10000000*/)
-			process_cmd (ch);
-		else
-			process_character (ch);
-		
+		// if (ch & 0x80 /*0b10000000*/)
+		// 	process_cmd (ch);
+		// else
+		// 	process_character (ch);
+		process_character (ch);
 	}
 }

@@ -32,8 +32,6 @@
 			XREF	electron_os_api
 			XREF	electron_os_inout
 			XREF	checkEIstate
-			; machine.c
-			XREF	_semaphore
 
 NVECTORS 	EQU 48			; Number of interrupt vectors
 
@@ -137,32 +135,11 @@ _rst_28_interrupt_enabled:
 	CALL electron_os_inout
 	EI	; enable them again
 	RET.L
-	
-_rst_28_handler_alt2:
-	push af
-	push hl
-	ld hl, _semaphore
-_rst_28_wait:
-	; this will protect re-entry if another inout is running already
-	; since the EZ80 is not multi-threaded this works
-	; during interrupts the main routine is halted
-	bit 0, (hl)
-	jr nz, _rst_28_wait
-	set 0, (hl)
-	pop hl
-	pop af
-	CALL electron_os_inout
-	push af
-	push hl
-	ld hl, _semaphore
-	res 0, (hl)
-	pop hl
-	pop af
-	RET.L
-_rst_28_handler_org:
+
+_rst_28_handler_org:	
 	CALL electron_os_inout
 	RET.L
-	
+		
 _rst_30_handler:
 	RET.L
 
@@ -170,7 +147,6 @@ _rst_38_handler:
 	CALL electron_os_api
 	RET.L
 
-	DS 00eh
 ; Default Non-Maskable Interrupt handler
 ;
 __default_nmi_handler:	
