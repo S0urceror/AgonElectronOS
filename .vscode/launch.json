@@ -147,6 +147,7 @@
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
+				"-exec e init",
 				"-exec e vsync on",
 				"-exec e run"
             ],
@@ -198,8 +199,9 @@
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
+				"-exec e init",
 				"-exec e vsync on",
-				"-exec b 54086",
+				//"-exec b 54086",
 				//"-exec b 5402a",
 				"-exec e run"
             ],

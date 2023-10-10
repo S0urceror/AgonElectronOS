@@ -229,6 +229,12 @@ eos_msx_machine_enaslt:
 	ret
 
 eos_msx_machine_setvblankaddress:
+	; clear running flag
+	push af
+	xor a
+	ld (_machine_vsync_running),a
+	pop af
+	; set address
 	ld (_machine_vsync_address),hl
 	ret
 
@@ -248,18 +254,22 @@ _machine_vblank_handler:
 	push iy
 	; reset GPIO edge-trigger
 	SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
-	;
+	; signal PORTC bit 0
+	IN0	A,(PC_DR)
+	CPL
+	OUT0 (PC_DR),A
+	; check if another interrupt routine is still running, prevent from running again
 	ld a, (_machine_vsync_running)
 	and 1
 	jr nz,_exit_vblank_handler
 	inc a
 	ld (_machine_vsync_running),a
-	;
+	; is vsync address set? if not skip
 	ld hl,(_machine_vsync_address)
 	ld a, l
 	or h
 	jr z, _exit_vblank_handler	
-	; set vsync status
+	; set vsync status for fast RDVDP
 	ld a, 080h
 	ld (_machine_vsync_register), a
 	; push de to stack which gives:
@@ -293,12 +303,12 @@ _machine_vblank_handler:
 	inc de
 	ld a, 0c9h   ; RET
 	ld (de),a
-	;
+	; call the self-modified JUMPER routine in short Z80 mode
 	call.is JUMPER ; JUMPER routine	
-	;
+	; clear flag to prevent re-entry
 	xor a
 	ld (_machine_vsync_running),a
-	;
+	; we're done, let's wrap up
 _exit_vblank_handler:
 	pop iy
 	pop hl

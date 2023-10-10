@@ -129,10 +129,10 @@ START:
 
     ; setup interrupt routine
     DI
-    ld	a, 0C3h
-    ld	(H.KEYI), a
     ld	hl, tickMain
     ld	(H.KEYI+1), hl	; Pone la rutina de interrupcion que lleva la logica del juego
+    ld	a, 0C3h
+    ld	(H.KEYI), a
     EI
     
 forever:
@@ -140,12 +140,13 @@ forever:
     
 tickMain:
     call	RDVDP		; clear interrupt flag
-    ld hl, 0x3b00+1 ; x-coord
     ld a, 8
     call SNSMAT
     cpl
     bit 4,a
+    ; update position
     ld a, (XPOS)
+    ; flag still indicates bit 4
     jr nz, moveleft
     inc a
     jr move
@@ -153,6 +154,7 @@ moveleft:
     dec a
 move:
     ld (XPOS),a
+    ld hl, 0x3b00+1 ; x-coord
     call WRTVRM
     ret
 
