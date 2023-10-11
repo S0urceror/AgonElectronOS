@@ -1,3 +1,6 @@
+    DEVICE NOSLOT64K
+    PAGE 6
+    
 ; DOS1.MAC
 
 ; DOS 1.03 kernel (latest version known, SONY HB-F1XV)
@@ -13,13 +16,15 @@
 ; Sourcecode supplied for STUDY ONLY
 ; Recreation NOT permitted without authorisation of the copyrightholders
 
-; BLOAD header
-    db 0x0fe
-    dw BEGIN, ENDADR, START_BASIC
+
+        IFDEF AGONELECTRONBIN
+                ; BLOAD header
+                db 0x0fe
+                dw BEGIN, ENDADR, 0
+        ENDIF
 
         ORG     04000H
 BEGIN:
-START_BASIC:
 
 ; symbols which must be defined by the disk hardware driver
 

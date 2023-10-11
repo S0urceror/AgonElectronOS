@@ -51,7 +51,12 @@ H.KEYI  EQU     0FD9AH
 
 RG0SAV  EQU     0F3DFH
 
+    IFDEF AGONELECTRONBIN
+        db 0x0fe
+        dw BEGIN, ENDADR, 0
+    ENDIF
     ORG 0000H
+BEGIN:
 BOOT:                   ; 0000h
     JP _BOOT
     DW CGTABL           ; 0004h Location MSX font in ROM
@@ -179,12 +184,13 @@ CALBAS:                 ; 0159h
     RET
 
 _BOOT:
+    ; assume 4k EZ80 built-in memory moved to upper 4k of page 3
     ; assume only primary slots no secundary slots
-    ; assume that 0000-3FFF is in slot 00 - ROM
-    ; assume that 4000-7FFF is in slot 00 - ROM
-    ; assume that 8000-BFFF is in slot 01 - RAM
-    ; assume that C000-FFFF is in slot 01 - RAM
-    ld a, 0b01010000
+    ; assume that 0000-3FFF is in slot 00 - ROM => BIOS
+    ; assume that 4000-7FFF is in slot 01 - RAM => DISKROM
+    ; assume that 8000-BFFF is in slot 01 - RAM => RAM
+    ; assume that C000-FFFF is in slot 01 - RAM => RAM + 4k built-in RAM
+    ld a, 0b01010100
     ld ix, 0x0004 // eos_msx_machine_slotregister
     scf ; set carry = write
     DB 0x5b ; .LIL
@@ -1088,3 +1094,4 @@ CGTABL:
         DEFB	000H,000H,000H,000H,000H,000H,000H,000H
 
         .DEPHASE
+ENDADR:

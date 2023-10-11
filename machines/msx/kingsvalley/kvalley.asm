@@ -107,6 +107,12 @@ SNSMAT:		equ	#141	;  Read	keyboard row
 H_KEYI:		equ	#fd9a
 
 AGONELECTRON:		equ 1
+AGONELECTRONBIN:	equ 1
+
+	IF AGONELECTRONBIN=1
+		db 0x0fe
+        dw BEGIN, ENDADR, START_BASIC
+	ENDIF
 
 ;-------------------------------------------------------------------------------
 ;

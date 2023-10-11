@@ -206,6 +206,65 @@
 				"-exec e run"
             ],
 			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-yiearkungfu2",
+			"rootFolder": "${workspaceFolder}/machines/msx",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-21130",
+				"baudrate": 500000
+			},
+			"sjasmplus": [
+				{
+					"path": "general/bios.sld",
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "general/bios.rom", "start": "0x0000.5" },
+				{ "path": "yiearkungfu2/yiearkungfu2.rom", "start": "0x4000.5" }
+			],
+			"topOfStack": "0xf380",
+			"commandsAfterLaunch": [
+				"-exec e init",
+				"-exec e vsync on",
+				"-exec b 5402e",
+				"-exec b 54070",
+				"-exec e run"
+            ],
+			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-msxdos",
+			"rootFolder": "${workspaceFolder}/machines/msx",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-21130",
+				"baudrate": 500000
+			},
+			"sjasmplus": [
+				{
+					"path": "general/bios.sld",
+					"path": "general/diskrom.sld",
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "general/bios.rom", "start": "0x0000.5" },
+				{ "path": "general/bios.rom", "start": "0x0000.6" },
+				{ "path": "general/diskrom.rom", "start": "0x5000.6" }
+			],
+			"topOfStack": "0xf380",
+			"commandsAfterLaunch": [
+				"-exec e init",
+				"-exec e run"
+            ],
+			"preLaunchTask": "build"
 		}
     ]
 }
