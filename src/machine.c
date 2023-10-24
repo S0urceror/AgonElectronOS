@@ -164,3 +164,11 @@ void machine_set_vsync (BOOL vsync)
 	if (vsync==TRUE)
 		set_vector(PORTB1_IVECT, machine_vblank_handler); 	// 0x32
 }
+
+extern UINT32 clock;
+UINT32 prev_clock;
+void print_clock ()
+{
+	printf ("Clock: %d (%d)\r\n",clock,clock - prev_clock);
+	prev_clock = clock;
+}

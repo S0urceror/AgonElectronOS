@@ -107,7 +107,7 @@ SNSMAT:		equ	#141	;  Read	keyboard row
 H_KEYI:		equ	#fd9a
 
 AGONELECTRON:		equ 1
-AGONELECTRONBIN:	equ 1
+AGONELECTRONBIN:	equ 0
 
 	IF AGONELECTRONBIN=1
 		db 0x0fe
@@ -205,6 +205,17 @@ ReadKeys_AC:
 		ld	(hl), a
 		inc	hl
 		ld	(hl), 0C9h	; RET opcode
+	ELSE
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
+		NOP
 	ENDIF
 		jp	ReadKeys
 
@@ -284,6 +295,9 @@ startCode:
 		di
 		IF AGONELECTRON=0
 			im	1
+		ELSE
+			nop
+			nop
 		ENDIF
 		ld	a, 0C3h
 		ld	(H_KEYI), a
@@ -317,6 +331,11 @@ dummyLoop:
 VRAM_writeAC:
 		IF AGONELECTRON=0
 			ld	(copyProtect_+1), de ; Proteccion anticopia (!?)
+		ELSE
+			NOP
+			NOP
+			NOP
+			NOP
 		ENDIF
 		jp	setFillVRAM
 

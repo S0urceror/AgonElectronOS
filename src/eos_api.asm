@@ -53,7 +53,6 @@ electron_os_api:
 jumptable:
     DW eos_machine_read_write_disk				;0x0000
     DW eos_machine_reload_warmboot_images		;0x0002
-    ;
     DW eos_msx_machine_slotregister				;0x0004
     DW eos_msx_machine_rdslt					;0x0006
     DW eos_msx_machine_wrslt					;0x0008
@@ -247,11 +246,18 @@ eos_msx_machine_getvdpstatus:
 	ret
 	
 _machine_vblank_handler:
-	DI
-	push af
-	push de
-	push hl
-	push iy
+	push    hl
+	push    de
+	push    bc
+	push    af
+	exx
+	ex      af,af'
+	push    hl
+	push    de
+	push    bc
+	push    af
+	push    iy
+	push    ix
 	; reset GPIO edge-trigger
 	SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 	; signal PORTC bit 0
@@ -310,11 +316,19 @@ _machine_vblank_handler:
 	ld (_machine_vsync_running),a
 	; we're done, let's wrap up
 _exit_vblank_handler:
-	pop iy
-	pop hl
-	pop de
-	pop af
-	EI	
+	pop     ix
+	pop     iy
+	pop     af
+	pop     bc
+	pop     de
+	pop     hl
+	ex      af,af'
+	exx
+	pop     af
+	pop     bc
+	pop     de
+	pop     hl
+	ei
 	RETI.L
 
 	IF $ < 100H
@@ -396,7 +410,7 @@ _electron_os_inout_slotregister:
 	jp eos_msx_machine_slotregister
 
 _vdp_test:
-	ld b, 10
+	ld b, 0
 _vdp_test_again:
 	ld a, 080h
 	call uart0_send

@@ -130,7 +130,8 @@
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-21130",
-				"baudrate": 500000
+				"baudrate": 500000,
+				"vdp": true
 			},
 			"sjasmplus": [
 				{
@@ -149,6 +150,101 @@
 			"commandsAfterLaunch": [
 				"-exec e init",
 				"-exec e vsync on",
+				"-exec e run"
+            ],
+			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-screen0-test",
+			"rootFolder": "${workspaceFolder}/machines/msx",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-21130",
+				"baudrate": 500000,
+				"vdp": true
+			},
+			"sjasmplus": [
+				{
+					"path": "general/bios.sld",
+				},
+				{
+					"path": "screen0-test/test.sld",
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "general/bios.rom", "start": "0x0000.5" },
+				{ "path": "screen0-test/test.rom", "start": "0x4000.5" }
+			],
+			"topOfStack": "0xf380",
+			"commandsAfterLaunch": [
+				"-exec e init",
+				"-exec e vsync on",
+				"-exec e run"
+            ],
+			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-screen1-test",
+			"rootFolder": "${workspaceFolder}/machines/msx",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-21130",
+				"baudrate": 500000,
+				"vdp": true
+			},
+			"sjasmplus": [
+				{
+					"path": "general/bios.sld",
+				},
+				{
+					"path": "screen1-test/test.sld",
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "general/bios.rom", "start": "0x0000.5" },
+				{ "path": "screen1-test/test.rom", "start": "0x4000.5" }
+			],
+			"topOfStack": "0xf380",
+			"commandsAfterLaunch": [
+				"-exec e init",
+				"-exec e vsync on",
+				"-exec e run"
+            ],
+			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-iops",
+			"rootFolder": "${workspaceFolder}/machines/msx",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-21130",
+				"baudrate": 500000,
+				"vdp": true
+			},
+			"sjasmplus": [
+				{
+					"path": "general/bios.sld",
+				},
+				{
+					"path": "iops/iops.sld",
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "general/bios.rom", "start": "0x0000.5" },
+				{ "path": "iops/iops.rom", "start": "0x4000.5" }
+			],
+			"topOfStack": "0xf380",
+			"commandsAfterLaunch": [
+				"-exec e init",
 				"-exec e run"
             ],
 			"preLaunchTask": "build"
@@ -185,7 +281,8 @@
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-21130",
-				"baudrate": 500000
+				"baudrate": 500000,
+				"vdp": true
 			},
 			"sjasmplus": [
 				{
@@ -202,7 +299,7 @@
 				"-exec e init",
 				"-exec e vsync on",
 				//"-exec b 54086",
-				//"-exec b 5402a",
+				"-exec b 5402a", // interrupt routine
 				"-exec e run"
             ],
 			"preLaunchTask": "build"
@@ -215,7 +312,8 @@
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-21130",
-				"baudrate": 500000
+				"baudrate": 500000,
+				"vdp": true
 			},
 			"sjasmplus": [
 				{
@@ -225,15 +323,19 @@
 			"startAutomatically": true,
 			"loadObjs": [
 				{ "path": "general/bios.rom", "start": "0x0000.5" },
-				{ "path": "yiearkungfu2/yiearkungfu2.rom", "start": "0x4000.5" }
+				{ "path": "yiearkungfu2/yiearkungfu2-patched.rom", "start": "0x4000.5" }
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
 				"-exec e init",
 				"-exec e vsync on",
-				"-exec b 5402e",
-				"-exec b 54070",
-				"-exec e run"
+				//"-exec b 54070", // start
+				//"-exec b 5403e", // interrupt routine
+				//"-exec b 540b6", // vdp memory init
+				//"-exec b 548b2", // write patterns
+				//"-exec b 5486e", // write patterns
+				//"-exec b 548e7", // copy VRAM routine
+				//"-exec e run"
             ],
 			"preLaunchTask": "build"
 		},
@@ -257,11 +359,12 @@
 			"loadObjs": [
 				{ "path": "general/bios.rom", "start": "0x0000.5" },
 				{ "path": "general/bios.rom", "start": "0x0000.6" },
-				{ "path": "general/diskrom.rom", "start": "0x5000.6" }
+				{ "path": "general/diskrom.rom", "start": "0x4000.6" }
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
 				"-exec e init",
+				"-exec e mount /msx/MSXDOS.DSK",
 				"-exec e run"
             ],
 			"preLaunchTask": "build"

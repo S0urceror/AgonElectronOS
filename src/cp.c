@@ -11,6 +11,7 @@
 char szCommandLine[255];
 char *ptrCommandLine;
 void vdp_test ();
+extern UINT32 clock;
 
 // Change directory
 // Parameters:
@@ -126,6 +127,8 @@ BOOL cp_process ()
 	char  *pArg,*pEnd;
 	INT16 start_address,begin,end,start,vsync_address;
 	UINT8 slot = 0 ; // default slot 0
+	UINT32 clock_start,clock_end;
+	int i;
 
 	if (strstr (szCommandLine,"init")==szCommandLine)
 	{
@@ -277,7 +280,17 @@ BOOL cp_process ()
 	}
 	if (strstr (szCommandLine,"vdp_test")==szCommandLine)
 	{
-		vdp_test ();
+		clock_start = clock;
+		for (i=0;i<256;i++)
+			vdp_test ();
+		clock_end = clock;
+		printf ("\r\n");
+		printf ("Clock start %d\r\n",clock_start);
+		printf ("Clock end %d\r\n",clock_end);
+		printf ("Clock diff %d\r\n",clock_end-clock_start);
+		printf ("Clock diff %d seconds\r\n",(clock_end-clock_start)/60);
+		printf ("I/O per seconds: %d\r\n",(256*256)/((clock_end-clock_start)/60));
+		printf ("Bytes per seconds: %d",(256*256*3)/((clock_end-clock_start)/60));
 		return TRUE;
 	}
 	return FALSE;

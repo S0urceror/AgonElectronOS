@@ -32,6 +32,8 @@
 			XREF	electron_os_api
 			XREF	electron_os_inout
 			XREF	checkEIstate
+			; machine.c
+			XREF 	_print_clock
 
 NVECTORS 	EQU 48			; Number of interrupt vectors
 
@@ -141,6 +143,7 @@ _rst_28_handler_org:
 	RET.L
 		
 _rst_30_handler:
+	CALL _print_clock
 	RET.L
 
 _rst_38_handler:

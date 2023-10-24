@@ -11,6 +11,11 @@ RDVDP:		equ	#13e
 SETWRT:     equ #53
 SNSMAT:		equ	#141	;  Read	keyboard row
 FILVRM:     equ #56
+T32NAM  equ     0F3BDH
+T32COL  equ     0F3BFH
+T32CGP  equ     0F3C1H
+T32ATR  equ     0F3C3H
+T32PAT  equ     0F3C5H
 
     org 4000h
 
@@ -74,52 +79,32 @@ START:
     call SetVideoMode
 
     ; set all entries in nametable to pattern 0
-    ld hl, 0x3800 ; GRPNAM
+    ld hl, (T32NAM)
     ld bc, 32*24
     xor a
     call FILVRM
 
-    ; set pattern 0 in uppper 1/3th
+    ; set pattern
     ld bc,8
-    ld de, 0x2000
-    ld hl, VDP_Pattern
-    call copytoVRAM
-    ; set pattern 0 in middle 1/3th
-    ld bc,8
-    ld de, 0x2000+0x800*1
-    ld hl, VDP_Pattern2
-    call copytoVRAM
-    ; set pattern 0 in bottom 1/3th
-    ld bc,8
-    ld de, 0x2000+0x800*2
+    ld de, (T32CGP)
     ld hl, VDP_Pattern
     call copytoVRAM
 
-    ; set colours in upper 1/3th
+    ; set colours
     ld bc,8
-    ld de, 0x0000
-    ld hl, VDP_Color
-    call copytoVRAM
-    ; set colours in middle 1/3th
-    ld bc,8
-    ld de, 0x0000+0x800*1
-    ld hl, VDP_Color2
-    call copytoVRAM
-    ; set colours in bottom 1/3th
-    ld bc,8
-    ld de, 0x0000+0x800*2
+    ld de, (T32COL)
     ld hl, VDP_Color
     call copytoVRAM
 
     ; set sprite 0 pattern
     ld bc,8*4
-    ld de, 0x1800
+    ld de, (T32PAT)
     ld hl, Sprite_Pattern
     call copytoVRAM
 
     ; set sprite 0 attributes
     ld bc,4*2
-    ld de, 0x3b00
+    ld de, (T32ATR)
     ld hl, Sprite_Attributes
     call copytoVRAM
 
@@ -154,7 +139,8 @@ moveleft:
     dec a
 move:
     ld (XPOS),a
-    ld hl, 0x3b00+1 ; x-coord
+    ld hl, (T32ATR)
+    inc hl ; x-coord
     call WRTVRM
     ret
 
@@ -193,21 +179,26 @@ setVideoMode2:
 		dec	d
 		jr	nz, setVideoMode2
 		ret
+; T32NAM  equ     0F3BDH
+; T32COL  equ     0F3BFH
+; T32CGP  equ     0F3C1H
+; T32ATR  equ     0F3C3H
+; T32PAT  equ     0F3C5H
 
-; GRPNAM: defw    01800H
-; GRPCOL: defw    02000H
-; GRPCGP: defw    0
-; GRPATR: defw    01B00H
-; GRPPAT: defw    03800H
+; T32NAM: defw    01800H
+; T32COL: defw    02000H
+; T32CGP: defw    00000H
+; T32ATR: defw    01B00H
+; T32PAT: defw    03800H
 VDP_InitData:	
-        db 002h
-		db 0E2h ; mode 010
-		db 00Eh ; 
-		db 07Fh
-		db 007h
-		db 076h
-		db 003h 
-		db 0E4h ; gray on blue
+        db 000h ; 0 - mode 000
+		db 0E2h ; 1 - screen 1, mode 000
+		db 006h ; 2 - name table = 1800h
+		db 080h ; 3 - colour table = 2000h
+		db 000h ; 4 - pattern table = 0000h
+		db 036h ; 5 - sprite attributes = 1b00h
+		db 007h ; 6 - sprite patterns = 3800h
+		db 0E4h ; 7 - gray on blue
 
 VDP_Pattern:
     db 10000000b
@@ -231,22 +222,13 @@ VDP_Pattern2:
     
 VDP_Color:
     db 0f0h
-    db 0f0h
-    db 0f0h
-    db 0f0h
-    db 0f0h
-    db 0f0h
-    db 0f0h
-    db 0f0h
-VDP_Color2:
-    db 0fh
-    db 0fh
-    db 0fh
-    db 0fh
-    db 0fh
-    db 0fh
-    db 0fh
-    db 0fh
+    db 0e0h
+    db 0d0h
+    db 0c0h
+    db 0b0h
+    db 0a0h
+    db 090h
+    db 080h
 
 Sprite_Attributes:
     db 192/2 - 8 

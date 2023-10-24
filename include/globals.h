@@ -1,7 +1,7 @@
 extern char coldBoot;		// 1 = cold boot, 0 = warm boot
 
 #define	OS_major		0
-#define	OS_minor		5
+#define	OS_minor		6
 #define	OS_revision 	0
 
 #define ESC 0x1b

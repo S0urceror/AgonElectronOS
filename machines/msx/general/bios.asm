@@ -44,12 +44,30 @@ NULBUF  EQU     0f862h
 FCERR   EQU     0475AH
 QUETAB  EQU     0F959H
 KEYBUF  EQU     0FBF0H
+SCRMOD  equ     0FCAFH
+; OLDSCR  equ     0FCB0H
+; NAMBAS  equ     0F922H
+; CGPBAS  equ     0F924H
+; PATBAS  equ     0F926H
+; ATRBAS  equ     0F928H
+RG0SAV  EQU     0F3DFH
+; RG1SAV  equ     0F3E0H
+; CGPNT   EQU     0F91FH
+; LINTTB  equ     0FBB2H
+; TTYPOS  EQU     0F661H
+; H.ERAC  equ     0FDAEH
+; CURSAV  equ     0FBCCH
+; CSRSR   equ     0FCA9H
+; ESCCNT  equ     0FCA7H
+; FSTPOS  equ     0FBCAH
+; LINWRK  equ     0FC18H
+; HOOKS
 H.RUNC  EQU     0FECBh
 H.PHYD  EQU     0FFA7h
 H.TIMI  EQU	    0FD9Fh
 H.KEYI  EQU     0FD9AH
-
-RG0SAV  EQU     0F3DFH
+; H.INIP  equ     0FDC7H
+; H.CHPU  equ     0FDA4H
 
     IFDEF AGONELECTRONBIN
         db 0x0fe
@@ -57,42 +75,43 @@ RG0SAV  EQU     0F3DFH
     ENDIF
     ORG 0000H
 BEGIN:
-BOOT:                   ; 0000h
-    JP _BOOT
+_BOOT:                   ; 0000h
+    DI
+    JP BOOT
     DW CGTABL           ; 0004h Location MSX font in ROM
     DB 0x98             ; 0006h VDP READ PORT
     DB 0x98             ; 0007h VDP WRITE PORT
     DS 000Ch - $
-RDSLT:                  ; 000Ch
-    JP _RDSLT
+_RDSLT:                  ; 000Ch
+    JP RDSLT
 
     DS 0010h - $
-CHRGTR:                 ; RST 10h
+_CHRGTR:                 ; RST 10h
     RET
 
     DS 0014h - $
-WRSLT:                  ; 0014h
-    JP _WRSLT
+_WRSLT:                  ; 0014h
+    JP WRSLT
 
     DS 0018h - $
-OUTDO:                  ; RST 18h
-    JP CHPUT
+_OUTDO:                  ; RST 18h
+    JP _CHPUT
 
     DS 001Ch - $
-CALSLT:                 ; 001Ch
-    JP _CALSLT
+_CALSLT:                 ; 001Ch
+    JP CALSLT
 
     DS 0020h - $
-DCOMPR:                 ; RST 20h
-    JP _DCOMPR
+_DCOMPR:                 ; RST 20h
+    JP DCOMPR
 
     DS 0024h - $
-ENASLT:                 ; 0024h
-    JP _ENASLT
+_ENASLT:                 ; 0024h
+    JP ENASLT
 
     DS 0028h - $
-GETTYPR:                ; RST 28h
-    JP _WRITE_PORT
+_GETTYPR:                ; RST 28h
+    JP WRITE_PORT
 
     DS 002Bh - $
 IDBYT0:
@@ -106,8 +125,8 @@ IDBYT2: DEFB    MSXVER                  ; MSX version 0 = MSX1
     DEFB    0
 
     DS 0030h - $
-CALLF:                  ; RST 30h
-    JP _CALLF
+_CALLF:                  ; RST 30h
+    JP CALLF
 
     DS    00034H-$
 ; The next bytes are used by the diskrom, to initialize the double byte header char
@@ -117,73 +136,126 @@ D0034:  db    0,0
         db    0,0    
 
     DS 0038h - $
-KEYINT:                 ; RST 38h
-    JP _READ_PORT
+_KEYINT:                 ; RST 38h
+    JP READ_PORT
 
-    DS 0047h - $
-WRTVDP:
-    JP _WRTVDP    
+; VDP ROUTINES
+;     DS 0041h - $
+; _DISSCR:
+;     JP DISSCR 
+
+;     DS 0044h - $
+; _ENASCR:
+;     JP ENASCR 
+; 
+     DS 0047h - $
+_WRTVDP:
+     JP WRTVDP    
 
     DS 004Ah - $
-RDVRM:
-    JP _RDVRM  
+_RDVRM:
+    JP RDVRM  
 
     DS 004Dh - $
-WRTVRM:
-    JP _WRTVRM  
+_WRTVRM:
+    JP WRTVRM  
 
     DS 0050h - $
-SETRD:
-    JP _SETRD  
+_SETRD:
+    JP SETRD  
 
     DS 0053h - $
-SETWRT:
-    JP _SETWRT
+_SETWRT:
+    JP SETWRT
+
+    DS 0056h - $
+_FILVRM:
+    JP FILVRM
+
+    DS 0059h - $
+_LDIRMV:
+    JP LDIRMV
+
+    DS 005Ch - $
+_LDIRVM:
+    JP LDIRVM
+
+;     DS 0062h - $
+; _CHGCLR:
+;     JP CHGCLR
+
+;     DS 0069h - $
+; _CLRSPR:
+;     JP CLRSPR
+
+;     DS 006Ch - $
+; _INITXT:
+;     JP INITXT
+
+;     DS 006Fh - $
+; _INIT32:
+;     JP INIT32
+
+;     DS 0078h - $
+; _SETTXT:
+;     JP SETTXT
+
+;     DS 007Bh - $
+; _SETT32:
+;     JP SETT32
+
+;     DS 0081h - $
+; _SETMLT:
+;     JP SETMLT
 
     DS 0093h - $
-WRTPSG:
-    JP _WRTPSG
+_WRTPSG:
+    JP WRTPSG
 
     DS 0096h - $
-RDPSG:
-    JP _RDPSG
+_RDPSG:
+    JP RDPSG
 
     DS 009ch - $
-CHSNS:
-    JP _CHSNS
+_CHSNS:
+    JP CHSNS
 
     DS 009fh - $
-CHGET:                  ; 009fh
-    JP _CHGET
+_CHGET:                  ; 009fh
+    JP CHGET
     
     DS 00a2h - $
-CHPUT:                  ; 00a2h
+_CHPUT:                  ; 00a2h
     DB 0x5b ; .LIL
     RST 08h
     RET
 
     DS 00b7h - $
-BREAKX:
+_BREAKX:
     and a ; no CTRL-STOP pressed
     RET
 
+;     DS 0138h - $
+; _RSLREG:
+;     JP RSLREG
+
     DS 013eh - $
-RDVDP:
-    JP _RDVDP
+_RDVDP:
+    JP RDVDP
 
     DS 0141h - $
-SNSMAT:                 ; 0141h
-    JP _SNSMAT
+_SNSMAT:                 ; 0141h
+    JP SNSMAT
 
     DS 0144h - $
-PHYDIO:                 ; 0144h
-    JP _PHYDIO
+_PHYDIO:                 ; 0144h
+    JP PHYDIO
 
     DS 0159h - $
-CALBAS:                 ; 0159h
+_CALBAS:                 ; 0159h
     RET
 
-_BOOT:
+BOOT:
     ; assume 4k EZ80 built-in memory moved to upper 4k of page 3
     ; assume only primary slots no secundary slots
     ; assume that 0000-3FFF is in slot 00 - ROM => BIOS
@@ -231,67 +303,90 @@ _BOOT:
     DB 0x5b ; .LIL
     rst 38h
     ;
+    ; enable interrupts
+    EI
 
     ; display MSX boot prompt
     ld hl, MSX_INTRO
-    call _print
+    call print
     ld      b,010h
-BOOT_WAIT:  
+_BOOT_WAIT:  
     dec     hl
     ld      a,l
     or      h
-    jr      nz,BOOT_WAIT
-    djnz    BOOT_WAIT                   ; wait 3 seconds
+    jr      nz,_BOOT_WAIT
+    djnz    _BOOT_WAIT                   ; wait 3 seconds
+;     call    INIT32                  ; screen 1
+;     call    CLRSPR                  ; clear sprites
+;     ld      hl,00A0BH
+;     ld      (CSRY),hl               ; cursor at 10,11
+;     ld      hl,T7ED8
+;     call    STROUT                  ; print MSX system
+;     ld      hl,00A0CH
+;     ld      (CSRY),hl               ; cursor at 10,12
+;     ld      hl,T7EE4
+;     call    STROUT                  ; print version 1.0
+;     ld      hl,0020EH
+;     ld      (CSRY),hl               ; cursor at 2,14
+;     ld      hl,T7EFD
+;     call    STROUT                  ; print copyright 1983 by Microsoft
+;     ld      b,010H
+; A7D0D:  dec     hl
+;     ld      a,l
+;     or      h
+;     jr      nz,A7D0D
+;     djnz    A7D0D                   ; wait 3 seconds
+    
 
     ; get contents of diskrom start address in slot 1
     ld b, 0
-CHECKROMS:
+_CHECKROMS:
     ;
     ld a, b
     ld hl, 04000h
-    call _RDSLT
+    call RDSLT
     cp 'A'
-    jr nz, SKIPROM
+    jr nz, _SKIPROM
     ld a, b
     ld hl, 04001h
-    call _RDSLT
+    call RDSLT
     cp 'B'
-    jr nz, SKIPROM
+    jr nz, _SKIPROM
     ; found a rom, let's call INIT
     ld ix,0
     ld a, b
     ld hl, 04002h
-    call _RDSLT
+    call RDSLT
     ld ixl, a
     ld a, b
     ld hl, 04003h
-    call _RDSLT
+    call RDSLT
     ld ixh, a
     ld a, b
     ld iyh, a
     ld iyl, 0
     ; jump there
     call CALSLT
-    jr BOOT_CONTINUE
-SKIPROM:
+    jr _BOOT_CONTINUE
+_SKIPROM:
     inc b
     ld a, b
     cp 4
-    jr nz,CHECKROMS
+    jr nz,_CHECKROMS
 
-BOOT_CONTINUE:
+_BOOT_CONTINUE:
     ; emulate BASIC continuing init and then calling H.RUNC
     call H.RUNC
     ; diskrom should now have attempted to run MSXDOS
     ; if there is no disk mounted or not a valid disk we return here
     ld hl, FAKE_BASIC_PROMPT
-    call _print
+    call print
 
     ; try to return to ElectronOS
     DB 049h ; .LIL
     RET
 
-_print:
+print:
 _next_character:
     ld a, (hl)
     and a
@@ -314,7 +409,7 @@ FAKE_BASIC_PROMPT:
     DB "Disk BASIC version 1.0\r\n"
     DB "Ok\r\n",0
 
-_DCOMPR:
+DCOMPR:
 ;       Subroutine      DCOMPR
 ;       Inputs          ________________________
 ;       Outputs         ________________________
@@ -329,17 +424,17 @@ _DCOMPR:
 ;Function : One character input (waiting)
 ;Output   : A  - ASCII code of the input character
 ;Registers: AF
-_CHGET:
+CHGET:
     DB 0x5b ; .LIL
     RST 10h
-    jr c, _CHGET
+    jr c, CHGET
     RET
 
 ;Address  : #009C
 ;Function : Tests the status of the keyboard buffer
 ;Output   : Zero flag set if buffer is empty, otherwise not set
 ;Registers: AF
-_CHSNS
+CHSNS
     DB 0x5b ; .LIL
     RST 10h
     and a
@@ -350,74 +445,13 @@ _CHSNS
 ;Input    : A  - For the specified line
 ;Output   : A  - For data (the bit corresponding to the pressed key will be 0)
 ;Registers: AF
-_SNSMAT:
+SNSMAT:
     ld ix, 0x0012 // eos_msx_machine_getscanline
     DB 0x5b ; .LIL
     rst 38h
     RET
-;     push hl
-;     push bc
-;     ld b,a ; preserve matrix line nr.
-;     ;
-;     ; read character from fifo
-;     DB 0x5b ; .LIL
-;     RST 10h
-;     jr c, HANDLE_SNSMAT_NOPRESS
 
-;     push af
-;     ld a, b
-;     sla a ; x2
-;     sla a ; x4
-;     sla a ; x8
-;     sla a ; x16
-;     ld c, a
-;     ld b, 0
-;     ld hl, SNSMAT_ROW_0
-;     add hl,bc
-;     ld b, 8
-;     pop af
-; _SNSMAT_CHECK_NEXT:
-;     cp (hl)
-;     inc hl
-;     jr z, HANDLE_SNSMAT_PRESS
-;     inc hl
-;     djnz _SNSMAT_CHECK_NEXT
-
-; HANDLE_SNSMAT_NOPRESS:
-;     ld a, 0xff
-;     pop bc
-;     pop hl
-;     ret
-; HANDLE_SNSMAT_PRESS:
-;     ld a, (hl)
-;     pop bc
-;     pop hl
-;     RET
-
-; SNSMAT_ROW_0:
-;     ds 7*16
-; SNSMAT_ROW_7:
-;     db 00dh,01111111b ; ret
-;     db 018h,10111111b ; select
-;     db 008h,11011111b ; bs
-;     db 000h,11101111b ; stop
-;     db 007h,11110111b ; tab
-;     db 01bh,11111011b ; esc
-;     db 000h,11111101b ; f5
-;     db 000h,11111110b ; f4
-
-; SNSMAT_ROW_8:
-;     db 01ch,01111111b ; right
-;     db 01fh,10111111b ; down
-;     db 01eh,11011111b ; up
-;     db 01dh,11101111b ; left
-;     db 000h,11110111b ; del
-;     db 000h,11111011b ; ins
-;     db 000h,11111101b ; home
-;     db 020h,11111110b ; space
-
-
-_READ_PORT:
+READ_PORT:
     POP IY
     INC IY
     PUSH IY
@@ -428,23 +462,7 @@ _READ_PORT:
     rst 28h
     ret
 
-; 	push af	; store AF
-; 	call checkEIstate
-; 	jp pe, _rst_28_interrupts_where_enabled
-; _rst_28_interrupts_where_disabled:
-; 	; interrupts were disabled, keep it like this
-; 	pop af	; restore AF
-; 	CALL electron_os_inout
-; 	RET.L
-; _rst_28_interrupts_where_enabled:	
-; 	; interrupts were enabled, now disable them
-;    	pop af	; restore AF
-; 	DI 		; interrupts off
-; 	CALL electron_os_inout
-; 	EI		; interrupts on
-; 	RET.L
-
-_WRITE_PORT:
+WRITE_PORT:
     POP IY      ; get address of following instruction
     INC IY
     PUSH IY     ; return address is next byte
@@ -468,7 +486,7 @@ _WRITE_PORT:
 ;Output   : A  - Contains the value of the read address
 ;Registers: AF, C, DE
 ;Remark   : This routine turns off the interupt, but won't turn it on again
-_RDSLT:
+RDSLT:
     push ix
     ld ix, 0x0006
     DB 0x5b ; .LIL
@@ -482,13 +500,14 @@ _RDSLT:
 ;           E  - Value
 ;Registers: AF, BC, D
 ;Remark   : See RDSLT    
-_WRSLT:
+WRSLT:
     push ix
     ld ix, 0x0008
     DB 0x5b ; .LIL
     rst 38h
     pop ix
     ret
+
 ;Address  : #0030
 ;Function : Executes an interslot call
 ;Output   : Depends on the calling routine
@@ -497,7 +516,7 @@ _WRSLT:
 ;           RST #30
 ;           DB destination slot ID, see RDSLT
 ;           DW destination address
-_CALLF:
+CALLF:
     ex      (sp),hl
     push    af
     push    de
@@ -515,13 +534,14 @@ _CALLF:
     pop     af
     ex      (sp),hl
     ; now slotid is in IY and address is in IX
+    ; continues in CALSLT
 
 ;Address  : #001C
 ;Function : Executes inter-slot call.
 ;Input    : IY - High byte with slot ID, see RDSLT
 ;           IX - The address that will be called
 ;Remark   : Variables can never be given in alternative registers or IX and IY
-_CALSLT:
+CALSLT:
     ; first save IX
     DB 0x5b ; .LIL
     rst 18h
@@ -535,14 +555,14 @@ _CALSLT:
 ;Function : Switches indicated slot at indicated page on perpetually
 ;Input    : A - Slot ID, see RDSLT
 ;           H - Bit 6 and 7 must contain the page number (00-11)
-_ENASLT:
+ENASLT:
     push ix
     ld ix, 0x000c
     DB 0x5b ; .LIL
     rst 38h
     pop ix
     ret
-    
+
 ;Address  : #0144
 ;Function : Executes I/O for mass-storage media like disks
 ;Input    : F  - Set carry to write, reset carry to read
@@ -567,7 +587,7 @@ _ENASLT:
 ;Remark   : Interrupts may be disabled afterwards. On some hard disk interfaces,
 ;           when bit 7 of register C is set, a 23-bit addressing scheme is used
 ;           and bits 0-6 of register C contain bits 23-16 of the sector number.
-_PHYDIO:
+PHYDIO:
 	CALL    H.PHYD
     RET
 
@@ -575,7 +595,7 @@ _PHYDIO:
 ;Function : Reads VDP status register
 ;Output   : A  - Value which was read
 ;Registers: A
-_RDVDP:
+RDVDP:
     ; in      a,(099H)
     ;RST 38h
     ;DB 099h
@@ -592,7 +612,7 @@ _RDVDP:
 ;Input    : B  - Data to write
 ;           C  - Number of the register
 ;Registers: AF, BC
-_WRTVDP:
+WRTVDP:
     ld      a,b
     di
     ;out     (099H),a
@@ -613,18 +633,36 @@ _WRTVDP:
     pop     hl
     ret
 
-;    push ix
-;    ld ix, 0x0010
-;    DB 0x5b ; .LIL
-;    rst 38h
-;    pop ix
-;    ret
+;Address  : #004A
+;Function : Reads the content of VRAM
+;Input    : HL - Address read
+;Output   : A  - Value which was read
+;Registers: AF
+RDVRM:
+    call    SETRD                   ; SETRD
+    ;in      a,(098H)
+    RST 38h
+    DB 098h
+    ret
+
+;Address  : #004D
+;Function : Writes data in VRAM
+;Input    : HL - Address write
+;           A  - Value write
+;Registers: AF
+WRTVRM:
+    push    af
+    call    SETWRT                  ; SETWRT
+    pop     af
+    RST 28h
+    DB 098h
+    ret
 
 ;Address  : #0050
 ;Function : Enable VDP to read
 ;Input    : HL - For VRAM-address
 ;Registers: AF
-_SETRD:
+SETRD:
     ld      a,l
     di
     ;out     (099H),a
@@ -642,7 +680,7 @@ _SETRD:
 ;Function : Enable VDP to write
 ;Input    : HL - Address
 ;Registers: AF
-_SETWRT:
+SETWRT:
     ld      a,l
     di
     ;out     (099H),a
@@ -657,37 +695,76 @@ _SETWRT:
     ei
     ret
 
-;Address  : #004A
-;Function : Reads the content of VRAM
-;Input    : HL - Address read
-;Output   : A  - Value which was read
-;Registers: AF
-_RDVRM:
-    call    SETRD                   ; SETRD
-    ;in      a,(098H)
-    RST 38h
-    DB 098h
-    ret
-
-
-;Address  : #004D
-;Function : Writes data in VRAM
-;Input    : HL - Address write
-;           A  - Value write
-;Registers: AF
-_WRTVRM:
+; Address  : #0056
+; Function : Fill VRAM with value
+; Input    : A  - Data byte
+;            BC - Length of the area to be written
+;            HL - Start address
+; Registers: AF, BC
+FILVRM:
     push    af
     call    SETWRT                  ; SETWRT
-    pop     af
+    LD      A,C
+    OR      A
+    JR      Z,_FILVRM_LESS_256
+    INC     B
+_FILVRM_LESS_256:  
+    POP     AF
+_FILVRM_NEXT:  
+    ; out (098h),a
     RST 28h
     DB 098h
-    ret
+    DEC     C
+    JP      NZ,_FILVRM_NEXT
+    DJNZ    _FILVRM_NEXT
+    RET    
+
+; Address  : #0059
+; Function : Block transfer to memory from VRAM
+; Input    : BC - Block length
+;            DE - Start address of memory
+;            HL - Start address of VRAM
+; Registers: All
+LDIRMV:
+A070F:  call    SETRD                   ; SETRD
+        ex      (sp),hl
+        ex      (sp),hl
+A0714:  ;in      a,(098H)
+        RST 38h
+        DB 098h
+        ld      (de),a
+        inc     de
+        dec     bc
+        ld      a,c
+        or      b
+        jr      nz,A0714
+        ret
+
+; Address  : #005C
+; Function : Block transfer to VRAM from memory
+; Input    : BC - Block length
+;            DE - Start address of VRAM
+;            HL - Start address of memory
+; Registers: All
+LDIRVM:
+A0744:  ex      de,hl
+        call    SETWRT                  ; SETWRT
+A0748:  ld      a,(de)
+        ; out (098h),a
+        RST 28h
+        DB 098h
+        inc     de
+        dec     bc
+        ld      a,c
+        or      b
+        jr      nz,A0748
+        ret
 
 ;Address  : #0093
 ;Function : Writes data to PSG register
 ;Input    : A  - PSG register number
 ;           E  - Data write
-_WRTPSG:
+WRTPSG:
     di
     RST 28h
     DB 0A0h
@@ -705,7 +782,7 @@ _WRTPSG:
 ;Function : Reads value from PSG register
 ;Input    : A  - PSG register read
 ;Output   : A  - Value read
-_RDPSG:
+RDPSG:
     RST 28h
     DB 0A0h
     ;out     (0A0H),a
@@ -715,126 +792,6 @@ _RDPSG:
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-I7F27: ; area that will be copied to F380, contains code and initialisation
-    .PHASE  VARWRK
-
-RDPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-        DB      0a8h
-        ;OUT     (0A8H),A
-        LD      E,(HL)
-        JR      J7F2F
-
-WRPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-        DB      0a8h
-        ;OUT     (0A8H),A
-        LD      (HL),E
-J7F2F:  LD      A,D
-        RST     28h     ; MSM: replace out (a8h),a by RST28
-        DB      0a8h
-        ;OUT     (0A8H),A
-        RET
-
-CLPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
-        DB      0a8h
-        ;OUT     (0A8H),A
-        EX      AF,AF'
-        CALL    CLPRM1
-        EX      AF,AF'
-        POP     AF
-        RST     28h     ; MSM: replace out (a8h),a by RST28
-        DB      0a8h
-        ;OUT     (0A8H),A
-        EX      AF,AF'
-        RET
-
-CLPRM1: JP      (IX)
-
-USRTAB: defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-        defw    FCERR                   ; illegal function call
-
-LINL40:
-        defb    39
-
-LINL32: defb    29
-
-LINLEN:
-        defb    29
-
-CRTCNT: defb    24
-
-CLMLST: defb    14
-
-TXTNAM: defw    0
-TXTCOL: defw    0
-TXTCGP: defw    00800H
-TXTATR: defw    0
-TXTPAT: defw    0
-
-T32NAM: defw    01800H
-T32COL: defw    02000H
-T32CGP: defw    0
-T32ATR: defw    01B00H
-T32PAT: defw    03800H
-
-GRPNAM: defw    01800H
-GRPCOL: defw    02000H
-GRPCGP: defw    0
-GRPATR: defw    01B00H
-GRPPAT: defw    03800H
-
-MLTNAM: defw    00800H
-MLTCOL: defw    0
-MLTCGP: defw    0
-MLTATR: defw    01B00H
-MLTPAT: defw    03800H
-
-CLIKSW: defb    1
-CSRY:   defb    1
-CSRX:   defb    1
-CNSDFG: defb    0
-
-RG0SAV_: defb    000H
-RG1SAV_: defb    0E0H
-RG2SAV_: defb    000H
-RG3SAV_: defb    000H
-RG4SAV_: defb    000H
-RG5SAV_: defb    000H
-RG6SAV_: defb    000H
-RG7SAV_: defb    000H
-STATFL: defb    000H
-TRGFLG: defb    0FFH
-FORCLR: defb    15
-BAKCLR: defb    4
-
-BDRCLR:
-        defb    7
-
-MAXUPD: jp      0
-MINUPD: jp      0
-ATRBYT: defb    15
-QUEUES: defw    QUETAB
-FRCNEW: defb    0FFH
-SCNCNT: defb    1
-REPCNT: defb    50
-PUTPNT: defw    KEYBUF
-GETPNT: defw    KEYBUF
-CS1200: defb    053H,05CH,026H,02DH,00FH
-CS2400: defb    025H,02DH,00EH,016H,01FH
-        defb    053H,05CH
-        defb    026H,02DH
-        defb    00FH
-ASPCT1: defw    00100H
-ASPCT2: defw    00100H
-ENDPRG: defb    ':'
-
 CGTABL:
         DEFB	000H,000H,000H,000H,000H,000H,000H,000H
         DEFB	03CH,042H,0A5H,081H,0A5H,099H,042H,03CH
@@ -1092,6 +1049,128 @@ CGTABL:
         DEFB	040H,0A0H,020H,040H,0E0H,000H,000H,000H
         DEFB	000H,038H,038H,038H,038H,038H,038H,000H
         DEFB	000H,000H,000H,000H,000H,000H,000H,000H
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+I7F27: ; area that will be copied to F380, contains code and initialisation
+    .PHASE  VARWRK
+
+RDPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+        DB      0a8h
+        ;OUT     (0A8H),A
+        LD      E,(HL)
+        JR      J7F2F
+
+WRPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+        DB      0a8h
+        ;OUT     (0A8H),A
+        LD      (HL),E
+J7F2F:  LD      A,D
+        RST     28h     ; MSM: replace out (a8h),a by RST28
+        DB      0a8h
+        ;OUT     (0A8H),A
+        RET
+
+CLPRIM: RST     28h     ; MSM: replace out (a8h),a by RST28
+        DB      0a8h
+        ;OUT     (0A8H),A
+        EX      AF,AF'
+        CALL    CLPRM1
+        EX      AF,AF'
+        POP     AF
+        RST     28h     ; MSM: replace out (a8h),a by RST28
+        DB      0a8h
+        ;OUT     (0A8H),A
+        EX      AF,AF'
+        RET
+
+CLPRM1: JP      (IX)
+
+USRTAB: defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+        defw    FCERR                   ; illegal function call
+
+LINL40:
+        defb    39
+
+LINL32: defb    29
+
+LINLEN:
+        defb    29
+
+CRTCNT: defb    24
+
+CLMLST: defb    14
+
+TXTNAM: defw    0
+TXTCOL: defw    0
+TXTCGP: defw    00800H
+TXTATR: defw    0
+TXTPAT: defw    0
+
+T32NAM: defw    01800H
+T32COL: defw    02000H
+T32CGP: defw    0
+T32ATR: defw    01B00H
+T32PAT: defw    03800H
+
+GRPNAM: defw    01800H
+GRPCOL: defw    02000H
+GRPCGP: defw    0
+GRPATR: defw    01B00H
+GRPPAT: defw    03800H
+
+MLTNAM: defw    00800H
+MLTCOL: defw    0
+MLTCGP: defw    0
+MLTATR: defw    01B00H
+MLTPAT: defw    03800H
+
+CLIKSW: defb    1
+CSRY:   defb    1
+CSRX:   defb    1
+CNSDFG: defb    0
+
+RG0SAV_: defb    000H
+RG1SAV_: defb    0E0H
+RG2SAV_: defb    000H
+RG3SAV_: defb    000H
+RG4SAV_: defb    000H
+RG5SAV_: defb    000H
+RG6SAV_: defb    000H
+RG7SAV_: defb    000H
+STATFL: defb    000H
+TRGFLG: defb    0FFH
+FORCLR: defb    15
+BAKCLR: defb    4
+
+BDRCLR:
+        defb    7
+
+MAXUPD: jp      0
+MINUPD: jp      0
+ATRBYT: defb    15
+QUEUES: defw    QUETAB
+FRCNEW: defb    0FFH
+SCNCNT: defb    1
+REPCNT: defb    50
+PUTPNT: defw    KEYBUF
+GETPNT: defw    KEYBUF
+CS1200: defb    053H,05CH,026H,02DH,00FH
+CS2400: defb    025H,02DH,00EH,016H,01FH
+        defb    053H,05CH
+        defb    026H,02DH
+        defb    00FH
+ASPCT1: defw    00100H
+ASPCT2: defw    00100H
+ENDPRG: defb    ':'
 
         .DEPHASE
 ENDADR:
