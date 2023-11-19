@@ -69,6 +69,28 @@ H.KEYI  EQU     0FD9AH
 ; H.INIP  equ     0FDC7H
 ; H.CHPU  equ     0FDA4H
 
+; EZ80 defines and helpers
+UART0_MSR EQU 0c6h
+UART0_LSR EQU 0c5h
+UART0_THR EQU 0c0h
+UART0_SPR EQU 0c7h
+UART0_IER EQU 0c1h
+UART0_RBR EQU 0C0h
+
+    MACRO OUT0_A address
+        ; out (address),a
+        DB 0EDh
+        DB 039h
+        DB address
+    ENDM
+    MACRO IN0_A address
+        ;in a,(address)
+        DB 0EDh
+        DB 038h
+        DB address
+    ENDM
+; EZ80 defines and helpers
+
     IFDEF AGONELECTRONBIN
         db 0x0fe
         dw BEGIN, ENDADR, 0
@@ -111,7 +133,7 @@ _ENASLT:                 ; 0024h
 
     DS 0028h - $
 _GETTYPR:                ; RST 28h
-    JP WRITE_PORT
+    JP WRITE_PORT_Z80
 
     DS 002Bh - $
 IDBYT0:
@@ -137,7 +159,7 @@ D0034:  db    0,0
 
     DS 0038h - $
 _KEYINT:                 ; RST 38h
-    JP READ_PORT
+    JP READ_PORT_Z80
 
 ; VDP ROUTINES
 ;     DS 0041h - $
@@ -170,15 +192,15 @@ _SETWRT:
 
     DS 0056h - $
 _FILVRM:
-    JP FILVRM
+    JP FILVRM_FAST
 
     DS 0059h - $
 _LDIRMV:
-    JP LDIRMV
+    JP LDIRMV_FAST
 
     DS 005Ch - $
 _LDIRVM:
-    JP LDIRVM
+    JP LDIRVM_FAST
 
 ;     DS 0062h - $
 ; _CHGCLR:
@@ -462,7 +484,148 @@ READ_PORT:
     rst 28h
     ret
 
-WRITE_PORT:
+WRITE_PORT_EZ80_DIRECT:
+    POP IY      ; get address of following instruction
+    INC IY
+    PUSH IY     ; return address is next byte
+    push af     ; store A to stack
+    LD A,(IY-1) ; port number we want to write
+    ld iyl,a    ; port in IYl
+    pop af      ; restore original A
+    ld iyh,a    ; value in IYh
+    push ix
+    ld ix, 014h
+    DB 0x5b ; .LIL
+    rst 38h
+    pop ix
+    RET
+
+UART0_WAIT_AVAILABLE:
+_uart0_send_wait:
+    ; check if host is ready to receive, otherwise wait
+    IN0_A UART0_MSR
+    bit 4,a ; check inverted CTS bit, 1 = CTS, 0 = NOT CTS (clear to send)
+    jr z, _uart0_send_wait
+_uart0_send_wait2:
+    ; check if send buffer is ready
+    IN0_A UART0_LSR
+    bit 5,a ; 0x20 - THREMPTY - transmit holding register empty, fifo still sending or empty
+            ; 0x40 - TEMT - transmit holding register and fifo empty
+    jr z, _uart0_send_wait2
+    ret
+
+WRITE_PORT_Z80:
+    POP IY      ; get address of following instruction
+    INC IY
+    PUSH IY     ; return address is next byte
+    PUSH BC     ; preserve BC
+    ld b, a     ; value to write in B
+    ; interrupts enabled?
+    ld a,i	; check IFF2, 1 is pe is EI, 0 is po is DI
+    push af     ; store interrupt state
+    jp po, WRITE_PORT_WITH_INTERRUPTS_OFF
+    di ;interrupts were on, we switch temporary off to write 2 or 3 consecutive bytes without interrupt
+WRITE_PORT_WITH_INTERRUPTS_OFF:
+    ; can we use short hand send?
+    ld a, (IY-1) ; port in A
+    cp 0ffh
+    jp nz, WRITE_PORT_REG_A
+    ld a, c ; port in C
+WRITE_PORT_REG_A:
+    cp 0a8h
+    jp z, WRITE_SLOT_REGISTER
+    push af
+    ; uart0 send
+    call UART0_WAIT_AVAILABLE    
+    ld a, 080h
+    OUT0_A UART0_THR
+    pop af
+WRITE_PORT_UART:    
+    ; A contains port
+    OUT0_A UART0_THR
+    ld a,b ; get value to write from B
+    ; A contains value
+    OUT0_A UART0_THR
+WRITE_PORT_DONE:
+    pop af ; restore interrupt state (in flags)
+    ld a,b ; restore A
+    pop bc ; restore BC
+
+    ; interrupts were enabled? 1 is pe is EI, 0 is po is DI
+    ret po ; leave them switched off
+    ei     ; switch them back on when enabled
+    ret
+WRITE_SLOT_REGISTER:
+    push ix
+    ld ix, 0x0004 // eos_msx_machine_slotregister
+    DB 0x5b ; .LIL
+    rst 38h
+    pop ix
+    jp WRITE_PORT_DONE
+
+
+READ_PORT_Z80:
+    POP IY      ; get address of following instruction
+    INC IY
+    PUSH IY     ; return address is next byte
+    PUSH BC     ; preserve BC
+    ; interrupts enabled?
+    ld a,i	; check IFF2, 1 is pe is EI, 0 is po is DI
+    push af     ; store interrupt state
+    jp po, READ_PORT_WITH_INTERRUPTS_OFF
+    di ;interrupts were on, we switch temporary off to write 2 or 3 consecutive bytes without interrupt
+READ_PORT_WITH_INTERRUPTS_OFF:
+    ; can we use short hand send?
+    ld a, (IY-1) ; port in A
+    cp 0ffh
+    jp nz, READ_PORT_REG_A
+    ld a, c ; port in C
+READ_PORT_REG_A:
+    cp 0a8h
+    jp z, READ_SLOT_REGISTER
+    ld b, a ; store port in B
+    ; switch off uart0 receive interrupts
+	; we go direct mode
+	IN0_A UART0_IER
+	and 0feh ;0b11111110
+    OUT0_A UART0_IER
+    ;
+    call UART0_WAIT_AVAILABLE
+    ld a, 081h // read single
+    OUT0_A UART0_THR
+    ld a, b ; get port from B
+    ; A contains port
+    OUT0_A UART0_THR
+    ; get value
+READ_PORT_recv_loop
+    ; while characters in fifo => process
+    IN0_A UART0_LSR
+    bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
+    jr	z, READ_PORT_recv_loop
+    IN0_A UART0_RBR
+    ld b,a ; store value in B
+    ; switch on uart0 receive interrupts
+	IN0_A UART0_IER
+	or 001h ;0b00000001
+    OUT0_A UART0_IER
+READ_PORT_DONE:    
+    pop af ; restore interrupt state (in flags)
+    ld a, b ; restore value from B
+    pop bc ; restore BC
+    ; interrupts were enabled? 1 is pe is EI, 0 is po is DI
+    ret po ; leave them switched off
+    ei     ; switch them back on when enabled
+    ret
+READ_SLOT_REGISTER:
+    push ix
+    and a ; reset carry = read
+    ld ix, 0x0004 // eos_msx_machine_slotregister
+    DB 0x5b ; .LIL
+    rst 38h
+    pop ix
+    jp READ_PORT_DONE
+
+WRITE_PORT_EZ80:
     POP IY      ; get address of following instruction
     INC IY
     PUSH IY     ; return address is next byte
@@ -706,9 +869,9 @@ FILVRM:
     call    SETWRT                  ; SETWRT
     LD      A,C
     OR      A
-    JR      Z,_FILVRM_LESS_256
+    JR      Z,_FILVRM_MORE_256
     INC     B
-_FILVRM_LESS_256:  
+_FILVRM_MORE_256:  
     POP     AF
 _FILVRM_NEXT:  
     ; out (098h),a
@@ -719,6 +882,28 @@ _FILVRM_NEXT:
     DJNZ    _FILVRM_NEXT
     RET    
 
+FILVRM_FAST:
+    push af
+    call SETWRT
+    di
+    call UART0_WAIT_AVAILABLE
+    ld a, 084h ; output fill
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, 098h
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, b
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, c
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    POP     AF
+    OUT0_A UART0_THR
+    ei
+    RET
+
 ; Address  : #0059
 ; Function : Block transfer to memory from VRAM
 ; Input    : BC - Block length
@@ -727,8 +912,6 @@ _FILVRM_NEXT:
 ; Registers: All
 LDIRMV:
 A070F:  call    SETRD                   ; SETRD
-        ex      (sp),hl
-        ex      (sp),hl
 A0714:  ;in      a,(098H)
         RST 38h
         DB 098h
@@ -739,6 +922,47 @@ A0714:  ;in      a,(098H)
         or      b
         jr      nz,A0714
         ret
+
+LDIRMV_FAST:
+    call SETRD
+    di
+    call UART0_WAIT_AVAILABLE
+    ld a, 083h ; input repeat
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, 098h
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, b
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, c
+    OUT0_A UART0_THR
+    ; switch off uart0 receive interrupts
+	; we go direct mode
+	IN0_A UART0_IER
+	and 0feh ;0b11111110
+    OUT0_A UART0_IER
+    ;
+_LDIRMV_FAST_NEXT:
+    ; while characters in fifo => process
+    IN0_A UART0_LSR
+    bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
+    jr	z, _LDIRMV_FAST_NEXT
+    IN0_A UART0_RBR
+    ld (de),a
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, _LDIRMV_FAST_NEXT  
+    ; switch on uart0 receive interrupts
+	IN0_A UART0_IER
+	or 001h ;0b00000001
+    OUT0_A UART0_IER
+    ;  
+    ei
+    ret
 
 ; Address  : #005C
 ; Function : Block transfer to VRAM from memory
@@ -759,6 +983,34 @@ A0748:  ld      a,(de)
         or      b
         jr      nz,A0748
         ret
+
+LDIRVM_FAST:
+    ex de,hl
+    call SETWRT
+    di
+    call UART0_WAIT_AVAILABLE
+    ld a, 082h ; output repeat
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, 098h
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, b
+    OUT0_A UART0_THR
+    call UART0_WAIT_AVAILABLE
+    ld a, c
+    OUT0_A UART0_THR
+_LDIRVM_FAST_NEXT:
+    call UART0_WAIT_AVAILABLE
+    ld a, (de)
+    OUT0_A UART0_THR    
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, _LDIRVM_FAST_NEXT
+    ei
+    ret
 
 ;Address  : #0093
 ;Function : Writes data to PSG register

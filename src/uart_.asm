@@ -16,6 +16,7 @@
     XDEF    _uart0_init_fifo
     XDEF    _getch
     XDEF    _putch
+    XDEF    _putch_direct
     XDEF	_uart0_handler
 
     ; ASM functions
@@ -552,3 +553,22 @@ _uart0_handler_done:
     POP		AF
     EI
     RETI.L	
+
+; INT putch_direct(INT ch);
+;
+; Write a character out to the UART
+; Parameters:
+; - ch: The character to write (least significant byte)
+; Returns:
+; - The character written
+;
+_putch_direct:
+    push ix
+    ld ix,0
+    add	ix,sp
+    ld a, (ix+6) ; low byte of 3rd 3 byte element on the stack (ix, ra, arg0)
+    call uart0_send
+    ld hl,0
+    ld l,a
+    pop ix
+    ret

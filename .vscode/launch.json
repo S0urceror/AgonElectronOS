@@ -129,7 +129,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-21130",
+				"serial":"/dev/tty.usbserial-02B1CCD1",
 				"baudrate": 500000,
 				"vdp": true
 			},
@@ -161,7 +161,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-21130",
+				"serial":"/dev/tty.usbserial-02B1CCD1",
 				"baudrate": 500000,
 				"vdp": true
 			},
@@ -244,6 +244,8 @@
 			],
 			"topOfStack": "0xf380",
 			"commandsAfterLaunch": [
+				// "-exec b 9fda", 
+				// "-exec b 9fde", 
 				"-exec e init",
 				"-exec e run"
             ],
@@ -280,7 +282,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-21130",
+				"serial":"/dev/tty.usbserial-02B1CCD1",
 				"baudrate": 500000,
 				"vdp": true
 			},
@@ -300,6 +302,7 @@
 				"-exec e vsync on",
 				//"-exec b 54086",
 				"-exec b 5402a", // interrupt routine
+				//"-exec b 5451a", // unpackGfx
 				"-exec e run"
             ],
 			"preLaunchTask": "build"
@@ -311,7 +314,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-21130",
+				"serial":"/dev/tty.usbserial-02B1CCD1",
 				"baudrate": 500000,
 				"vdp": true
 			},
@@ -330,12 +333,12 @@
 				"-exec e init",
 				"-exec e vsync on",
 				//"-exec b 54070", // start
-				//"-exec b 5403e", // interrupt routine
+				"-exec b 5403e", // interrupt routine
 				//"-exec b 540b6", // vdp memory init
 				//"-exec b 548b2", // write patterns
 				//"-exec b 5486e", // write patterns
 				//"-exec b 548e7", // copy VRAM routine
-				//"-exec e run"
+				"-exec e run"
             ],
 			"preLaunchTask": "build"
 		},

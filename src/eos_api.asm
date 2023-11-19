@@ -9,7 +9,7 @@
 	XDEF	electron_os_inout
 	XDEF	_machine_vblank_handler
 	XDEF	_vdp_test
-	XDEF	checkEIstate
+	; XDEF	checkEIstate
 
 	XREF	_machine_read_write_disk
     XREF 	_machine_warm_boot
@@ -61,6 +61,7 @@ jumptable:
 	DW eos_msx_machine_setvblankaddress			;0x000e
 	DW eos_msx_machine_getvdpstatus				;0x0010
 	DW eos_msx_machine_getscanline				;0x0012
+	DW eos_msx_machine_writeport				;0x0014
 
 ; read/write a sector from/to the disk
 ; 
@@ -331,28 +332,28 @@ _exit_vblank_handler:
 	ei
 	RETI.L
 
-	IF $ < 100H
-        ERROR "Must be at address >= 100H"
-    ENDIF
-; Workaround for LD A,I / LD A,R lying to us if an interrupt occurs during the
-; instruction. We detect this by examining if (sp - 1) was overwritten.
-; f: pe <- interrupts enabled, po <- interrupts disabled
-; Modifies: af
-checkEIstate:
-    xor a
-    push af  ; set (sp - 1) to 0
-    pop af
-    ld a,i	; check IFF2, 1 is EI, 0 is DI
-    ret pe  ; interrupts enabled? 1 is pe is EI, 0 is po is DI
-	; interrupts disabled (DI)? let's check to be sure
-    dec sp
-	dec sp
-    dec sp  ; check whether the Z80 lied about ints being disabled
-    pop af  ; (sp - 1) is overwritten w/ MSB of ret address if an ISR occurred
-	sub 1
-    sbc a,a
-    and 1   ; (sp - 1) is not 0? return with pe, otherwise po
-    ret
+; 	IF $ < 100H
+;         ERROR "Must be at address >= 100H"
+;     ENDIF
+; ; Workaround for LD A,I / LD A,R lying to us if an interrupt occurs during the
+; ; instruction. We detect this by examining if (sp - 1) was overwritten.
+; ; f: pe <- interrupts enabled, po <- interrupts disabled
+; ; Modifies: af
+; checkEIstate:
+;     xor a
+;     push af  ; set (sp - 1) to 0
+;     pop af
+;     ld a,i	; check IFF2, 1 is EI, 0 is DI
+;     ret pe  ; interrupts enabled? 1 is pe is EI, 0 is po is DI
+; 	; interrupts disabled (DI)? let's check to be sure
+;     dec sp
+; 	dec sp
+;     dec sp  ; check whether the Z80 lied about ints being disabled
+;     pop af  ; (sp - 1) is overwritten w/ MSB of ret address if an ISR occurred
+; 	sub 1
+;     sbc a,a
+;     and 1   ; (sp - 1) is not 0? return with pe, otherwise po
+;     ret
 
 
 ; IN/OUT to port specified in IYl
@@ -431,4 +432,51 @@ eos_msx_machine_getscanline:
 	ld a, (hl)
 	pop hl
 	pop bc
+	ret
+
+eos_msx_machine_writeport:
+	; interrupts enabled?
+    ld a,i	; check IFF2, 1 is pe is EI, 0 is po is DI
+    ; call System_CheckEIState
+    push af     ; store interrupt state
+    jp po, WRITE_PORT_WITH_INTERRUPTS_OFF
+    di ;interrupts were on, we switch temporary off to write 2 or 3 consecutive bytes without interrupt
+WRITE_PORT_WITH_INTERRUPTS_OFF:
+    ; can we use short hand send?
+    ld a, IYl ; port in A
+    cp 0ffh
+    jp nz, WRITE_PORT_REG_A
+    ld a, c ; port in C
+WRITE_PORT_REG_A:
+    cp 098h
+    jp z, WRITE_VDP_98h
+    cp 099h
+    jp z, WRITE_VDP_99h
+    cp 0a8h
+    jp z, WRITE_SLOT_REGISTER
+    ; do normal 3 byte output
+    ld a, 080h
+    call uart0_send
+    ld a, IYl ; port in A
+    jp WRITE_PORT_UART
+WRITE_VDP_98h:
+    ld a, 10000010b ; output to vdp port 0
+    jp WRITE_PORT_UART
+WRITE_VDP_99h:
+    ld a, 10010010b ; output to vdp port 1
+    jp WRITE_PORT_UART    
+WRITE_SLOT_REGISTER:
+    ; TODO: save slot register
+    jp WRITE_PORT_DONE
+WRITE_PORT_UART:    
+    ; A contains port
+    call uart0_send
+    ld a,iyh    ; value in IYh
+    ; A contains value
+    call uart0_send
+WRITE_PORT_DONE:
+    pop af ; restore interrupt state (in flags)
+    ; interrupts were enabled? 1 is pe is EI, 0 is po is DI
+    ret po ; leave them switched off
+    ei     ; switch them back on when enabled
 	ret

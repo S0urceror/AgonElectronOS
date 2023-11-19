@@ -12,6 +12,7 @@ char szCommandLine[255];
 char *ptrCommandLine;
 void vdp_test ();
 extern UINT32 clock;
+void print_clock ();
 
 // Change directory
 // Parameters:
@@ -128,8 +129,17 @@ BOOL cp_process ()
 	INT16 start_address,begin,end,start,vsync_address;
 	UINT8 slot = 0 ; // default slot 0
 	UINT32 clock_start,clock_end;
-	int i;
+	int i,j;
+	UINT16 nr_chunks=10;
+	UINT8 chunksize=8;
+	UINT8 screen;
+	UINT8* r;
 
+	static const UINT8 regs_screen0[8] = {0x00,0xf0,0x00,0x00,0x01,0x00,0x00,0xe4};
+	static const UINT8 regs_screen1[8] = {0x00,0xe2,0x06,0x80,0x00,0x36,0x07,0xe4};
+	static const UINT8 regs_screen2[8] = {0x02,0xe2,0x0e,0x7f,0x07,0x76,0x03,0xe4};
+	static const UINT8 regs_screen3[8] = {0x02,0xe2,0x0e,0x7f,0x07,0x76,0x03,0xe4};
+	
 	if (strstr (szCommandLine,"init")==szCommandLine)
 	{
 		return machine_init ();
@@ -288,10 +298,103 @@ BOOL cp_process ()
 		printf ("Clock start %d\r\n",clock_start);
 		printf ("Clock end %d\r\n",clock_end);
 		printf ("Clock diff %d\r\n",clock_end-clock_start);
-		printf ("Clock diff %d seconds\r\n",(clock_end-clock_start)/60);
-		printf ("I/O per seconds: %d\r\n",(256*256)/((clock_end-clock_start)/60));
-		printf ("Bytes per seconds: %d",(256*256*3)/((clock_end-clock_start)/60));
+		printf ("Clock diff %d seconds\r\n",(clock_end-clock_start)/100);
+		printf ("I/O per seconds: %d\r\n",(256*256)/((clock_end-clock_start)/100));
+		printf ("Bytes per seconds: %d",(256*256*3)/((clock_end-clock_start)/100));
 		return TRUE;
+	}
+	if (strstr (szCommandLine,"uart_test_1")==szCommandLine)
+	{
+		pArg = szCommandLine+11;
+		if (*pArg!='\0')
+		{	
+			pArg++;
+			if (pArg[0]!='\0]')
+				nr_chunks = strtol (pArg,&pArg,10);
+			else
+				return FALSE;
+			if (pArg[0]!='\0]')
+				chunksize = strtol (pArg,0,10);
+			else
+				return FALSE;
+		}
+
+		putch (0xff); // command for NULL device 127
+		putch ((nr_chunks&0xff00) >> 8);
+		putch (nr_chunks&0x00ff);
+		putch (chunksize);
+		for (i=0;i<nr_chunks;i++)
+		{
+			for (j=0;j<chunksize;j++)
+				putch (j);
+		}
+		return TRUE;
+	}
+	if (strstr (szCommandLine,"uart_test_2")==szCommandLine)
+	{
+		pArg = szCommandLine+11;
+		if (*pArg!='\0')
+		{	
+			pArg++;
+			if (pArg[0]!='\0]')
+				nr_chunks = strtol (pArg,&pArg,10);
+			else
+				return FALSE;
+			if (pArg[0]!='\0]')
+				chunksize = strtol (pArg,0,10);
+			else
+				return FALSE;
+		}
+		putch_direct (0xff); // command for NULL device 127
+		putch_direct ((nr_chunks&0xff00) >> 8);
+		putch_direct (nr_chunks&0x00ff);
+		putch_direct (chunksize);
+		for (i=0;i<nr_chunks;i++)
+		{
+			for (j=0;j<chunksize;j++)
+				putch_direct (j);
+		}
+		return TRUE;
+	}
+	if (strstr (szCommandLine,"screen")==szCommandLine)
+	{
+		pArg = szCommandLine+6;
+		if (*pArg!='\0')
+		{	
+			pArg++;
+			if (pArg[0]!='\0]')
+			{
+				screen = strtol (pArg,NULL,10);
+				r = regs_screen0;
+				switch (screen)
+				{
+					case 0:
+						r = regs_screen0;
+						break;
+					case 1:
+						r = regs_screen1;
+						break;
+					case 2:
+						r = regs_screen2;
+						break;
+					case 3:
+						r = regs_screen3;
+						break;
+				}
+				for (i=0;i<8;i++)
+				{
+					putch (0x80); // command
+					putch (0x99); // port
+					putch (r[i]); // value
+					putch (0x80); // command
+					putch (0x99); // port
+					putch (0x80 | i); // value = vdp register index
+				}
+				return TRUE;
+			}
+			
+		}
+		
 	}
 	return FALSE;
 }
@@ -313,7 +416,7 @@ void process_character (INT ch)
 		else
 			printf ("\r\nSyntax error\r\n*");
 	}
-	if (ch == 0x7f) // backspace
+	if (ch==0x08) // backspace
 	{
 		if (ptrCommandLine>szCommandLine)
 		{

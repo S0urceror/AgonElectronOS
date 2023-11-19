@@ -31,7 +31,7 @@
 			; eos_api.asm
 			XREF	electron_os_api
 			XREF	electron_os_inout
-			XREF	checkEIstate
+			; XREF	checkEIstate
 			; machine.c
 			XREF 	_print_clock
 
@@ -124,7 +124,8 @@ _rst_20_handler:
 
 _rst_28_handler:
 	push af	; store AF
-	call checkEIstate
+	ld a,i	; check IFF2, 1 is pe is EI, 0 is po is DI
+	; call checkEIstate
 	di 		; interrupts off
 	jp pe, _rst_28_interrupt_enabled
 	; interrupts were disabled, keep it like this
@@ -136,10 +137,6 @@ _rst_28_interrupt_enabled:
    	pop af	; restore AF
 	CALL electron_os_inout
 	EI	; enable them again
-	RET.L
-
-_rst_28_handler_org:	
-	CALL electron_os_inout
 	RET.L
 		
 _rst_30_handler:

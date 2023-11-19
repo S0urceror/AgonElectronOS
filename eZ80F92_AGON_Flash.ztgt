@@ -31,21 +31,21 @@
          </CS0>
          <CS1>
             <busMode>0</busMode>
-            <controlRegister>08</controlRegister>
-            <lower>c0</lower>
-            <upper>c7</upper>
+            <controlRegister>0</controlRegister>
+            <lower>0</lower>
+            <upper>0</upper>
          </CS1>
          <CS2>
             <busMode>0</busMode>
-            <controlRegister>08</controlRegister>
-            <lower>80</lower>
-            <upper>bf</upper>
+            <controlRegister>0</controlRegister>
+            <lower>0</lower>
+            <upper>0</upper>
          </CS2>
          <CS3>
-            <busMode>82</busMode>
-            <controlRegister>18</controlRegister>
-            <lower>03</lower>
-            <upper>03</upper>
+            <busMode>0</busMode>
+            <controlRegister>0</controlRegister>
+            <lower>0</lower>
+            <upper>0</upper>
          </CS3>
       </ChipSelects>
       <Internal>

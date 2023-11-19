@@ -11,6 +11,7 @@ RDVDP:		equ	#13e
 SETWRT:     equ #53
 SNSMAT:		equ	#141	;  Read	keyboard row
 FILVRM:     equ #56
+LDIRVM:     equ #5c
 
     org 4000h
 
@@ -41,32 +42,6 @@ FILVRM:     equ #56
 ;     ex af,af' ; restore A
 ;     jr fillVRAM
 
-; Copy from memory to VRAM
-; HL = origin from memory
-; DE = destination in VRAM
-; BC = nr of bytes
-copytoVRAM:
-    push hl
-    ld hl, de
-    call SETWRT
-    pop hl
-copytoVRAMbyte:
-    ld a, (hl)
-    IFDEF AGONELECTRON
-        RST 28h
-	    DB 098h
-    ELSE
-        out ($98),a
-    ENDIF
-    ex af,af' ; store A
-    inc hl
-    dec bc
-    ld a, c
-    or b
-    ret z
-    ex af,af' ; restore A
-    jr copytoVRAMbyte
-
 START:  
     ld hl, strHello
     call print
@@ -83,45 +58,45 @@ START:
     ld bc,8
     ld de, 0x2000
     ld hl, VDP_Pattern
-    call copytoVRAM
+    call LDIRVM
     ; set pattern 0 in middle 1/3th
     ld bc,8
     ld de, 0x2000+0x800*1
     ld hl, VDP_Pattern2
-    call copytoVRAM
+    call LDIRVM
     ; set pattern 0 in bottom 1/3th
     ld bc,8
     ld de, 0x2000+0x800*2
     ld hl, VDP_Pattern
-    call copytoVRAM
+    call LDIRVM
 
     ; set colours in upper 1/3th
     ld bc,8
     ld de, 0x0000
     ld hl, VDP_Color
-    call copytoVRAM
+    call LDIRVM
     ; set colours in middle 1/3th
     ld bc,8
     ld de, 0x0000+0x800*1
     ld hl, VDP_Color2
-    call copytoVRAM
+    call LDIRVM
     ; set colours in bottom 1/3th
     ld bc,8
     ld de, 0x0000+0x800*2
     ld hl, VDP_Color
-    call copytoVRAM
+    call LDIRVM
 
     ; set sprite 0 pattern
     ld bc,8*4
     ld de, 0x1800
     ld hl, Sprite_Pattern
-    call copytoVRAM
+    call LDIRVM
 
     ; set sprite 0 attributes
     ld bc,4*2
     ld de, 0x3b00
     ld hl, Sprite_Attributes
-    call copytoVRAM
+    call LDIRVM
 
     ; set start position
     ld a, 256/2 - 8
