@@ -61,7 +61,7 @@
 ; Disable internal peripheral interrupt sources
 ; -- this will help during a RAM debug session --
 ;
-__init:			ld a, %FF
+__init:		ld a, %FF
 			out0 (PB_DDR), a         ; GPIO
 			out0 (PC_DDR), a         ;
 			out0 (PD_DDR), a         ;

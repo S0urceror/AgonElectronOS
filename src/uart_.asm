@@ -69,7 +69,7 @@ UART0_INIT:
     out0 (PD_ALT2),a
 
     ; initialize for correct operation
-    ; pin 0,1,2 and 3 to alternate function
+    ; pin 0,1,2 and 3 to alternate function => UART
     in0 a,(PD_DDR)
     or  00001111b   ; set pin 0,1,2,3 (RX,TX,CTS,RTS)
     out0 (PD_DDR), a
@@ -105,53 +105,53 @@ UART0_INIT:
     ld a, 00000001b  ; receive interrupt enabled, rest disabled
     out0 (UART0_IER),a
 
-UART1_INIT:
-    ; all pins to GPIO mode 2, high impedance input
-    ld a, PORTD_DRVAL_DEF
-    out0 (PC_DR),a
-    ld a, PORTD_DDRVAL_DEF
-    out0 (PC_DDR),a
-    ld a, PORTD_ALT1VAL_DEF
-    out0 (PC_ALT1),a
-    ld a, PORTD_ALT2VAL_DEF
-    out0 (PC_ALT2),a
+; UART1_INIT:
+;     ; all pins to GPIO mode 2, high impedance input
+;     ld a, PORTD_DRVAL_DEF
+;     out0 (PC_DR),a
+;     ld a, PORTD_DDRVAL_DEF
+;     out0 (PC_DDR),a
+;     ld a, PORTD_ALT1VAL_DEF
+;     out0 (PC_ALT1),a
+;     ld a, PORTD_ALT2VAL_DEF
+;     out0 (PC_ALT2),a
 
-    ; initialize for correct operation
-    ; pin 0,1,2 and 3 to alternate function
-    in0 a,(PC_DDR)
-    or  00001111b   ; set pin 0,1,2,3
-    out0 (PC_DDR), a
-    in0 a,(PC_ALT1)
-    and 11110000b   ; reset pin 0,1,2,3
-    out0 (PC_ALT1), a
-    in0 a,(PC_ALT2)
-    or  00001111b   ; set pin 0,1,2,3
-    out0 (PC_ALT2), a
-    ; set baudrate (1152000) as a division of the clock signal
-    in0 a,(UART1_LCTL)
-    or 10000000b ; set UART_LCTL_DLAB
-    out0 (UART1_LCTL),a
-    ld a, BRD1_LOW ;// Load divisor low
-    out0 (UART1_BRG_L),a
-    ld a, BRD1_HIGH ;// Load divisor high
-    out0 (UART1_BRG_H),a
-    in0 a,(UART1_LCTL)
-    and 01111111b ; reset UART_LCTL_DLAB
-    out0 (UART1_LCTL),a
-    ;
-    ld a, 00000000b  ; multidrop, loopback, RTS, DTR disabled
-    out0 (UART1_MCTL),a
-    ;
-    ld a, 00000111b	 ; HW fifo cleared and enabled, trigger level 1
-    out0 (UART1_FCTL),a
-    ;
-    in0 a, (UART1_LCTL)
-    or  00000011b    ; 8 databits, 1 stopbit
-    and 11110111b    ; no parity
-    out0 (UART1_LCTL),a
-    ;
-    ld a, 00000001b  ; receive interrupt enabled, rest disabled
-    out0 (UART1_IER),a
+;     ; initialize for correct operation
+;     ; pin 0,1,2 and 3 to alternate function
+;     in0 a,(PC_DDR)
+;     or  00001111b   ; set pin 0,1,2,3
+;     out0 (PC_DDR), a
+;     in0 a,(PC_ALT1)
+;     and 11110000b   ; reset pin 0,1,2,3
+;     out0 (PC_ALT1), a
+;     in0 a,(PC_ALT2)
+;     or  00001111b   ; set pin 0,1,2,3
+;     out0 (PC_ALT2), a
+;     ; set baudrate (1152000) as a division of the clock signal
+;     in0 a,(UART1_LCTL)
+;     or 10000000b ; set UART_LCTL_DLAB
+;     out0 (UART1_LCTL),a
+;     ld a, BRD1_LOW ;// Load divisor low
+;     out0 (UART1_BRG_L),a
+;     ld a, BRD1_HIGH ;// Load divisor high
+;     out0 (UART1_BRG_H),a
+;     in0 a,(UART1_LCTL)
+;     and 01111111b ; reset UART_LCTL_DLAB
+;     out0 (UART1_LCTL),a
+;     ;
+;     ld a, 00000000b  ; multidrop, loopback, RTS, DTR disabled
+;     out0 (UART1_MCTL),a
+;     ;
+;     ld a, 00000111b	 ; HW fifo cleared and enabled, trigger level 1
+;     out0 (UART1_FCTL),a
+;     ;
+;     in0 a, (UART1_LCTL)
+;     or  00000011b    ; 8 databits, 1 stopbit
+;     and 11110111b    ; no parity
+;     out0 (UART1_LCTL),a
+;     ;
+;     ld a, 00000001b  ; receive interrupt enabled, rest disabled
+;     out0 (UART1_IER),a
 
     RET
 
@@ -282,15 +282,15 @@ uart0_recv_fifo_add:
     push hl
     push de
     push af ; character to write
-    ; command-mode?
-    push af
-    ld a, (_uart0_recv_command_mode)
-    and a
-    jr nz, _uart0_recv_command_next
-    pop af
-    ; check if command or character
-    bit 7,a
-    jr nz, _uart0_recv_command
+    ; ; command-mode?
+    ; push af
+    ; ld a, (_uart0_recv_command_mode)
+    ; and a
+    ; jr nz, _uart0_recv_command_next
+    ; pop af
+    ; ; check if command or character
+    ; bit 7,a
+    ; jr nz, _uart0_recv_command
     ; store and increment head ptr
     ld hl, (_uart0_recv_head)
     ld (hl),a
@@ -312,82 +312,82 @@ _uart0_recv_done:
     pop hl
     ret
 
-_uart0_recv_command:
-    ; byte 0
-    ld a, 2 ; two bytes following
-    ld (_uart0_recv_command_mode),a
-    jr _uart0_recv_done
-_uart0_recv_command_next:
-    dec a
-    ld (_uart0_recv_command_mode),a
-    and a ; 1 = vk, 0 = up/down
-    jr z, _uart0_recv_command_next_updown 
-_uart0_recv_comman_next_vk:
-    ; byte 1
-    pop af
-    ld (_uart0_recv_command_vk),a
-    jr _uart0_recv_done
-_uart0_recv_command_next_updown:
-    ; byte 2
-    ld a, (_uart0_recv_command_vk)
-    ld hl, _eos_msx_keyboard_scanline+8
-    cp 1 ; space
-    jr z, _uart0_recv_command_next_space
-    cp 154 ; arrow left
-    jr z, _uart0_recv_command_next_arrowleft
-    cp 156 ; arrow right
-    jr z, _uart0_recv_command_next_arrowright
-    cp 150 ; arrow up
-    jr z, _uart0_recv_command_next_arrowup
-    cp 152 ; arrow down
-    jr z, _uart0_recv_command_next_arrowdown
-    pop af
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowleft:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowleft_up
-    res 4,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowleft_up:    
-    set 4,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowright:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowright_up
-    res 7,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowright_up:    
-    set 7,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowup:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowup_up
-    res 5,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowup_up:    
-    set 5,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowdown:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowdown_up
-    res 6,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowdown_up:    
-    set 6,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_space:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_space_up
-    res 0,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_space_up:    
-    set 0,(hl)
-    jr _uart0_recv_done
+; _uart0_recv_command:
+;     ; byte 0
+;     ld a, 2 ; two bytes following
+;     ld (_uart0_recv_command_mode),a
+;     jr _uart0_recv_done
+; _uart0_recv_command_next:
+;     dec a
+;     ld (_uart0_recv_command_mode),a
+;     and a ; 1 = vk, 0 = up/down
+;     jr z, _uart0_recv_command_next_updown 
+; _uart0_recv_comman_next_vk:
+;     ; byte 1
+;     pop af
+;     ld (_uart0_recv_command_vk),a
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_updown:
+;     ; byte 2
+;     ld a, (_uart0_recv_command_vk)
+;     ld hl, _eos_msx_keyboard_scanline+8
+;     cp 1 ; space
+;     jr z, _uart0_recv_command_next_space
+;     cp 154 ; arrow left
+;     jr z, _uart0_recv_command_next_arrowleft
+;     cp 156 ; arrow right
+;     jr z, _uart0_recv_command_next_arrowright
+;     cp 150 ; arrow up
+;     jr z, _uart0_recv_command_next_arrowup
+;     cp 152 ; arrow down
+;     jr z, _uart0_recv_command_next_arrowdown
+;     pop af
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowleft:
+;     pop af
+;     and a
+;     jr z, _uart0_recv_command_next_arrowleft_up
+;     res 4,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowleft_up:    
+;     set 4,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowright:
+;     pop af
+;     and a
+;     jr z, _uart0_recv_command_next_arrowright_up
+;     res 7,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowright_up:    
+;     set 7,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowup:
+;     pop af
+;     and a
+;     jr z, _uart0_recv_command_next_arrowup_up
+;     res 5,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowup_up:    
+;     set 5,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowdown:
+;     pop af
+;     and a
+;     jr z, _uart0_recv_command_next_arrowdown_up
+;     res 6,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_arrowdown_up:    
+;     set 6,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_space:
+;     pop af
+;     and a
+;     jr z, _uart0_recv_command_next_space_up
+;     res 0,(hl)
+;     jr _uart0_recv_done
+; _uart0_recv_command_next_space_up:    
+;     set 0,(hl)
+;     jr _uart0_recv_done
 
 ; Get a character from the SEND fifo
 ; Returns:
@@ -519,11 +519,7 @@ _uart0_hw_fifo_next:
     bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
     jr		z,_uart0_handler_done
     in0 a,(UART0_RBR)
-    ld BC,0
-    ld c, a
-    push BC
     CALL	uart0_recv_fifo_add
-    POP BC
     jr		_uart0_hw_fifo_next
 _uart0_handler_next:
     ; check transmit interrupt

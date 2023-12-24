@@ -262,9 +262,9 @@ _machine_vblank_handler:
 	; reset GPIO edge-trigger
 	SET_GPIO 	PB_DR, 2		; Need to set this to 2 for the interrupt to work correctly
 	; signal PORTC bit 0
-	IN0	A,(PC_DR)
-	CPL
-	OUT0 (PC_DR),A
+	; IN0	A,(PC_DR)
+	; CPL
+	; OUT0 (PC_DR),A
 	; check if another interrupt routine is still running, prevent from running again
 	ld a, (_machine_vsync_running)
 	and 1

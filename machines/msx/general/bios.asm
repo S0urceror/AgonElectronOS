@@ -76,6 +76,8 @@ UART0_THR EQU 0c0h
 UART0_SPR EQU 0c7h
 UART0_IER EQU 0c1h
 UART0_RBR EQU 0C0h
+PC_DR EQU 09Eh
+PD_DR EQU 0A2h
 
     MACRO OUT0_A address
         ; out (address),a
@@ -1035,12 +1037,64 @@ WRTPSG:
 ;Input    : A  - PSG register read
 ;Output   : A  - Value read
 RDPSG:
+    cp 0Eh ; joystick port
+    jp z, RDJOYSTICK
+    ; other ports
     RST 28h
     DB 0A0h
     ;out     (0A0H),a
     RST 38h
     DB 0A2h
     ;in      a,(0A2H)
+    ret
+
+
+; AGON
+; PC1: Up
+; PC3: Down
+; PC5: Left
+; PC7: Right
+; PD5: Button 1
+; PD7: Button 2
+; MSX
+; Bit 0 = Pin 1 state of the selected general port (Up if joystick)
+; Bit 1 = Pin 2 state of the selected general port (Down if joystick)
+; Bit 2 = Pin 3 state of the selected general port (Left if joystick)
+; Bit 3 = Pin 4 state of the selected general port (Right if joystick)
+; Bit 4 = Pin 6 state of the selected general port (Trigger 1 if joystick)
+; Bit 5 = Pin 7 state of the selected general port (Trigger 2 if joystick)    
+RDJOYSTICK:
+    push bc
+    ld b, 03fh
+    IN0_A PC_DR
+_RD_JOYSTICK_UP    
+    bit 1,a
+    jr nz, _RD_JOYSTICK_DOWN
+    res 0,b
+_RD_JOYSTICK_DOWN    
+    bit 3,a
+    jr nz, _RD_JOYSTICK_LEFT
+    res 1,b
+_RD_JOYSTICK_LEFT    
+    bit 5,a
+    jr nz, _RD_JOYSTICK_RIGHT
+    res 2,b
+_RD_JOYSTICK_RIGHT    
+    bit 7,a
+    jr nz, _RD_JOYSTICK_BTN_1
+    res 3,b
+_RD_JOYSTICK_BTN_1    
+    IN0_A PD_DR
+    bit 5,a
+    jr nz, _RD_JOYSTICK_BTN_2
+    res 4,b
+_RD_JOYSTICK_BTN_2    
+    bit 7,a
+    jr nz, _RD_JOYSTICK_END
+    res 5,b
+_RD_JOYSTICK_END    
+    ld a, b
+    pop bc
     ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

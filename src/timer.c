@@ -28,7 +28,7 @@ unsigned short init_timer0(int interval, int clkdiv, unsigned char ctrlbits) {
 	}
 	
 	ctl = (ctrlbits | clkbits);
-	rr = (unsigned short)((SysClkFreq / 100) / clkdiv) * interval;
+	rr = (unsigned short)((SysClkFreq / 1000) / clkdiv) * interval;
 
 	TMR0_CTL = 0x00;													// Disable the timer and clear all settings	
 	TMR0_RR_L = (unsigned char)(rr);
@@ -81,7 +81,7 @@ unsigned short init_timer1(int interval, int clkdiv, unsigned char ctrlbits) {
 	}
 	ctl = (ctrlbits | clkbits);
 
-	rr = (unsigned short)((SysClkFreq / 100) / clkdiv) * interval;
+	rr = (unsigned short)((SysClkFreq / 1000) / clkdiv) * interval;
 
 	TMR1_CTL = 0x00;													// Disable the timer and clear all settings	
 	TMR1_RR_L = (unsigned char)(rr);

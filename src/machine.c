@@ -93,13 +93,13 @@ BOOL machine_init ()
 	machine_vsync_register=0;
 	machine_vsync_running=0;
 
-	// set port C bit 0 to output, L=GND, H=Vcc
-	// leave rest set to input mode
-	PC_DDR = 0xfe;  //0b11111110;
-	PC_ALT1 = 0x00; //0b00000000;
-	PC_ALT2 = 0x00; //0b00000000;
-	// set bit0 to 0
-	PC_DR = PC_DR & 0xfe; //0b11111110;
+	// // set port C bit 0 to output, L=GND, H=Vcc
+	// // leave rest set to input mode
+	// PC_DDR = 0xfe;  //0b11111110;
+	// PC_ALT1 = 0x00; //0b00000000;
+	// PC_ALT2 = 0x00; //0b00000000;
+	// // set bit0 to 0
+	// PC_DR = PC_DR & 0xfe; //0b11111110;
 
 	return TRUE;
 }

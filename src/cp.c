@@ -7,8 +7,10 @@
 #include <stdlib.h>
 #include "machine.h"
 #include "uart.h"
+#include "joysticks.h"
 
-char szCommandLine[255];
+char szCommandLine[128];
+char szPrevCommandLine[128];
 char *ptrCommandLine;
 void vdp_test ();
 extern UINT32 clock;
@@ -303,57 +305,24 @@ BOOL cp_process ()
 		printf ("Bytes per seconds: %d",(256*256*3)/((clock_end-clock_start)/100));
 		return TRUE;
 	}
-	if (strstr (szCommandLine,"uart_test_1")==szCommandLine)
+	if (strstr (szCommandLine,"joystick_test")==szCommandLine)
 	{
-		pArg = szCommandLine+11;
-		if (*pArg!='\0')
-		{	
-			pArg++;
-			if (pArg[0]!='\0]')
-				nr_chunks = strtol (pArg,&pArg,10);
-			else
-				return FALSE;
-			if (pArg[0]!='\0]')
-				chunksize = strtol (pArg,0,10);
-			else
-				return FALSE;
-		}
+		int value = read_joysticks();
+		printf ("\r\n%06X",value);
+		printf (" - %c%c%c%c:%c%c / %c%c%c%c:%c%c",
+			value&0x02/*0b00000010*/?'.':'U',
+			value&0x08/*0b00001000*/?'.':'D',
+			value&0x20/*0b00100000*/?'.':'L',
+			value&0x80/*0b10000000*/?'.':'R',
+			value&0x2000/*0b0010000000000000*/?'.':'1',
+			value&0x8000/*0b1000000000000000*/?'.':'2',
+			value&0x01/*0b00000001*/?'.':'U',
+			value&0x04/*0b00000100*/?'.':'D',
+			value&0x10/*0b00010000*/?'.':'L',
+			value&0x40/*0b01000000*/?'.':'R',
+			value&0x1000/*0b0001000000000000*/?'.':'1',
+			value&0x4000/*0b0100000000000000*/?'.':'2');
 
-		putch (0xff); // command for NULL device 127
-		putch ((nr_chunks&0xff00) >> 8);
-		putch (nr_chunks&0x00ff);
-		putch (chunksize);
-		for (i=0;i<nr_chunks;i++)
-		{
-			for (j=0;j<chunksize;j++)
-				putch (j);
-		}
-		return TRUE;
-	}
-	if (strstr (szCommandLine,"uart_test_2")==szCommandLine)
-	{
-		pArg = szCommandLine+11;
-		if (*pArg!='\0')
-		{	
-			pArg++;
-			if (pArg[0]!='\0]')
-				nr_chunks = strtol (pArg,&pArg,10);
-			else
-				return FALSE;
-			if (pArg[0]!='\0]')
-				chunksize = strtol (pArg,0,10);
-			else
-				return FALSE;
-		}
-		putch_direct (0xff); // command for NULL device 127
-		putch_direct ((nr_chunks&0xff00) >> 8);
-		putch_direct (nr_chunks&0x00ff);
-		putch_direct (chunksize);
-		for (i=0;i<nr_chunks;i++)
-		{
-			for (j=0;j<chunksize;j++)
-				putch_direct (j);
-		}
 		return TRUE;
 	}
 	if (strstr (szCommandLine,"screen")==szCommandLine)
@@ -415,6 +384,7 @@ void process_character (INT ch)
 			printf ("\r\nOK\r\n*");
 		else
 			printf ("\r\nSyntax error\r\n*");
+		strcpy (szPrevCommandLine,szCommandLine);
 	}
 	if (ch==0x08) // backspace
 	{
