@@ -282,7 +282,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-02B1CCD1",
+				"serial":"/dev/tty.usbserial-21130",
 				"baudrate": 500000,
 				"vdp": true
 			},
@@ -301,7 +301,7 @@
 				"-exec e init",
 				"-exec e vsync on",
 				//"-exec b 54086",
-				"-exec b 5402a", // interrupt routine
+				//"-exec b 5402a", // interrupt routine
 				//"-exec b 5451a", // unpackGfx
 				"-exec e run"
             ],
@@ -314,7 +314,7 @@
 			"rootFolder": "${workspaceFolder}/machines/msx",
 			"remoteType": "agonelectronhal",
 			"agonelectronhal": {
-				"serial":"/dev/tty.usbserial-02B1CCD1",
+				"serial":"/dev/tty.usbserial-21130",
 				"baudrate": 500000,
 				"vdp": true
 			},

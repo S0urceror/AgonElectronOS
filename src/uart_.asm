@@ -282,15 +282,19 @@ uart0_recv_fifo_add:
     push hl
     push de
     push af ; character to write
-    ; ; command-mode?
-    ; push af
-    ; ld a, (_uart0_recv_command_mode)
-    ; and a
-    ; jr nz, _uart0_recv_command_next
-    ; pop af
-    ; ; check if command or character
-    ; bit 7,a
-    ; jr nz, _uart0_recv_command
+    ; command-mode?
+    push af
+    ld a, (_uart0_recv_command_mode)
+    and a
+    jr nz, _uart0_recv_command_next
+    pop af
+    ; check if command or character
+    bit 7,a
+    jr z, _uart0_recv_normal
+    bit 6,a
+    jr z, _uart0_recv_normal
+    jr _uart0_recv_command
+_uart0_recv_normal:
     ; store and increment head ptr
     ld hl, (_uart0_recv_head)
     ld (hl),a
@@ -312,82 +316,82 @@ _uart0_recv_done:
     pop hl
     ret
 
-; _uart0_recv_command:
-;     ; byte 0
-;     ld a, 2 ; two bytes following
-;     ld (_uart0_recv_command_mode),a
-;     jr _uart0_recv_done
-; _uart0_recv_command_next:
-;     dec a
-;     ld (_uart0_recv_command_mode),a
-;     and a ; 1 = vk, 0 = up/down
-;     jr z, _uart0_recv_command_next_updown 
-; _uart0_recv_comman_next_vk:
-;     ; byte 1
-;     pop af
-;     ld (_uart0_recv_command_vk),a
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_updown:
-;     ; byte 2
-;     ld a, (_uart0_recv_command_vk)
-;     ld hl, _eos_msx_keyboard_scanline+8
-;     cp 1 ; space
-;     jr z, _uart0_recv_command_next_space
-;     cp 154 ; arrow left
-;     jr z, _uart0_recv_command_next_arrowleft
-;     cp 156 ; arrow right
-;     jr z, _uart0_recv_command_next_arrowright
-;     cp 150 ; arrow up
-;     jr z, _uart0_recv_command_next_arrowup
-;     cp 152 ; arrow down
-;     jr z, _uart0_recv_command_next_arrowdown
-;     pop af
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowleft:
-;     pop af
-;     and a
-;     jr z, _uart0_recv_command_next_arrowleft_up
-;     res 4,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowleft_up:    
-;     set 4,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowright:
-;     pop af
-;     and a
-;     jr z, _uart0_recv_command_next_arrowright_up
-;     res 7,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowright_up:    
-;     set 7,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowup:
-;     pop af
-;     and a
-;     jr z, _uart0_recv_command_next_arrowup_up
-;     res 5,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowup_up:    
-;     set 5,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowdown:
-;     pop af
-;     and a
-;     jr z, _uart0_recv_command_next_arrowdown_up
-;     res 6,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_arrowdown_up:    
-;     set 6,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_space:
-;     pop af
-;     and a
-;     jr z, _uart0_recv_command_next_space_up
-;     res 0,(hl)
-;     jr _uart0_recv_done
-; _uart0_recv_command_next_space_up:    
-;     set 0,(hl)
-;     jr _uart0_recv_done
+_uart0_recv_command:
+    ; byte 0
+    ld a, 2 ; two bytes following
+    ld (_uart0_recv_command_mode),a
+    jr _uart0_recv_done
+_uart0_recv_command_next:
+    dec a
+    ld (_uart0_recv_command_mode),a
+    and a ; 1 = vk, 0 = up/down
+    jr z, _uart0_recv_command_next_updown 
+_uart0_recv_comman_next_vk:
+    ; byte 1
+    pop af
+    ld (_uart0_recv_command_vk),a
+    jr _uart0_recv_done
+_uart0_recv_command_next_updown:
+    ; byte 2
+    ld a, (_uart0_recv_command_vk)
+    ld hl, _eos_msx_keyboard_scanline+8
+    cp 1 ; space
+    jr z, _uart0_recv_command_next_space
+    cp 154 ; arrow left
+    jr z, _uart0_recv_command_next_arrowleft
+    cp 156 ; arrow right
+    jr z, _uart0_recv_command_next_arrowright
+    cp 150 ; arrow up
+    jr z, _uart0_recv_command_next_arrowup
+    cp 152 ; arrow down
+    jr z, _uart0_recv_command_next_arrowdown
+    pop af
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowleft:
+    pop af
+    and a
+    jr z, _uart0_recv_command_next_arrowleft_up
+    res 4,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowleft_up:    
+    set 4,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowright:
+    pop af
+    and a
+    jr z, _uart0_recv_command_next_arrowright_up
+    res 7,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowright_up:    
+    set 7,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowup:
+    pop af
+    and a
+    jr z, _uart0_recv_command_next_arrowup_up
+    res 5,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowup_up:    
+    set 5,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowdown:
+    pop af
+    and a
+    jr z, _uart0_recv_command_next_arrowdown_up
+    res 6,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_arrowdown_up:    
+    set 6,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_space:
+    pop af
+    and a
+    jr z, _uart0_recv_command_next_space_up
+    res 0,(hl)
+    jr _uart0_recv_done
+_uart0_recv_command_next_space_up:    
+    set 0,(hl)
+    jr _uart0_recv_done
 
 ; Get a character from the SEND fifo
 ; Returns:
