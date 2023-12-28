@@ -29,6 +29,7 @@
 	XREF	uart0_send
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
+SLOT_0_64K_SEGMENT EQU 01h
 
 ; API's in low 64kb so 16-bit range
 ; call API specified by IX
@@ -112,11 +113,11 @@ eos_msx_machine_rdslt:
 	; assumptions
 	; we have no expanded slots
 	; we only do primary slots
-	; ROM, slot 0, in 0x50000-0x5ffff , other slots RAM 0x60000 - 0x8ffff
+	; ROM, slot 0, in 0x10000-0x1ffff , other slots RAM 0x20000 - 0x7ffff
 	push ix
 	push hl
 	; add start ram slot
-	add a, 5
+	add a, SLOT_0_64K_SEGMENT
 	; push hl to stack which gives:
 	; SP   - L
 	; SP+1 - H
@@ -138,7 +139,7 @@ eos_msx_machine_wrslt:
 	push ix
 	push hl
 	; add start ram slot
-	add a, 5
+	add a, SLOT_0_64K_SEGMENT
 	; push hl to stack which gives:
 	; SP   - L
 	; SP+1 - H
@@ -169,7 +170,7 @@ eos_msx_machine_calslt:
 	push de
 	;
 	ld a, iyh
-	add a,5
+	add a,SLOT_0_64K_SEGMENT
 	ld mb, a
 	out0 (RAM_ADDR_U), a ; remap internal ram to upper 4k of selected 64kB
 	;

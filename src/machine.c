@@ -86,8 +86,8 @@ BOOL machine_mount_disk (UINT8 drive_nr, TCHAR* filename,int secsize)
 BOOL machine_init ()
 {
 	int i;
-	ram = (INT8*) 0x050000;
-	mbase = 0x05;
+	ram = (INT8*) (0x10000 * SLOT_0_64K_SEGMENT);
+	mbase = SLOT_0_64K_SEGMENT;
 	RAM_ADDR_U = mbase; // MSM: map internal ram to upper 4k of selected 64kB
 	machine_vsync_address=0x0000;
 	machine_vsync_register=0;
@@ -125,7 +125,7 @@ UINT16 machine_read_write_disk (UINT16 mbase,UINT16 af, UINT16 bc, UINT16 de, UI
 	const char drive_letter[] = "ABCDEFGH";
 	UINT bytes_read,bytes_written;
 	INT8* sectorbuffer;
-	UINT8 mb = (mbase>>8)-5;
+	UINT8 mb = (mbase>>8)-SLOT_0_64K_SEGMENT;
 	UINT8 a = af>>8;
 	UINT8 b = bc>>8;
 	BOOL carry = af & 1;

@@ -5,7 +5,7 @@
 #include "defines.h"
 #include "ff.h"
 
-
+#define SLOT_0_64K_SEGMENT 0x01
 #define CPM_SECTOR_SIZE 128
 #define MSX_SECTOR_SIZE 512
 
