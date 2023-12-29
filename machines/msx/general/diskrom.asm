@@ -1,5 +1,5 @@
     DEVICE NOSLOT64K
-    PAGE 6
+    PAGE 2
     
 ; DOS1.MAC
 

@@ -1,5 +1,5 @@
     DEVICE NOSLOT64K
-    PAGE 5
+    PAGE 1
     
 CHPUT       equ 00a2h
 CHGET		equ 009fh

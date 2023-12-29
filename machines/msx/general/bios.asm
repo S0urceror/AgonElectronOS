@@ -1,5 +1,5 @@
     DEVICE NOSLOT64K
-    PAGE 5
+    PAGE 1
 
 ;   .ASSUME ADL=0
 
@@ -552,13 +552,13 @@ WRITE_PORT_DONE:
     pop af ; restore interrupt state (in flags)
     ld a,b ; restore A
     pop bc ; restore BC
-
     ; interrupts were enabled? 1 is pe is EI, 0 is po is DI
     ret po ; leave them switched off
     ei     ; switch them back on when enabled
     ret
 WRITE_SLOT_REGISTER:
     push ix
+    scf ; is write
     ld ix, 0x0004 // eos_msx_machine_slotregister
     DB 0x5b ; .LIL
     rst 38h
@@ -625,6 +625,7 @@ READ_SLOT_REGISTER:
     DB 0x5b ; .LIL
     rst 38h
     pop ix
+    ld b, a ; value in B will be returned in A
     jp READ_PORT_DONE
 
 WRITE_PORT_EZ80:
