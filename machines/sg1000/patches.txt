@@ -1,0 +1,22 @@
+Gulkave:
+=======================================================================
+007D ED 56      IM 1        => 00 00        NOP, NOP
+xxxx ED 79      OUT (C),A   => CF FF        RST 08h                         *
+xxxx D3 xx      OUT (nn),a  => CF nn        RST 08h                         *
+xxxx DB xx      IN  A,(nn)  => D7 nn        RST 10h                         *
+xxxx ED 78      IN  (C),A   => D7 FF        RST 10h                         *
+0008 xx xx xx xx            => 37 C3 00 80  SCF, CALL 8000h (output)        *
+0010 xx xx xx xx            => a7 C3 00 80  AND a, CALL 8000h (input)       *
+8000 - xxxx                 => virtual input/output routine
+
+DB DE       in a,(00DEh)        * PPI port C
+DB DD       in a,(00DDh)        * PPI port B
+DB DC       in a,(00DCh)        * PPI port A
+DB BE       in a,(00BEh)        * VDP
+DB BF       in a,(00BFh)        * VDP
+D3 DF       out (00DFh),a       * PPI control port
+D3 DE       out (00DEh),a       * PPI port C - select what to see on port A and B
+ED 79       out (c),a           * 
+D3 BF       out (00BFh),a       * VDP
+D3 BE       out (00BEh),a       * VDP
+D3 7F       out (007Fh),a       * PSG

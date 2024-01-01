@@ -366,7 +366,40 @@
 			"commandsAfterLaunch": [
 				"-exec e init",
 				"-exec e mount /msx/MSXDOS.DSK",
-				"-exec e run"
+				"-exec e run",
+				"-exec b 020005",
+				"-exec b 02c82f"
+            ],
+			"preLaunchTask": "build"
+		},
+        {
+			"type": "dezog",
+			"request": "launch",
+			"name": "Dezog-Agon-sg1000-gulkave",
+			"rootFolder": "${workspaceFolder}/machines/sg1000",
+			"remoteType": "agonelectronhal",
+			"agonelectronhal": {
+				"serial":"/dev/tty.usbserial-211120",
+				"baudrate": 500000,
+				"vdp": true
+			},
+			"sjasmplus": [
+				{
+					"path": "inout.sld"
+				}
+			],
+			"startAutomatically": true,
+			"loadObjs": [
+				{ "path": "Gulkave (Japan).sg", "start": "0x0000.1" },
+				{ "path": "inout.bin", "start": "0x8000.1" }
+			],
+			"topOfStack": "0xffff",
+			"commandsAfterLaunch": [
+				"-exec b 010038",
+				"-exec e personality 3",
+				"-exec e init",
+				"-exec e vsync on 0038",
+				"-exec e run",
             ],
 			"preLaunchTask": "build"
 		}

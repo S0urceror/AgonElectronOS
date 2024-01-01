@@ -9,6 +9,13 @@
 #define CPM_SECTOR_SIZE 128
 #define MSX_SECTOR_SIZE 512
 
+#define VDU_SYSTEM          0
+#define VDU_GP              0x80
+#define VDU_MODE            0x86
+#define OS_MOS              1
+#define OS_ELECTRON         2
+#define CTRL_W 				0x17 // 23 decimal, MOS escape code, ElectronOS 8 bits ASCII value
+
 struct HEADER
 {
 	UINT8  magic;
@@ -29,5 +36,7 @@ BOOL machine_set_warmboot_image (UINT8 bank, char* szFilename);
 UINT16 machine_read_write_disk (UINT16 mb, UINT16 af, UINT16 bc, UINT16 de, UINT16 hl);
 void machine_set_vsync (BOOL vsync);
 void machine_vblank_handler ();
+BOOL machine_set_personality (UINT8 personality);
+void machine_set_vsync_address (UINT16 vsync_address);
 
 #endif

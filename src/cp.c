@@ -12,9 +12,7 @@
 char szCommandLine[128];
 char szPrevCommandLine[128];
 char *ptrCommandLine;
-void vdp_test ();
 extern UINT32 clock;
-void print_clock ();
 
 // Change directory
 // Parameters:
@@ -136,6 +134,7 @@ BOOL cp_process ()
 	UINT8 chunksize=8;
 	UINT8 screen;
 	UINT8* r;
+	UINT8 personality;
 
 	static const UINT8 regs_screen0[8] = {0x00,0xf0,0x00,0x00,0x01,0x00,0x00,0xe4};
 	static const UINT8 regs_screen1[8] = {0x00,0xe2,0x06,0x80,0x00,0x36,0x07,0xe4};
@@ -224,16 +223,39 @@ BOOL cp_process ()
 	}
 	if (strstr (szCommandLine,"vsync")==szCommandLine)
 	{
-		BOOL vsync = TRUE;
+		UINT16 vsync_address;
+		BOOL result = FALSE;
 		pArg = szCommandLine+5;
 		if (*pArg!='\0')
 		{	
 			pArg++;
 			if (pArg[0]=='o' && pArg[1]=='f' && pArg[2]=='f')
-				vsync = FALSE;
+			{
+				result = TRUE;
+				pArg+=3;
+				machine_set_vsync (FALSE);
+			}
+			if (pArg[0]=='o' && pArg[1]=='n')
+			{
+				result = TRUE;
+				pArg+=2;
+				machine_set_vsync (TRUE);
+			}
+			// optionally specify vsync address
+			// this can also be done in code via EOS API
+			if (*pArg != '\0' && *pArg != '\r' && *pArg != '\n')
+			{
+				result=FALSE;
+				vsync_address = strtol (pArg,NULL,16);
+				if (vsync_address>0)
+				{
+					machine_set_vsync_address (vsync_address);
+					result = TRUE;
+				}
+			}
+			return result;
 		}
-		machine_set_vsync (vsync);
-		return TRUE;
+		return result;
 	}
 	if (strstr (szCommandLine,"dir")==szCommandLine)
 	{
@@ -290,21 +312,6 @@ BOOL cp_process ()
 	{
 		return TRUE;
 	}
-	if (strstr (szCommandLine,"vdp_test")==szCommandLine)
-	{
-		clock_start = clock;
-		for (i=0;i<256;i++)
-			vdp_test ();
-		clock_end = clock;
-		printf ("\r\n");
-		printf ("Clock start %d\r\n",clock_start);
-		printf ("Clock end %d\r\n",clock_end);
-		printf ("Clock diff %d\r\n",clock_end-clock_start);
-		printf ("Clock diff %d seconds\r\n",(clock_end-clock_start)/100);
-		printf ("I/O per seconds: %d\r\n",(256*256)/((clock_end-clock_start)/100));
-		printf ("Bytes per seconds: %d",(256*256*3)/((clock_end-clock_start)/100));
-		return TRUE;
-	}
 	if (strstr (szCommandLine,"joystick_test")==szCommandLine)
 	{
 		int value = read_joysticks();
@@ -331,7 +338,7 @@ BOOL cp_process ()
 		if (*pArg!='\0')
 		{	
 			pArg++;
-			if (pArg[0]!='\0]')
+			if (pArg[0]!='\0')
 			{
 				screen = strtol (pArg,NULL,10);
 				r = regs_screen0;
@@ -363,7 +370,17 @@ BOOL cp_process ()
 			}
 			
 		}
-		
+	}
+	if (strstr (szCommandLine,"personality")==szCommandLine)
+	{
+		pArg = szCommandLine+11;
+		if (*pArg!='\0')
+		{	
+			printf ("\r\n");
+			personality = strtol (pArg,NULL,10);
+			machine_set_personality (personality);
+			return TRUE;
+		}
 	}
 	return FALSE;
 }

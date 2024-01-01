@@ -29,13 +29,6 @@ void init_interrupts(void)
 	set_vector(UART0_IVECT,  uart0_handler);			// 0x18
 }
 
-#define VDU_SYSTEM          0
-#define VDU_GP              0x80
-#define VDU_MODE            0x86
-#define OS_MOS              1
-#define OS_ELECTRON         2
-#define CTRL_W 				0x17 // 23 decimal, MOS escape code, ElectronOS 8 bits ASCII value
-
 BOOL waitESP32 ()
 {
 	int i,t;
@@ -45,32 +38,10 @@ BOOL waitESP32 ()
 	init_timer0(10, 16, 0x00);  		// 10ms timer for delay
 	for(t = 0; t < 200; t++) 
 	{			
-		// A timeout loop (200 x 50ms = 10s)
-		// Send a general poll packet
-		putch(CTRL_W);						
-		putch(VDU_SYSTEM);
-		putch(VDU_GP);
-		putch(OS_ELECTRON);
-		// Wait 50ms
-		for(i = 0; i < 5; i++) 
+		if (machine_set_personality (OS_ELECTRON))
 		{
-			wait_timer0();
-			ch = getch();
-			if (ch!=0)
-				break;
-		}
-		// Check response
-		if (ch==VDU_GP)
-		{
-			if (getch()==1)
-			{
-				// echoed back to us
-				if (getch()==OS_ELECTRON)
-				{
-					esp32_found = TRUE;
-					break;				// If general poll returned, then exit for loop
-				}
-			}
+			esp32_found = TRUE;
+			break;				// If general poll returned, then exit for loop
 		}
 	}
 	enable_timer0(0);					// Disable the timer

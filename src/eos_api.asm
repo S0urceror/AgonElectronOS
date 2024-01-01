@@ -8,7 +8,6 @@
 	XDEF	electron_os_api
 	XDEF	electron_os_inout
 	XDEF	_machine_vblank_handler
-	XDEF	_vdp_test
 	; XDEF	checkEIstate
 
 	XREF	_machine_read_write_disk
@@ -410,18 +409,6 @@ _electron_os_inout_recv_1:
 _electron_os_inout_slotregister:
 	pop af
 	jp eos_msx_machine_slotregister
-
-_vdp_test:
-	ld b, 0
-_vdp_test_again:
-	ld a, 080h
-	call uart0_send
-	ld a, 098h
-	call uart0_send
-	ld a, 00h
-	call uart0_send
-	djnz _vdp_test_again
-	ret
 
 eos_msx_machine_getscanline:
 	push bc

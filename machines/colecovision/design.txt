@@ -1,0 +1,41 @@
+COLECOVISION MEMORY MAP
+
+0000H - BIOS ROM
+.
+1FFFH
+2000H - Expansion port
+.
+3FFFH
+4000H - Expansion port
+.
+5FFFH
+6000H - Start of RAM (1K mapped into an 8K spot)
+.
+7FFFH
+8000H - Cart ROM (broken into 4 sections, each enabled seperately)
+.
+FFFFH
+
+COLECOVISION I/O MAP
+
+00-1F - No Connection
+20-3F - No Connection
+40-5F - Video
+60-7F - Video
+80-9F - No Connection
+A0-BF - No Connection
+C0-DF - Sound
+E0-FF - Controllers; E2 is special, as wellas E0 - E0 appears to be the readback, and E2 appears to be the scan - 39
+
+BIOS DETAILS
+
+The ColecoVision contains a ROM which essentially acts as a BIOS for the system. Upon startup, it begins to execute code at 0000H. The first step executed is a check to see if a cart is plugged in. This is performed by checking two locations in the cart's memory - if the two bytes read are 55H and AAH then the ColecoVision knows a cart is in the system. Otherwise, it displays the standard "Turn Power Off Before..." screen.
+
+If a cart is in the system, the BIOS passes controlto the cart. The cart can then use some, all, or none the functions found in the BIOS. Some of the functions provided in the BIOS include the title screen and game select screen.
+
+The famous twelve second delay is part of the titlescreen routine. - 8
+
+The address range for cartridges is 8000H to FFFFH,a total of 32K. - 29, 31
+
+
+Programmers manual: http://www.colecovisionzone.com/page/coleco%20industries/programmers.html

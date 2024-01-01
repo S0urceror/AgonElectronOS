@@ -5,6 +5,8 @@
 #include "misc.h"
 #include <String.h>
 #include "vectors16.h"
+#include "uart.h"
+#include "timer.h"
 
 INT8 *ram;
 INT8  mbase;
@@ -15,6 +17,7 @@ int _secsize;
 UINT32 machine_vsync_address;
 UINT8 machine_vsync_register;
 UINT8 machine_vsync_running;
+BOOL want_vsync;
 
 BOOL machine_load_image (UINT8 bank,TCHAR* filename)
 {
@@ -92,6 +95,7 @@ BOOL machine_init ()
 	machine_vsync_address=0x0000;
 	machine_vsync_register=0;
 	machine_vsync_running=0;
+	want_vsync = FALSE;
 
 	// // set port C bit 0 to output, L=GND, H=Vcc
 	// // leave rest set to input mode
@@ -106,6 +110,8 @@ BOOL machine_init ()
 
 void machine_start (UINT8 bank,UINT16 start_address)
 {
+	if (want_vsync==TRUE)
+		set_vector(PORTB1_IVECT, machine_vblank_handler); 	// 0x32
 	exec16((UINT24)(ram+start_address+bank*0x10000), NULL); 
 }
 
@@ -161,8 +167,7 @@ UINT16 machine_read_write_disk (UINT16 mbase,UINT16 af, UINT16 bc, UINT16 de, UI
 
 void machine_set_vsync (BOOL vsync)
 {
-	if (vsync==TRUE)
-		set_vector(PORTB1_IVECT, machine_vblank_handler); 	// 0x32
+	want_vsync = vsync;
 }
 
 extern UINT32 clock;
@@ -171,4 +176,38 @@ void print_clock ()
 {
 	printf ("Clock: %d (%d)\r\n",clock,clock - prev_clock);
 	prev_clock = clock;
+}
+
+BOOL machine_set_personality (UINT8 personality)
+{
+	UINT8 ch=0;
+	int i;
+	putch(CTRL_W);						
+	putch(VDU_SYSTEM);
+	putch(VDU_GP);
+	putch(personality);
+	// Wait 50ms
+	for(i = 0; i < 5; i++) 
+	{
+		wait_timer0();
+		ch = getch();
+		if (ch!=0)
+			break;
+	}
+	// Check response
+	if (ch==VDU_GP)
+	{
+		if (getch()==1)
+		{
+			// echoed back to us
+			if (getch()==personality)
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+void machine_set_vsync_address (UINT16 address)
+{
+	machine_vsync_address = address;	
 }
