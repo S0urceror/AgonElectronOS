@@ -28,7 +28,15 @@
 	XREF	uart0_send
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
+
+; ElectronOS runs from RAM at 0x00000, personality RAM starts from 0x10000
+.ifdef _DEBUG
 SLOT_0_64K_SEGMENT EQU 01h
+.endif
+; ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x40000
+.ifdef NDEBUG
+SLOT_0_64K_SEGMENT EQU 04h
+.endif
 
 ; API's in low 64kb so 16-bit range
 ; call API specified by IX

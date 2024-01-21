@@ -5,15 +5,23 @@
 #include "defines.h"
 #include "ff.h"
 
+// ElectronOS runs from RAM at 0x00000, personality RAM starts from 0x10000
+// when stored from 0x010000 in the flashrom you can use FLASH mos-switch to copy it to 0x000000 in RAM and run it from there
+#ifdef _DEBUG 
 #define SLOT_0_64K_SEGMENT 0x01
+#endif
+// ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x40000
+#ifdef NDEBUG 
+#define SLOT_0_64K_SEGMENT 0x04
+#endif
 #define CPM_SECTOR_SIZE 128
 #define MSX_SECTOR_SIZE 512
 
 #define VDU_SYSTEM          0
 #define VDU_GP              0x80
 #define VDU_MODE            0x86
-#define OS_MOS              1
-#define OS_ELECTRON         2
+#define OS_MOS              2
+#define OS_ELECTRON         128
 #define CTRL_W 				0x17 // 23 decimal, MOS escape code, ElectronOS 8 bits ASCII value
 
 struct HEADER

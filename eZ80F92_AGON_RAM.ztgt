@@ -6,7 +6,7 @@
    </Clock>
    <ControlReg>
       <pc>0</pc>
-      <splStackPtr>C0000</splStackPtr>
+      <splStackPtr>80000</splStackPtr>
       <spsStackPtr>ffff</spsStackPtr>
       <useAdlMode>true</useAdlMode>
    </ControlReg>
@@ -14,8 +14,8 @@
       <device />
       <externalAddress>100000</externalAddress>
       <externalAutoSelect>false</externalAutoSelect>
-      <externalRamLower>40000</externalRamLower>
-      <externalRamUpper>BFFFF</externalRamUpper>
+      <externalRamLower>0</externalRamLower>
+      <externalRamUpper>7FFFF</externalRamUpper>
       <manufacturer />
       <units>1</units>
       <usingExternal>false</usingExternal>
@@ -26,8 +26,8 @@
          <CS0>
             <busMode>1</busMode>
             <controlRegister>8</controlRegister>
-            <lower>4</lower>
-            <upper>B</upper>
+            <lower>0</lower>
+            <upper>7</upper>
          </CS0>
          <CS1>
             <busMode>0</busMode>
@@ -50,7 +50,7 @@
       </ChipSelects>
       <Internal>
          <mapFlashToPage>8</mapFlashToPage>
-         <mapRamToPage>B7</mapRamToPage>
+         <mapRamToPage>FF</mapRamToPage>
          <useFlashRam>true</useFlashRam>
          <useInternalDataRam>true</useInternalDataRam>
       </Internal>

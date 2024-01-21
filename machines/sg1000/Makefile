@@ -5,12 +5,17 @@ HEXBIN=../../../../development/ihex-master/ihex2bin
 OUTPUT_DIR = .
 SOURCE_DIR = .
 
-all: compile
+all: compile package
 
-compile: $(OUTPUT_DIR)/inout.bin
+package: $(OUTPUT_DIR)/gulkave.bin
+	cat $(OUTPUT_DIR)/Gulkave-header.bin "$(OUTPUT_DIR)/Gulkave (Japan).sg" $(OUTPUT_DIR)/inout.bin > $(OUTPUT_DIR)/gulkave.bin
+
+compile: $(OUTPUT_DIR)/inout.bin $(OUTPUT_DIR)/Gulkave-header.bin 
 
 $(OUTPUT_DIR)/inout.bin: $(OUTPUT_DIR)/inout.asm
-	$(ASM) $(ASMFLAGS) -DAGONELECTRON $< 
+	$(ASM) $(ASMFLAGS) $< 
+$(OUTPUT_DIR)/Gulkave-header.bin: $(OUTPUT_DIR)/Gulkave-header.asm
+	$(ASM) $(ASMFLAGS) $< 
 
 hexbin:
 	$(HEXBIN) -i "$(OUTPUT_DIR)/Gulkave (Japan).hex" -o "$(OUTPUT_DIR)/Gulkave (Japan).rom"
