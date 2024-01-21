@@ -33,9 +33,9 @@ JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+)
 .ifdef _DEBUG
 SLOT_0_64K_SEGMENT EQU 01h
 .endif
-; ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x40000
+; ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x50000
 .ifdef NDEBUG
-SLOT_0_64K_SEGMENT EQU 04h
+SLOT_0_64K_SEGMENT EQU 05h
 .endif
 
 ; API's in low 64kb so 16-bit range

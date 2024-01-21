@@ -197,10 +197,10 @@ BOOL cp_process ()
 		pArg++;
 		if (pArg[0]=='-' && pArg[1]>='c')
 		{
-			pArg += 2;
+			pArg += 3;
 			secsize = CPM_SECTOR_SIZE;
 		}
-		return machine_mount_disk (0,++pArg,secsize);
+		return machine_mount_disk (0,pArg,secsize);
 	}
 	if (strstr (szCommandLine,"run")==szCommandLine)
 	{

@@ -10,9 +10,9 @@
 #ifdef _DEBUG 
 #define SLOT_0_64K_SEGMENT 0x01
 #endif
-// ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x40000
+// ElectronOS runs from ROM at 0x00000, personality RAM starts from 0x50000
 #ifdef NDEBUG 
-#define SLOT_0_64K_SEGMENT 0x04
+#define SLOT_0_64K_SEGMENT 0x05
 #endif
 #define CPM_SECTOR_SIZE 128
 #define MSX_SECTOR_SIZE 512
