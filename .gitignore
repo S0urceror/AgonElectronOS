@@ -7,3 +7,5 @@ Release
 *.sym
 *.sld
 *.rom
+*.bin
+*.sg
