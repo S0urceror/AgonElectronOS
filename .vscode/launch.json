@@ -381,7 +381,7 @@
 			"agonelectronhal": {
 				"serial":"/dev/tty.usbserial-211120",
 				"baudrate": 500000,
-				"vdp": true
+				"vdp": false
 			},
 			"sjasmplus": [
 				{

@@ -20,7 +20,8 @@
 #define VDU_SYSTEM          0
 #define VDU_GP              0x80
 #define VDU_MODE            0x86
-#define OS_MOS              2
+#define OS_MOS              1
+#define OS_MOS_FULLDUPLEX   2
 #define OS_ELECTRON         128
 #define CTRL_W 				0x17 // 23 decimal, MOS escape code, ElectronOS 8 bits ASCII value
 
