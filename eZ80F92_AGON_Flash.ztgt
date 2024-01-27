@@ -49,7 +49,7 @@
          </CS3>
       </ChipSelects>
       <Internal>
-         <mapFlashToPage>8</mapFlashToPage>
+         <mapFlashToPage>0</mapFlashToPage>
          <mapRamToPage>B7</mapRamToPage>
          <useFlashRam>true</useFlashRam>
          <useInternalDataRam>true</useInternalDataRam>
