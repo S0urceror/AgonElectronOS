@@ -20,7 +20,7 @@
 			XDEF    _uart0_recv_tail
 			XDEF    _uart0_recv_buffer			
 			XDEF	_uart0_recv_command_mode
-			XDEF	_uart0_recv_command_vk
+			XDEF	_uart0_recv_command_row
 			XDEF	_eos_msx_keyboard_scanline
 
 			SEGMENT BSS		; This section is reset to 0 in cstartup.asm
@@ -41,7 +41,7 @@ _uart0_recv_buffer DS UART0_RECV_BUFFER_SIZE
 _uart0_recv_head DS 3
 _uart0_recv_tail DS 3
 _uart0_recv_command_mode DS 1
-_uart0_recv_command_vk DS 1
+_uart0_recv_command_row DS 1
 _eos_msx_keyboard_scanline DS 12
 
 		

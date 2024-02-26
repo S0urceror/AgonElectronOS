@@ -7,7 +7,7 @@ SOURCE_DIR = .
 
 all: compile package
 
-package: $(OUTPUT_DIR)/gulkave.bin
+package: 
 	cat $(OUTPUT_DIR)/Gulkave-header.bin "$(OUTPUT_DIR)/Gulkave (Japan).sg" $(OUTPUT_DIR)/inout.bin > $(OUTPUT_DIR)/gulkave.bin
 
 compile: $(OUTPUT_DIR)/inout.bin $(OUTPUT_DIR)/Gulkave-header.bin 
@@ -22,3 +22,6 @@ hexbin:
 
 binhex:
 	$(BINHEX) -i "$(OUTPUT_DIR)/Gulkave (Japan).sg" -o "$(OUTPUT_DIR)/Gulkave (Japan).hex"
+
+clean:
+	rm $(OUTPUT_DIR)/gulkave.bin

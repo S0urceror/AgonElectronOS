@@ -1,0 +1,189 @@
+; BIO.MAC
+
+; BASIC I/O functions (part in page 0), MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     1B45H
+
+        INCLUDE MSX.INC
+
+
+LPTPOS  equ     0F415H
+PRTFLG  equ     0F416H
+NTMSXP  equ     0F417H
+RAWPRT  equ     0F418H
+
+H.OUTD  equ     0FEE4H
+
+
+        PUBLIC  OUTDO
+        PUBLIC  OUTDLP
+
+        EXTRN   ISFLIO
+        EXTRN   CNVCHR
+        EXTRN   LPTOUT
+        EXTRN   CHPUT
+        EXTRN   CALBAS
+	EXTRN	DIOERR
+	EXTRN	FILOUT
+
+
+; START SUBTTL  BIO
+
+        SUBTTL  BIO
+
+
+;       Subroutine      OUTDO
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+OUTDO:
+A1B45:  push    af
+        call    H.OUTD
+        call    ISFLIO                  ; ISFLIO (is file output ?)
+        jr      z,A1B56                 ; nope,
+        pop     af
+        ld      ix,FILOUT               ; seq. output
+        jp      CALBAS                  ; CALBAS
+;
+A1B56:  ld      a,(PRTFLG)
+        or      a                       ; output to printer ?
+        jr      z,A1BBB                 ; nope, output to screen
+        ld      a,(RAWPRT)
+        and     a                       ; data raw to printer ?
+        jr      nz,A1BAB                ; yep, to printer
+        pop     af
+
+;       Subroutine      OUTDLP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+OUTDLP:
+A1B63:  push    af
+        cp      009H                    ; tab ?
+        jr      nz,A1B76                ; nop
+A1B68:  ld      a,020H
+        call    OUTDLP                  ; OUTDLP
+        ld      a,(LPTPOS)
+        and     007H
+        jr      nz,A1B68                ; print spaces
+        pop     af
+        ret
+;
+A1B76:  sub     00DH
+        jr      z,A1B84                 ; cr, LPTPOS = 0
+        jr      c,A1B87
+        cp      013H
+        jr      c,A1B87                 ; control char, don't increase
+        ld      a,(LPTPOS)
+        inc     a                       ; increase LPTPOS
+A1B84:  ld      (LPTPOS),a
+A1B87:  ld      a,(NTMSXP)
+        and     a                       ; MSX printer ?
+        jr      z,A1BAB                 ; yep, to printer
+        pop     af
+        call    CNVCHR                  ; CNVCHR (is grafic header ?)
+        ret     nc                      ; header, quit
+        jr      nz,J1BB7                ; grafic char, print space
+
+; *************************************
+; *************************************
+        
+
+        IF      KEYTYP EQ 0
+
+        AND     A
+        JP      P,J1BAC                 ; plain ascii, print
+        CP      86H
+        JR      C,J1BB7                 ; 80H-85H, print space
+        CP      0A0H                    ; 86H-9FH ?
+        JR      NC,J1BA4                ; nope,
+        ADD     A,20H
+        JR      J1BAC                   ; adjust to A6H-BFH and print
+
+J1BA4:  CP      0E0H                    ; E0H-FFH ?
+        JR      C,J1BAC                 ; nope, print
+        SUB     20H                     ; adjust to C0H-DFH
+        DEFB    038H                    ; JR C,xx a trick to skip the next line (because Cx is always reset at this point)
+
+        ELSE
+
+        JR      J1BAC
+
+
+        IF      KEYTYP EQ 1
+
+        INCLUDE KEYINT.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 2
+
+        INCLUDE KEYFR.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 3
+
+        INCLUDE KEYUK.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 4
+
+        INCLUDE KEYGER.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 5
+
+        INCLUDE KEYRUS.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 6
+
+        INCLUDE KEYSPA.MAC
+
+        ENDIF
+
+
+
+        ENDIF
+
+; *************************************
+; *************************************
+
+        ORG     01BABH
+
+A1BAB:  pop     af
+J1BAC:  call    LPTOUT                  ; LPTOUT
+        ret     nc                      ; no break, quit
+        ld      ix,DIOERR               ; Device I/O error
+        jp      CALBAS                  ; CALBAS
+;
+J1BB7:  ld      a,020H
+        jr      J1BAC
+;
+A1BBB:  pop     af
+        jp      CHPUT                   ; CHPUT
+
+; END   SUBTTL  BIO
+
+        end

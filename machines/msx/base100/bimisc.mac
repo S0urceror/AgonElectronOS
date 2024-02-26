@@ -1,0 +1,933 @@
+; BIMSIC.MAC
+
+; BASIC interpreter miscellaneous functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     06280h ; 6250H
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  EQU     0008H
+CHRGTR  EQU     0010H
+DCOMPR  EQU     0020H
+
+VARWRK  EQU     0F380H
+CURLIN  EQU     0F41CH
+VALTYP  EQU     0F663H
+MEMSIZ  EQU     0F672H
+STKTOP  EQU     0F674H
+TXTTAB  EQU     0F676H
+TEMPPT  EQU     0F678H
+TEMPST  EQU     0F67AH
+FRETOP  EQU     0F69BH
+SUBFLG  EQU     0F6A5H
+TEMP    EQU     0F6A7H
+PTRFLG  EQU     0F6A9H
+AUTFLG  EQU     0F6AAH
+SAVTXT  EQU     0F6AFH
+SAVSTK  EQU     0F6B1H
+ONELIN  EQU     0F6B9H
+ONEFLG  EQU     0F6BBH
+OLDLIN  EQU     0F6BEH
+OLDTXT  EQU     0F6C0H
+VARTAB  EQU     0F6C2H
+ARYTAB  EQU     0F6C4H
+STREND  EQU     0F6C6H
+DATPTR  EQU     0F6C8H
+DEFTBL  EQU     0F6CAH
+PRMSTK  EQU     0F6E4H
+PRMLEN  EQU     0F6E6H
+PRMLN2  EQU     0F74EH
+NOFUNS  EQU     0F7B7H
+FUNACT  EQU     0F7BAH
+SWPTMP  EQU     0F7BCH
+TRCFLG  EQU     0F7C4H
+MAXFIL  EQU     0F85FH
+NLONLY  EQU     0F87CH
+FNKFLG  EQU     0FBCEH
+ONGSBF  EQU     0FBD8H
+HIMEM   EQU     0FC4AH
+TRPTBL  EQU     0FC4CH
+
+H.RUNC  EQU     0FECBH
+H.CLEA  EQU     0FED0H
+H.LOPD  EQU     0FED5H
+H.STKE  EQU     0FEDAH
+
+
+        PUBLIC  BLTU
+        PUBLIC  BLTUC
+        PUBLIC  GETSTK
+        PUBLIC  REASON
+        PUBLIC  OMERR
+        PUBLIC  SCRTCH
+        PUBLIC  RUNC
+        PUBLIC  CLEARC
+        PUBLIC  CLEAR2
+        PUBLIC  STKINI
+        PUBLIC  STKERR
+        PUBLIC  ISLET
+        PUBLIC  ISLET2
+        PUBLIC  GTMPRT
+        PUBLIC  TRPEXE
+        PUBLIC  TRPENA
+        PUBLIC  TRPDIS
+        PUBLIC  TRPSTP
+        PUBLIC  TRPRSM
+        PUBLIC  RESFIN
+        PUBLIC  ENDCON
+        PUBLIC  ENDS
+        PUBLIC  STOP
+        PUBLIC  STOPS
+        PUBLIC  STPEND
+        PUBLIC  RESTOR
+        PUBLIC  CLEAR
+        PUBLIC  SCRATH
+        PUBLIC  CONT
+        PUBLIC  TON
+        PUBLIC  TOFF
+        PUBLIC  SWAP
+        PUBLIC  ERASE
+        PUBLIC  NEXT
+
+        EXTRN   MOVRMI
+        EXTRN   MOVRM
+        EXTRN   MOVMF
+        EXTRN   VMOVAM
+        EXTRN   VMOVE
+        EXTRN   VMOVFM
+        EXTRN   VMOVMF
+        EXTRN   ICOMP
+        EXTRN   FCOMP
+        EXTRN   XDCOMP
+        EXTRN   IADD
+        EXTRN   FCERR
+        EXTRN   SNERR
+        EXTRN   USERR
+        EXTRN   CLSALL
+        EXTRN   NEWSTT
+        EXTRN   STPRDY
+        EXTRN   ERROR
+        EXTRN   FINLPT
+        EXTRN   PTRGET
+        EXTRN   CRDONZ
+        EXTRN   FINPRT
+        EXTRN   STOPT
+        EXTRN   GETUIN
+        EXTRN   INTID2
+        EXTRN   LINKER
+        EXTRN   GOSUBT
+        EXTRN   LINGET
+        EXTRN   FNDLIN
+        EXTRN   BRKTXT
+        EXTRN   ERRFIN
+        EXTRN   TMERR
+        EXTRN   OVERR
+        EXTRN   NFERR
+        EXTRN   FNDFOR
+        EXTRN   NXTCON
+        EXTRN   RNDINI
+        EXTRN   SGNADD
+        EXTRN   DECADM
+        EXTRN   ALCFIL
+        EXTRN   GETENT
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	BIMISC
+
+	SUBTTL	BIMISC
+
+
+;       Subroutine      check for enough stackspace and move data
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BLTU:
+C6250:  CALL    REASON                  ; check if enough stackspace left
+
+;       Subroutine      move data
+;       Inputs          BC = source end, DE = source start, HL = destination end
+;       Outputs         BC = destination start, DE = source start, HL = source start
+
+BLTUC:
+C6253:  PUSH    BC
+        EX      (SP),HL
+        POP     BC
+J6256:  _RST    DCOMPR
+        LD      A,(HL)
+        LD      (BC),A
+        RET     Z
+        DEC     BC
+        DEC     HL
+        JR      J6256
+
+;       Subroutine      check if enough stackspace
+;       Inputs          C = number of words
+;       Outputs         ________________________
+
+GETSTK:
+C625E:  PUSH    HL
+        LD      HL,(STREND)
+        LD      B,0
+        ADD     HL,BC
+        ADD     HL,BC
+        DEFB    03EH                    ; LD A,xx, trick to skip next instruction
+
+;       Subroutine      check if enough stackspace left
+;       Inputs          HL = end of area to use
+;       Outputs         ________________________
+
+REASON:
+C6267:  PUSH    HL
+        LD      A,LOW -120
+        SUB     L
+        LD      L,A
+        LD      A,HIGH -120
+        SBC     A,H
+        LD      H,A
+        JR      C,OMERR                 ; out of memory
+        ADD     HL,SP
+        POP     HL
+        RET     C
+
+OMERR:
+J6275:  CALL    LINKER                  ; setup BASIC linelinks
+        LD      HL,(STKTOP)
+        DEC     HL
+        DEC     HL
+        LD      (SAVSTK),HL
+        LD      DE,7                    ; ?? LD E,7 should be enough ??
+        JP      ERROR                   ; out of memory error
+
+;       Subroutine      NEW statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCRATH:
+C6286:  RET     NZ                      ; not end of statement, quit (which will generate a syntax error)
+
+;       Subroutine      clear basic program
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCRTCH:
+C6287:  LD      HL,(TXTTAB)
+        CALL    C6439                   ; trace off
+        LD      (AUTFLG),A              ; quit auto linenumber mode
+        LD      (PTRFLG),A              ; output to screen
+        LD      (HL),A
+        INC     HL
+        LD      (HL),A                  ; endpointer at basic text (no program text)
+        INC     HL
+        LD      (VARTAB),HL             ; initialize start of basic variable area
+
+;       Subroutine      initialize interpreter, basicpointer at start of program
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RUNC:
+C629A:  CALL    H.RUNC
+        LD      HL,(TXTTAB)
+        DEC     HL
+
+;       Subroutine      initialize interpreter
+;       Inputs          HL = BASIC pointer
+;       Outputs         ________________________
+
+CLEARC:
+C62A1:  CALL    H.CLEA
+        LD      (TEMP),HL
+
+;       Subroutine      initialize interpreter, basicpointer from TEMP
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Remark          CLEAR2 is not the offical name
+
+CLEAR2:
+C62A7:  CALL    C636E                   ; clear trap variables
+        LD      B,26
+        LD      HL,DEFTBL
+        CALL    H.LOPD
+J62B2:  LD      (HL),8
+        INC     HL
+        DJNZ    J62B2                   ; default type for variables is double real
+        CALL    RNDINI                  ; initialize RNDX
+        XOR     A
+        LD      (ONEFLG),A              ; not in ERROR handling routine
+        LD      L,A
+        LD      H,A
+        LD      (ONELIN),HL             ; no "on error" handler
+        LD      (OLDTXT),HL             ; CONT statement not possible
+        LD      HL,(MEMSIZ)
+        LD      (FRETOP),HL             ; empty stringspace
+        CALL    RESTOR                  ; restore statement
+        LD      HL,(VARTAB)
+        LD      (ARYTAB),HL             ; begin of arrayvariables space = begin of variable space (no variables) 
+        LD      (STREND),HL             ; end of basicprogram workarea = begin of variable space (no array variables)
+        CALL    CLSALL                  ; close all i/o channels
+        LD      A,(NLONLY)
+        AND     01H                     ; loading basic program ?
+        JR      NZ,STKINI
+        LD      (NLONLY),A              ; nope, close i/o channels when requested
+
+;       Subroutine      initialize stack
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STKINI:
+C62E5:  POP     BC                      ; get return address from stack
+        LD      HL,(STKTOP)
+        DEC     HL
+        DEC     HL
+        LD      (SAVSTK),HL
+        INC     HL
+        INC     HL
+
+;       Subroutine      reinitialize stack, reset interpreter output, clear FN vars, clear variable search flag
+;       Inputs          HL = top of new stack
+;       Outputs         ________________________
+
+STKERR:
+J62F0:  CALL    H.STKE
+        LD      SP,HL                   ; initialize stackpointer
+        LD      HL,TEMPST
+        LD      (TEMPPT),HL             ; clear stringdescriptor stack
+        CALL    FINLPT                  ; end printeroutput
+        CALL    FINPRT                  ; return interpreter output to screen
+        XOR     A
+        LD      H,A
+        LD      L,A
+        LD      (PRMLEN),HL
+        LD      (NOFUNS),A
+        LD      (PRMLN2),HL
+        LD      (FUNACT),HL
+        LD      (PRMSTK),HL             ; clear FN variables
+        LD      (SUBFLG),A              ; clear variable search flag
+        PUSH    HL                      ; terminator zero word for FOR and GOSUB
+        PUSH    BC                      ; return address back on stack
+GTMPRT:
+C6317:  LD      HL,(TEMP)
+        RET
+
+;       Subroutine      enable trap
+;       Inputs          HL = pointer to trap block
+;       Outputs         ________________________
+
+TRPENA:
+J631B:  DI
+        LD      A,(HL)
+        AND     04H                     ; keep trap occured flag
+        OR      01H                     ; trap enabled
+        CP      (HL)                    ; trap already enabled AND not paused ?
+        LD      (HL),A
+        JR      Z,J6329                 ; yep, quit
+        AND     04H                     ; trap occured ?
+        JR      NZ,J634F                ; yep, increase trap counter and quit
+J6329:  EI
+        RET
+
+;       Subroutine      disable trap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPDIS:
+J632B:  DI
+        LD      A,(HL)
+        LD      (HL),0                  ; clear trap occured, trap not paused, trap disabled
+        JR      J6338                   ; decrease trap counter if needed
+
+;       Subroutine      pause trap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPSTP:
+C6331:  DI
+        LD      A,(HL)
+        PUSH    AF
+        OR      02H
+        LD      (HL),A                  ; trap paused
+        POP     AF
+J6338:  XOR     05H                     ; trap occured AND trap was not paused AND trap enabled ?
+        JR      Z,J6362                 ; yep, decrease trap counter
+        EI
+        RET
+
+;       Subroutine      unpause trap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPRSM:
+C633E:  DI
+        LD      A,(HL)
+        AND     05H                     ; keep trap occured and trap enabled flags
+        CP      (HL)                    ; was trap paused ?
+        LD      (HL),A                  ; trap not paused anymore
+        JR      NZ,J6348                ; yep,
+        EI
+        RET
+
+J6348:  XOR     05H                     ; trap occured AND trap enabled ?
+        JR      Z,J634F                 ; yep, increase trap counter and quit
+        EI
+        RET
+
+;       Subroutine      increase trap counter
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Unused Code     Not called from anywhere
+
+?634E:  DI
+
+;       Subroutine      increase trap counter
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPINC:
+J634F:  LD      A,(ONGSBF)
+        INC     A
+        LD      (ONGSBF),A
+        EI
+        RET
+
+;       Subroutine      acknowledge trap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPACK:
+C6358:  DI
+        LD      A,(HL)
+        AND     03H                     ; keep trap paused and trap enabled flags
+        CP      (HL)                    ; trap occured ?
+        LD      (HL),A                  ; clear trap occured
+        JR      NZ,J6362                ; yep, decrease trap counter
+J6360:  EI
+        RET
+
+;       Subroutine      decrease trap counter
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPDEC:
+J6362:  LD      A,(ONGSBF)
+        SUB     01H
+        JR      C,J6360                 ; already zero, quit
+        LD      (ONGSBF),A
+        EI
+        RET
+
+;       Subroutine      clear trap variables
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPINI:
+C636E:  LD      HL,TRPTBL
+        LD      B,26
+        XOR     A
+J6374:  LD      (HL),A			; clear trap flags
+        INC     HL
+        LD      (HL),A
+        INC     HL
+        LD      (HL),A			; clear trap handler
+        INC     HL
+        DJNZ    J6374
+        LD      HL,FNKFLG
+        LD      B,10
+J6381:  LD      (HL),A
+        INC     HL
+        DJNZ    J6381			; clear function key has trap enabled
+        LD      (ONGSBF),A              ; clear trap counter
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPEXE:
+C6389:  LD      A,(ONEFLG)
+        OR      A                       ; in ERROR handling routine ?
+        RET     NZ                      ; yep, quit
+        PUSH    HL
+        LD      HL,(CURLIN)
+        LD      A,H
+        AND     L
+        INC     A                       ; interpreter in direct mode ?
+        JR      Z,J63A6                 ; yep, quit
+        LD      HL,TRPTBL
+        LD      B,26
+J639C:  LD      A,(HL)
+        CP      05H                     ; trap occured AND trap not paused AND trap enabled ?
+        JR      Z,J63A8                 ; yep, handle trap
+J63A1:  INC     HL
+        INC     HL
+        INC     HL
+        DJNZ    J639C                   ; next trap
+J63A6:  POP     HL
+        RET
+
+J63A8:  PUSH    BC
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)                  ; linepointer trap handler
+        DEC     HL
+        DEC     HL
+        LD      A,D
+        OR      E                       ; has this trap a handler ?
+        POP     BC
+        JR      Z,J63A1                 ; nope, next trap
+        PUSH    DE
+        PUSH    HL
+        CALL    C6358                   ; acknowledge trap
+        CALL    C6331                   ; pause trap
+        LD      C,3
+        CALL    GETSTK                  ; check if enough stackspace for 3 words
+        POP     BC                      ; trapentry
+        POP     DE                      ; linepointer traphandler
+        POP     HL                      ; BASIC pointer
+        EX      (SP),HL
+        POP     HL                      ; remove returnaddress
+        JP      GOSUBT                  ; GOSUB traphandler
+
+;       Subroutine      RESTORE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RESTOR:
+C63C9:  EX      DE,HL
+        LD      HL,(TXTTAB)
+        JR      Z,J63DD                 ; end of statement, use start of BASIC program
+        EX      DE,HL
+        CALL    LINGET                  ; collect linenumber
+        PUSH    HL
+        CALL    FNDLIN                  ; search linenumber from start of program
+        LD      H,B
+        LD      L,C
+        POP     DE
+        JP      NC,USERR                ; not found, undefined line number error
+J63DD:  DEC     HL
+RESFIN:
+J63DE:  LD      (DATPTR),HL             ; new DATA pointer
+        EX      DE,HL
+        RET
+
+;       Subroutine      STOP statement (normal STOP statement or STOP <trap device> statement)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STOPS:
+C63E3:  JP      NZ,STOPT                ; not end of statement, STOP statement (trap)
+
+;       Subroutine      STOP statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STOP:
+C63E6:  RET     NZ			; ?? because it is always called with Zx set, RET NZ could be removed
+        INC     A                       ; set STOP flag (indicate STOP statement)
+        JR      CONSTP
+
+;       Subroutine      END statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ENDS:
+C63EA:  RET     NZ                      ; not end of statement, quit (which generates syntax error)
+        XOR     A
+        LD      (ONEFLG),A              ; not in ERROR handler routine
+        PUSH    AF
+        CALL    Z,CLSALL                ; close all i/o channels (?? should be CALL CLSALL ??)
+        POP     AF			; reset STOP flag (indicate END statement)
+
+CONSTP:
+J63F4:  LD      (SAVTXT),HL             ; save BASIC pointer
+        LD      HL,TEMPST
+        LD      (TEMPPT),HL             ; clear stringdescriptor stack
+        DEFB    021H                    ; LD HL,xxxx, trick to skip next instruction
+
+STPEND:
+J63FE:  OR      0FFH                    ; flag aborted input
+
+        POP     BC
+
+ENDCON:
+J6401:  LD      HL,(CURLIN)
+        PUSH    HL
+        PUSH    AF
+        LD      A,L
+        AND     H
+        INC     A                       ; interpreter in direct mode ?
+        JR      Z,J6414                 ; yep, do not save
+        LD      (OLDLIN),HL
+        LD      HL,(SAVTXT)
+        LD      (OLDTXT),HL             ; nope, save BASIC pointer and linenumber for CONT
+J6414:  CALL    FINLPT                  ; end printeroutput
+        CALL    CRDONZ                  ; fresh line to interpreter output
+        POP     AF                      ; END statement ?
+        LD      HL,BRKTXT
+        JP      NZ,ERRFIN               ; nope, aborted input or STOP,
+        JP      STPRDY                  ; END, ok and mainloop (+POP)
+
+;       Subroutine      CONT statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CONT:
+C6424:  LD      HL,(OLDTXT)
+        LD      A,H
+        OR      L
+        LD      DE,17                   ; ?? LD E,17 should be enough ??
+        JP      Z,ERROR                 ; nope, can not continue error
+        LD      DE,(OLDLIN)
+        LD      (CURLIN),DE
+        RET
+
+;       Subroutine      TRON
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TON:
+C6438:  DEFB    03EH                    ; LD A,0AFH, trick to skip next instruction
+
+;       Subroutine      TROFF
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TOFF:
+C6439:  XOR     A
+        LD      (TRCFLG),A
+        RET
+
+;       Subroutine      SWAP statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SWAP:
+C643E:  CALL    PTRGET                  ; locate variable
+        PUSH    DE
+        PUSH    HL
+        LD      HL,SWPTMP
+        CALL    VMOVE                   ; HL = DE (valtyp), save 1st var in SWPTMP
+        LD      HL,(ARYTAB)
+        EX      (SP),HL                 ; save (ARYTAB), restore BASIC pointer
+        _RST    GETYPR
+        PUSH    AF                      ; save type
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    PTRGET                  ; locate variable
+        POP     AF
+        LD      B,A
+        _RST    GETYPR
+        CP      B
+        JP      NZ,TMERR                ; not the same type, type mismatch error
+        EX      (SP),HL
+        EX      DE,HL
+        PUSH    HL
+        LD      HL,(ARYTAB)             ; has (ARYTAB) changed (2nd variable does not exists) ?
+        _RST    DCOMPR
+        JR      NZ,J6474                ; yep, illegal function call
+        POP     DE                      ; pointer to 2nd variable
+        POP     HL
+        EX      (SP),HL                 ; save BASIC pointer, get pointer to 1st variable
+        PUSH    DE
+        CALL    VMOVE                   ; HL = DE (valtyp), 1st var = 2nd var
+        POP     HL
+        LD      DE,SWPTMP
+        CALL    VMOVE                   ; HL = DE (valtyp), 2nd var = SWPTMP
+        POP     HL
+        RET
+
+J6474:  JP      FCERR                   ; illegal function call
+
+;       Subroutine      ERASE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ERASE:
+C6477:  LD      A,1
+        LD      (SUBFLG),A              ; variable search flag = arrayvariable
+        CALL    PTRGET                  ; locate variable
+        PUSH    HL
+        LD      (SUBFLG),A
+        LD      H,B
+        LD      L,C
+        DEC     BC
+        DEC     BC
+        DEC     BC
+        DEC     BC
+        DEC     BC
+        ADD     HL,DE
+        EX      DE,HL
+        LD      HL,(STREND)
+J648F:  _RST    DCOMPR
+        LD      A,(DE)
+        LD      (BC),A
+        INC     DE
+        INC     BC
+        JR      NZ,J648F
+        DEC     BC
+        LD      H,B
+        LD      L,C
+        LD      (STREND),HL
+        POP     HL
+        LD      A,(HL)
+        CP      ","
+        RET     NZ
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      C6477
+
+;       Subroutine      
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Unused Code     Not called from anywhere, leftover from a early Microsoft BASIC ?
+
+?64A4:  POP     AF
+        POP     HL
+        RET
+
+;       Subroutine      is current BASIC character a upcase letter ?
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ISLET:
+C64A7:  LD      A,(HL)
+
+;       Subroutine      is upcase letter character ?
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ISLET2:
+C64A8:  CP      "A"
+        RET     C
+        CP      "Z"+1
+        CCF
+        RET
+
+;       Subroutine      CLEAR statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CLEAR:
+C64AF:  JP      Z,CLEARC                ; end of statement, initialize interpreter and quit
+        CALL    INTID2                  ; evaluate word operand and check for 0-32767 range
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        PUSH    HL
+        LD      HL,(HIMEM)
+        LD      B,H
+        LD      C,L                     ; current top BASIC memory
+        LD      HL,(MEMSIZ)             ; current top of string heap
+        JR      Z,J64EC                 ; end of statement (no new top specified), use current
+        POP     HL
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        PUSH    DE
+        CALL    GETUIN                  ; evaluate address operand
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JP      NZ,SNERR                ; nope, syntax error
+        EX      (SP),HL
+        EX      DE,HL
+        LD      A,H
+        AND     A                       ; top BASIC memory in 8000H-0FFFFH range ?
+        JP      P,FCERR                 ; nope, illegal function call
+        PUSH    DE
+        LD      DE,VARWRK+1
+        _RST    DCOMPR                  ; top BASIC memory <= VARWRK ?
+        JP      NC,FCERR                ; nope, illegal function call
+        POP     DE                      ; size of string heap
+        PUSH    HL
+        LD      BC,-(256+9+2)
+        LD      A,(MAXFIL)
+J64E5:  ADD     HL,BC
+        DEC     A
+        JP      P,J64E5                 ; next i/o channel
+        POP     BC                      ; new top address
+        DEC     HL                      ; new top of string heap
+J64EC:  LD      A,L
+        SUB     E
+        LD      E,A
+        LD      A,H
+        SBC     A,D
+        LD      D,A                     ; bottom of string heap
+        JP      C,OMERR                 ; <0, out of memory
+        PUSH    HL
+        LD      HL,(VARTAB)
+        PUSH    BC
+        LD      BC,160
+        ADD     HL,BC
+        POP     BC
+        _RST    DCOMPR                  ; enough space for stack ?
+        JP      NC,OMERR                ; nope, out of memory
+        EX      DE,HL
+        LD      (STKTOP),HL             ; new start Z80 stack
+        LD      H,B
+        LD      L,C
+        LD      (HIMEM),HL              ; new top BASIC memory
+        POP     HL
+        LD      (MEMSIZ),HL             ; new top of string heap
+        POP     HL                      ; restore BASIC pointer
+        CALL    CLEARC                  ; initialize interpreter
+        LD      A,(MAXFIL)              ; number of i/o channels
+        CALL    ALCFIL                  ; allocate i/o channels
+        LD      HL,(TEMP)               ; restore BASIC pointer
+        JP      NEWSTT                  ; execute new statement
+
+;       Subroutine      DE=HL-DE
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Unused Code     Not called from anywhere, leftover from a early Microsoft BASIC ?
+
+SUBDE:
+?6520:  LD      A,L
+        SUB     E
+        LD      E,A
+        LD      A,H
+        SBC     A,D
+        LD      D,A
+        RET
+
+;       Subroutine      NEXT statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NEXT:
+C6527:  LD      DE,0                    ; any loop variable
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C652A:  CALL    NZ,PTRGET               ; not end of statement, locate variable
+        LD      (TEMP),HL               ; save BASIC pointer
+        CALL    FNDFOR                  ; search FOR block on stack (skip 2 words)
+        JP      NZ,NFERR                ; not found,
+        LD      SP,HL
+        PUSH    DE
+        LD      A,(HL)
+        PUSH    AF
+        INC     HL
+        PUSH    DE
+        LD      A,(HL)
+        INC     HL
+        OR      A
+        JP      M,J656B
+        DEC     A
+        JR      NZ,J6549
+        LD      BC,8
+        ADD     HL,BC
+J6549:  ADD     A,4
+        LD      (VALTYP),A
+        CALL    VMOVFM                  ; DAC = HL
+        EX      DE,HL
+        EX      (SP),HL
+        PUSH    HL
+        _RST    GETYPR
+        JR      NC,J65A5                ; double real,
+        CALL    MOVRMI                  ; load from HL
+        CALL    SGNADD                  ; single real addition
+        POP     HL
+        CALL    MOVMF                   ; DAC = (single)
+        POP     HL
+        CALL    MOVRM                   ; load from HL
+        PUSH    HL
+        CALL    FCOMP                   ; single real compare
+        JR      J6594
+
+J656B:  LD      BC,000CH
+        ADD     HL,BC
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)
+        INC     HL
+        EX      (SP),HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        PUSH    HL
+        LD      L,C
+        LD      H,B
+        CALL    IADD                    ; add integer
+        LD      A,(VALTYP)
+        CP      2
+        JP      NZ,OVERR                ; overflow error
+        EX      DE,HL
+        POP     HL
+        LD      (HL),D
+        DEC     HL
+        LD      (HL),E
+        POP     HL
+        PUSH    DE
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        EX      (SP),HL
+        CALL    ICOMP                   ; compare integer
+J6594:  POP     HL
+        POP     BC
+        SUB     B
+        CALL    MOVRM                   ; load from HL
+        JR      Z,J65B6
+        EX      DE,HL
+        LD      (CURLIN),HL
+        LD      L,C
+        LD      H,B
+        JP      NXTCON
+
+J65A5:  CALL    DECADM                  ; double real addition (HL)
+        POP     HL
+        CALL    VMOVMF                  ; HL = DAC
+        POP     HL
+        CALL    VMOVAM                  ; ARG = HL
+        PUSH    DE
+        CALL    XDCOMP                  ; compare double real
+        JR      J6594
+
+J65B6:  LD      SP,HL
+        LD      (SAVSTK),HL
+        EX      DE,HL
+        LD      HL,(TEMP)
+        LD      A,(HL)
+        CP      ","
+        JP      NZ,NEWSTT               ; nope, execute new statement
+        _RST    CHRGTR                  ; get next BASIC character
+        CALL    C652A
+
+; END	SUBTTL	BIMISC
+
+        END
+

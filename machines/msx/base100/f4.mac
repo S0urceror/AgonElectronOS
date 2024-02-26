@@ -1,0 +1,3715 @@
+; F4.MAC
+
+; BASIC MATH functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     268CH
+
+
+        INCLUDE MSX.INC
+
+
+CHRGTR  EQU     0010H
+DCOMPR  EQU     0020H
+GETYPR  EQU     0028H
+
+VALTYP  EQU     0F663H
+TEMP3   EQU     0F69DH
+TEMP8   EQU     0F69FH
+TEMP2   EQU     0F6BCH
+FBUFFR  EQU     0F7C5H
+DECTMP  EQU     0F7F0H
+DECTM2  EQU     0F7F2H
+DECCNT  EQU     0F7F4H
+DAC     EQU     0F7F6H
+HOLD8   EQU     0F806H
+ARG     EQU     0F847H
+RNDX    EQU     0F857H
+
+
+        PUBLIC  DECSUB
+        PUBLIC  DECADM
+        PUBLIC  DECADD
+        PUBLIC  DECMUL
+        PUBLIC  DECDIV
+        PUBLIC  COS
+        PUBLIC  SIN
+        PUBLIC  TAN
+        PUBLIC  ATN
+        PUBLIC  LOG
+        PUBLIC  SQR
+        PUBLIC  EXP
+        PUBLIC  RND
+        PUBLIC  RNDINI
+        PUBLIC  FONE
+        PUBLIC  SIGN
+        PUBLIC  SIGNS
+        PUBLIC  ABSFN
+        PUBLIC  VNEG
+        PUBLIC  SGN
+        PUBLIC  CONIA
+        PUBLIC  VSIGN
+        PUBLIC  ISIGN
+        PUBLIC  PUSHF
+        PUBLIC  MOVFM
+        PUBLIC  MOVFR
+        PUBLIC  MOVRF
+        PUBLIC  MOVRMI
+        PUBLIC  MOVRM
+        PUBLIC  GETBCD
+        PUBLIC  MOVMF
+        PUBLIC  VMOVAM
+        PUBLIC  VMOVE
+        PUBLIC  MOVE1
+        PUBLIC  VMOVFM
+        PUBLIC  VMOVAF
+        PUBLIC  VMOVMF
+        PUBLIC  FCOMP
+        PUBLIC  ICOMP
+        PUBLIC  XDCOMP
+        PUBLIC  DCOMP
+        PUBLIC  FRCINT
+        PUBLIC  MAKINT
+        PUBLIC  FRCSNG
+        PUBLIC  CONSUI
+        PUBLIC  CONSIH
+        PUBLIC  FRCDBL
+        PUBLIC  CHKSTR
+        PUBLIC  FIXER
+        PUBLIC  VINT
+        PUBLIC  UMULT
+        PUBLIC  ISUB
+        PUBLIC  IADD
+        PUBLIC  IMULT
+        PUBLIC  IDIV
+        PUBLIC  IMOD
+        PUBLIC  SGNADD
+        PUBLIC  SGNSUB
+        PUBLIC  SGNMUL
+        PUBLIC  SGNDVT
+        PUBLIC  SGNDIV
+        PUBLIC  POPHRT
+        PUBLIC  FIN
+        PUBLIC  INPRT
+        PUBLIC  LINPRT
+        PUBLIC  FOUT
+        PUBLIC  PUFOUT
+        PUBLIC  FOUTB
+        PUBLIC  FOUTO
+        PUBLIC  FOUTH
+        PUBLIC  SGNEXP
+        PUBLIC  DBLEXP
+        PUBLIC  INTEXP
+        PUBLIC  CONDS
+        PUBLIC  INT
+
+        EXTRN   OVERR			; overflow error
+        EXTRN   DV0ERR			; division by zero error
+        EXTRN   TMERR			; type mismatch error
+        EXTRN   BSERR			; subscript out of range error
+        EXTRN   OCTCNS			; convert text with radix indication to number
+        EXTRN   MINPLS			; 
+        EXTRN   INTXT			; ' in ' string
+        EXTRN   STROUI			; skip first character, message to interpreter output
+        EXTRN   FRQINT			; convert address to integer
+        EXTRN   STROUT			; message to interpreter output
+        EXTRN   FCERR			; illegal function call error
+        EXTRN   PPSWRT			; pop af, ret
+        EXTRN   GETENT
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL	F4
+
+        SUBTTL	F4
+
+
+;       Subroutine      DECSUB (dbl subtract)
+;       Inputs          (DAC) = first operand, (ARG) = second operand
+;       Outputs         ________________________
+
+DECSUB:
+C268C:  LD      HL,ARG+0
+        LD      A,(HL)
+        OR      A                       ; 2nd operand zero ?
+        RET     Z                       ; yep, quit (result in DAC)
+        XOR     80H
+        LD      (HL),A                  ; negate 2nd operand
+        JR      J26A0                   ; and do ADD
+
+;       Subroutine      double real addition
+;       Inputs          (DAC) = first operand, (HL) = second operand
+;       Outputs         ________________________
+
+DECADM:
+C2697:  CALL    VMOVAM                  ; ARG = HL
+
+;       Subroutine      DECADD (dbl addition)
+;       Inputs          (DAC) = first operand, (ARG) = second operand
+;       Outputs         ________________________
+
+DECADD:
+C269A:  LD      HL,ARG+0
+        LD      A,(HL)
+        OR      A
+        RET     Z                       ; 2nd operand zero, quit (result in DAC)
+J26A0:  AND     7FH
+        LD      B,A                     ; store exponent 2nd operand without sign
+        LD      DE,DAC+0
+        LD      A,(DE)
+        OR      A                       ; 1st operand zero ?
+        JP      Z,C2F05                 ; ye[, DAC = ARG and quit
+        AND     7FH                     ; exponent 1st operand without sign
+        SUB     B
+        JR      NC,J26C1                ; skip swap
+        CPL
+        INC     A                       ; negate
+        PUSH    AF                      ; store exponent delta
+        PUSH    HL                      ; store pointer to 2nd operand
+        LD      B,8
+J26B6:  LD      A,(DE)
+        LD      C,(HL)
+        LD      (HL),A
+        LD      A,C
+        LD      (DE),A
+        INC     DE
+        INC     HL
+        DJNZ    J26B6                   ; swap DAC and ARG
+        POP     HL                      ; restore pointer to 2nd operand
+        POP     AF                      ; restore exponent delta
+J26C1:  CP      15+1                    ; exponent delta > 15 ?
+        RET     NC                      ; yep, result = DAC
+        PUSH    AF                      ; store exponent delta
+        XOR     A
+        LD      (DAC+8),A               ; clear expansion byte DAC
+        LD      (ARG+8),A               ; clear expansion byte ARG
+        LD      HL,ARG+1
+        POP     AF                      ; restore exponent delta
+        CALL    C27A3                   ; shift mantissa right
+        LD      HL,ARG+0
+        LD      A,(DAC+0)
+        XOR     (HL)                    ; signs equal ?
+        JP      M,J26F7                 ; nope,
+        LD      A,(ARG+8)
+        LD      (DAC+8),A               ; expansion byte DAC
+        CALL    C2759                   ; add DAC mantissa with ARG mantissa
+        JP      NC,C273C                ; no overflow, round up DAC and quit
+        EX      DE,HL
+        LD      A,(HL)
+        INC     (HL)                    ; increase exponent
+        XOR     (HL)                    ; exponent overflow ?
+        JP      M,OVERR                 ; yep, overflow error
+        CALL    C27DB                   ; shift mantissa 1 digit right
+        SET     4,(HL)
+        JR      C273C                   ; round up DAC and quit
+
+J26F7:  CALL    C276B                   ; subtract mantissa
+
+;       Subroutine      DECNRM (normalize DAC)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C26FA:  LD      HL,DAC+1
+        LD      BC,8*256+0              ; mantissa + expansion byte, clear counter
+J2700:  LD      A,(HL)
+        OR      A                       ; both BCD digits zero ?
+        JR      NZ,J270C                ; nope,
+        INC     HL
+        DEC     C
+        DEC     C
+        DJNZ    J2700                   ; next BCD byte
+        JP      J2E7D                   ; DAC = 0 and quit
+
+J270C:  AND     0F0H                    ; high BCD digit zero ?
+        JR      NZ,J2716                ; nope,
+        PUSH    HL
+        CALL    C2797                   ; shift mantissa DAC 1 digit left
+        POP     HL
+        DEC     C
+J2716:  LD      A,8
+        SUB     B
+        JR      Z,J272D
+        PUSH    AF
+        PUSH    BC
+        LD      C,B
+        LD      DE,DAC+1
+        LD      B,0
+        LDIR
+        POP     BC
+        POP     AF
+        LD      B,A
+        XOR     A
+J2729:  LD      (DE),A
+        INC     DE
+        DJNZ    J2729
+J272D:  LD      A,C
+        OR      A
+        JR      Z,C273C                 ; round up DAC and quit
+        LD      HL,DAC+0
+        LD      B,(HL)
+        ADD     A,(HL)
+        LD      (HL),A
+        XOR     B
+        JP      M,OVERR                 ; overflow error
+        RET     Z
+
+;       Subroutine      DECROU (round up DAC)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C273C:  LD      HL,DAC+8                ; mantissa + expansion byte
+        LD      B,7                     ; number of bytes = 7
+
+;       Subroutine      round up
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2741:  LD      A,(HL)
+        CP      50H                     ; expansion byte > 49 ?
+        RET     C                       ; nope, quit
+        DEC     HL
+        XOR     A
+        SCF
+J2748:  ADC     A,(HL)
+        DAA
+        LD      (HL),A
+        RET     NC
+        DEC     HL
+        DJNZ    J2748                   ; increase mantissa
+        LD      A,(HL)
+        INC     (HL)                    ; increase exponent
+        XOR     (HL)                    ; exponent overflow ?
+        JP      M,OVERR                 ; yep, overflow error
+        INC     HL
+        LD      (HL),10H
+        RET
+
+;       Subroutine      add DAC mantissa with ARG mantissa
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2759:  LD      HL,ARG+7
+        LD      DE,DAC+7
+        LD      B,7
+
+;       Subroutine      add mantissa's
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2761:  XOR     A
+J2762:  LD      A,(DE)
+        ADC     A,(HL)
+        DAA
+        LD      (DE),A
+        DEC     DE
+        DEC     HL
+        DJNZ    J2762
+        RET
+
+;       Subroutine      subtract mantissa
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C276B:  LD      HL,ARG+8
+        LD      A,(HL)
+        CP      50H                     ; expansion byte ARG = 50 ?
+        JR      NZ,J2774                ; nope,
+        INC     (HL)                    ; expansion byte ARG = 51
+J2774:  LD      DE,DAC+8                ; include expansion byte
+        LD      B,8                     ; mantissa + expansion byte
+        XOR     A
+J277A:  LD      A,(DE)
+        SBC     A,(HL)
+        DAA
+        LD      (DE),A
+        DEC     DE
+        DEC     HL
+        DJNZ    J277A                   ; subtract DAC mantissa with ARG mantissa
+        RET     NC
+        EX      DE,HL
+        LD      A,(HL)
+        XOR     80H
+        LD      (HL),A                  ; flip sign
+        LD      HL,DAC+8                ; include expansion byte
+        LD      B,8                     ; mantissa + expansion byte
+        XOR     A
+J278E:  LD      A,0
+        SBC     A,(HL)
+        DAA
+        LD      (HL),A
+        DEC     HL
+        DJNZ    J278E
+        RET
+
+;       Subroutine      shift mantissa DAC 1 digit left
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2797:  LD      HL,DAC+8                ; include expansion byte
+
+;       Subroutine      shift mantissa 1 digit left
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C279A:  PUSH    BC
+        XOR     A
+J279C:  RLD
+        DEC     HL
+        DJNZ    J279C
+        POP     BC
+        RET
+
+;       Subroutine      shift mantissa right
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C27A3:  OR      A
+        RRA
+        PUSH    AF
+        OR      A
+        JP      Z,J27E2
+        PUSH    AF
+        CPL
+        INC     A
+        LD      C,A
+        LD      B,0FFH
+        LD      DE,7
+        ADD     HL,DE
+        LD      D,H
+        LD      E,L
+        ADD     HL,BC
+        LD      A,8
+        ADD     A,C
+        LD      C,A
+        PUSH    BC
+        LD      B,0
+        LDDR
+        POP     BC
+        POP     AF
+        INC     HL
+        INC     DE
+        PUSH    DE
+        LD      B,A
+        XOR     A
+J27C7:  LD      (HL),A
+        INC     HL
+        DJNZ    J27C7
+        POP     HL
+        POP     AF
+        RET     NC
+        LD      A,C
+J27CF:  PUSH    HL
+        PUSH    BC
+        LD      B,A
+        XOR     A
+J27D3:  RRD
+        INC     HL
+        DJNZ    J27D3
+        POP     BC
+        POP     HL
+        RET
+
+;       Subroutine      shift mantissa 1 digit right
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C27DB:  LD      HL,DAC+1
+J27DE:  LD      A,8
+        JR      J27CF
+
+J27E2:  POP     AF
+        RET     NC
+        JR      J27DE
+
+;       Subroutine      DECMUL
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DECMUL:
+C27E6:  CALL    SIGN                    ; get sign DAC
+        RET     Z                       ; DAC is zero, quit (result is zero)
+        LD      A,(ARG+0)
+        OR      A                       ; 2nd operand zero ?
+        JP      Z,J2E7D                 ; yep, DAC = 0 and quit
+        LD      B,A                     ; exponent 2nd operand
+        LD      HL,DAC+0
+        XOR     (HL)
+        AND     80H
+        LD      C,A                     ; store exponent sign difference
+        RES     7,B                     ; exponent 2nd operand without sign
+        LD      A,(HL)
+        AND     7FH                     ; exponent 1st operand without sign
+        ADD     A,B
+        LD      B,A
+        LD      (HL),0                  ; DAC = 0.0
+        AND     0C0H
+        RET     Z
+        CP      0C0H
+        JR      NZ,J280C
+        JP      OVERR                   ; overflow error
+
+J280C:  LD      A,B
+        ADD     A,40H
+        AND     7FH
+        RET     Z
+        OR      C
+        DEC     HL
+        LD      (HL),A
+        LD      DE,HOLD8+56+7
+        LD      BC,8
+        LD      HL,DAC+7
+        PUSH    DE
+        LDDR                            ; DAC copy to HOLD8+56
+        INC     HL
+        XOR     A
+        LD      B,8
+J2825:  LD      (HL),A
+        INC     HL
+        DJNZ    J2825                   ; clear DAC (0.0)
+        POP     DE                      ; HOLD8+56+7
+        LD      BC,J2883
+        PUSH    BC                      ; after this,
+
+;       Subroutine      construct multiply factors
+;       Inputs          DE = pointer to X+7, ARG = multiplier
+;       Outputs         ________________________
+
+C282E:  CALL    C288A                   ; construct X*2, X*4, X*8
+        PUSH    HL
+        LD      BC,8
+        EX      DE,HL
+        LDDR                            ; copy X*8
+        EX      DE,HL
+        LD      HL,HOLD8+55
+        LD      B,8                     ; X*2
+        CALL    C2761                   ; add mantissa's
+        POP     DE
+        CALL    C288A                   ; construct X*10, X*20, X*40
+        LD      C,7                     ; number of BCD bytes
+        LD      DE,ARG+7
+J284A:  LD      A,(DE)
+        OR      A                       ; BCD byte = 0 ?
+        JR      NZ,J2852                ; nope,
+        DEC     DE
+        DEC     C
+        JR      J284A                   ; next byte
+
+J2852:  LD      A,(DE)                  ; BCD byte
+        DEC     DE
+        PUSH    DE
+        LD      HL,HOLD8+7              ; first factor (X*40)
+J2858:  ADD     A,A                     ; shift bit out
+        JR      C,J2863                 ; bit = 1, add factor to DAC
+        JR      Z,J2871                 ; no more 1 bits, quit
+J285D:  LD      DE,8
+        ADD     HL,DE                   ; to next factor
+        JR      J2858                   ; next bit
+
+J2863:  PUSH    AF                      ; store byte
+        LD      B,8
+        LD      DE,DAC+7
+        PUSH    HL                      ; store pointer to factor
+        CALL    C2761                   ; add mantissa's
+        POP     HL                      ; restore pointer to factor
+        POP     AF                      ; restore byte
+        JR      J285D                   ; next factor and bit
+
+J2871:  LD      B,15
+        LD      DE,DAC+14               ; source
+        LD      HL,DAC+15               ; destination
+        CALL    C2EFE                   ; copy bytes (decrease), this will shift DAC 2 BCD digits to right
+        LD      (HL),0
+        POP     DE
+        DEC     C                       ; update number BCD bytes
+        JR      NZ,J2852                ; next BCD byte
+        RET
+
+J2883:  DEC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      (HL),A
+        JP      C26FA                   ; normalize DAC
+
+;       Subroutine      construct X*2, X*4, X*8
+;       Inputs          DE = pointer to X+7
+;       Outputs         ________________________
+
+C288A:  LD      HL,-8
+        ADD     HL,DE
+        LD      C,3
+J2890:  LD      B,8
+        OR      A                       ; clear Cx
+J2893:  LD      A,(DE)
+        ADC     A,A
+        DAA
+        LD      (HL),A
+        DEC     HL
+        DEC     DE
+        DJNZ    J2893
+        DEC     C
+        JR      NZ,J2890
+        RET
+
+;       Subroutine      DECDIV (dbl division)
+;       Inputs          (DAC) = first operand, (ARG) = second operand
+;       Outputs         ________________________
+
+DECDIV:
+C289F:  LD      A,(ARG+0)
+        OR      A                       ; operand2 is zero ?
+        JP      Z,DV0ERR                ; yep, division by zero error
+        LD      B,A
+        LD      HL,DAC+0
+        LD      A,(HL)
+        OR      A
+        JP      Z,J2E7D                 ; DAC = 0 and quit
+        XOR     B
+        AND     80H
+        LD      C,A
+        RES     7,B
+        LD      A,(HL)
+        AND     7FH
+        SUB     B
+        LD      B,A
+        RRA
+        XOR     B
+        AND     40H
+        LD      (HL),00H
+        JR      Z,J28C9
+        LD      A,B
+        AND     80H
+        RET     NZ
+J28C6:  JP      OVERR                   ; overflow error
+
+J28C9:  LD      A,B
+        ADD     A,41H
+        AND     7FH
+        LD      (HL),A
+        JR      Z,J28C6
+        OR      C
+        LD      (HL),00H
+        DEC     HL
+        LD      (HL),A
+        LD      DE,DAC+7
+        LD      HL,ARG+7
+        LD      B,7
+        XOR     A
+J28DF:  CP      (HL)
+        JR      NZ,J28E6
+        DEC     DE
+        DEC     HL
+        DJNZ    J28DF
+J28E6:  LD      (DECTM2),HL
+        EX      DE,HL
+        LD      (DECTMP),HL
+        LD      A,B
+        LD      (DECCNT),A
+        LD      HL,HOLD8+56
+J28F4:  LD      B,0FH
+J28F6:  PUSH    HL
+        PUSH    BC
+        LD      HL,(DECTM2)
+        EX      DE,HL
+        LD      HL,(DECTMP)
+        LD      A,(DECCNT)
+        LD      C,0FFH
+J2904:  INC     C
+        LD      B,A
+        PUSH    HL
+        PUSH    DE
+        XOR     A
+        EX      DE,HL
+J290A:  LD      A,(DE)
+        SBC     A,(HL)
+        DAA
+        LD      (DE),A
+        DEC     HL
+        DEC     DE
+        DJNZ    J290A
+        LD      A,(DE)
+        SBC     A,B
+        LD      (DE),A
+        POP     DE
+        POP     HL
+        LD      A,(DECCNT)
+        JR      NC,J2904
+        LD      B,A
+        EX      DE,HL
+        CALL    C2761                   ; add mantissa's
+        JR      NC,J2925
+        EX      DE,HL
+        INC     (HL)
+J2925:  LD      A,C
+        POP     BC
+        LD      C,A
+        PUSH    BC
+        SRL     B
+        INC     B
+        LD      E,B
+        LD      D,0
+        LD      HL,DAC-1
+        ADD     HL,DE
+        CALL    C279A                   ; shift mantissa 1 digit left
+        POP     BC
+        POP     HL
+        LD      A,B
+        INC     C
+        DEC     C
+        JR      NZ,J2973
+        CP      0FH
+        JR      Z,J2964
+        RRCA
+        RLCA
+        JR      NC,J2973
+        PUSH    BC
+        PUSH    HL
+        LD      HL,DAC
+        LD      B,8
+        XOR     A
+J294D:  CP      (HL)
+        JR      NZ,J295F
+        INC     HL
+        DJNZ    J294D
+        POP     HL
+        POP     BC
+        SRL     B
+        INC     B
+        XOR     A
+J2959:  LD      (HL),A
+        INC     HL
+        DJNZ    J2959
+        JR      J2985
+
+J295F:  POP     HL
+        POP     BC
+        LD      A,B
+        JR      J2973
+
+J2964:  LD      A,(DECCNT+1)
+        LD      E,A
+        DEC     A
+        LD      (DECCNT+1),A
+        XOR     E
+        JP      P,J28F4
+        JP      J2E7D                   ; DAC = 0 and quit
+
+J2973:  RRA
+        LD      A,C
+        JR      C,J297C
+        OR      (HL)
+        LD      (HL),A
+        INC     HL
+        JR      J2981
+
+J297C:  ADD     A,A
+        ADD     A,A
+        ADD     A,A
+        ADD     A,A
+        LD      (HL),A
+J2981:  DEC     B
+        JP      NZ,J28F6
+J2985:  LD      HL,DAC+8                ; include expansion byte
+        LD      DE,HOLD8+63
+        LD      B,8                     ; mantissa + expansion byte
+        CALL    C2EFE                   ; copy bytes (decrease)
+        JP      J2883
+
+;       Subroutine      COS function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+COS:
+C2993:  LD      HL,I2D63
+        CALL    C2C3B                   ; DAC = DAC * 1/(2*pi)
+        LD      A,(DAC+0)
+        AND     7FH
+        LD      (DAC+0),A		; clear sign bit ( cos(-x) = cos(x) )
+        LD      HL,I2D23
+        CALL    C2C32                   ; DAC = DAC - 0.25
+        CALL    C2E8D                   ; NEG DAC
+        JR      J29B2
+
+;       Subroutine      SIN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SIN:
+C29AC:  LD      HL,I2D63
+        CALL    C2C3B                   ; DAC = DAC * 1/(2*pi)
+J29B2:  LD      A,(DAC+0)
+        OR      A
+        CALL    M,C2C80			; negative, start operation (code after call), negate DAC before and after (SIN (-x) = - SIN(x))
+        CALL    C2CCC                   ; push DAC
+        CALL    VINT			; INT DAC
+        CALL    C2C4D                   ; ARG = DAC
+        CALL    C2CE1                   ; pop DAC
+        CALL    DECSUB                  ; DAC - ARG
+        LD      A,(DAC+0)
+        CP      40H
+        JP      C,J29F5
+        LD      A,(DAC+1)
+        CP      25H
+        JP      C,J29F5
+        CP      75H
+        JP      NC,J29EC
+        CALL    C2C4D                   ; ARG = DAC
+        LD      HL,I2D11
+        CALL    C2C5C                   ; DAC = 0.5
+        CALL    DECSUB                  ; DAC - ARG
+        JP      J29F5
+
+J29EC:  LD      HL,FONE
+        CALL    C2C50                   ; ARG = 1.0
+        CALL    DECSUB                  ; DAC - ARG
+J29F5:  LD      HL,I2DEF		; sinus polynomial series
+        JP      C2C88                   ; polynomial approximation odd series
+
+;       Subroutine      TAN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAN:
+C29FB:  CALL    C2CCC                   ; push DAC
+        CALL    COS                     ; COS DAC
+        CALL    C2C6F                   ; exchange DAC with stack
+        CALL    SIN                     ; SIN DAC
+        CALL    C2CDC                   ; pop ARG
+        LD      A,(ARG+0)
+        OR      A
+        JP      NZ,DECDIV               ; DAC / ARG and quit
+        JP      OVERR                   ; overflow error
+
+;       Subroutine      ATN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ATN:
+C2A14:  LD      A,(DAC+0)
+        OR      A                       ; DAC zero ?
+        RET     Z                       ; yep, result zero
+        CALL    M,C2C80			; negative, start operation (code after call), negate DAC before and after (ATAN(X)=-ATAN(-X))
+        CP      41H
+        JP      C,C2A3C
+        CALL    C2C4D                   ; ARG = DAC
+        LD      HL,FONE
+        CALL    C2C5C                   ; DAC = 1.0
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    C2A3C
+        CALL    C2C4D                   ; ARG = DAC
+        LD      HL,I2D43
+        CALL    C2C5C                   ; DAC = 1.5707963267949 (PI/2)
+        JP      DECSUB                  ; DAC - ARG
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2A3C:  LD      HL,I2D4B
+        CALL    C2C47                   ; compare DAC with 0.26794919243112 (tan(pi/12))
+        JP      M,C2A6C
+        CALL    C2CCC                   ; push DAC
+        LD      HL,I2D53
+        CALL    C2C2C                   ; DAC = DAC + 1.7320508075689 (sqr(3))
+        CALL    C2C6F                   ; exchange DAC with stack
+        LD      HL,I2D53
+        CALL    C2C3B                   ; DAC = DAC * 1.7320508075689 (sqr(3))
+        LD      HL,FONE
+        CALL    C2C32                   ; DAC = DAC - 1.0
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    C2A6C
+        LD      HL,I2D5B
+        JP      C2C2C                   ; DAC = DAC + 0.52359877559830 (pi/6)
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2A6C:  LD      HL,I2E30		; atan polynomial series
+        JP      C2C88                   ; polynomial approximation odd series
+
+;       Subroutine      LOG function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LOG:
+C2A72:  CALL    SIGN                    ; get sign DAC
+        JP      M,FCERR                 ; DAC is negative, illegal function call
+        JP      Z,FCERR                 ; DAC is zero, illegal function call
+        LD      HL,DAC+0
+        LD      A,(HL)
+        PUSH    AF
+        LD      (HL),41H
+        LD      HL,I2D2B
+        CALL    C2C47                   ; compare DAC with 3.1622776601684 (sqr(10))
+        JP      M,J2A92
+        POP     AF
+        INC     A
+        PUSH    AF
+        LD      HL,DAC+0
+        DEC     (HL)
+J2A92:  POP     AF
+        LD      (TEMP3),A
+        CALL    C2CCC                   ; push DAC
+        LD      HL,FONE
+        CALL    C2C2C                   ; DAC = DAC + 1.0
+        CALL    C2C6F                   ; exchange DAC with stack
+        LD      HL,FONE
+        CALL    C2C32                   ; DAC = DAC - 1.0
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    C2CCC                   ; push DAC
+        CALL    C2C38                   ; DAC = DAC^2
+        CALL    C2CCC                   ; push DAC
+        CALL    C2CCC                   ; push DAC
+        LD      HL,I2DC6                ; log polynomial series #2
+        CALL    C2CA3                   ; polynomial approximation
+        CALL    C2C6F                   ; exchange DAC with stack
+        LD      HL,I2DA5                ; log polynomial series #1
+        CALL    C2CA3                   ; polynomial approximation
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECMUL                  ; DAC * ARG
+        LD      HL,I2D33
+        CALL    C2C2C                   ; DAC = DAC + 0.86858896380650 (2^log(e))
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECMUL                  ; DAC * ARG
+        CALL    C2CCC                   ; push DAC
+        LD      A,(TEMP3)
+        SUB     41H
+        LD      L,A
+        ADD     A,A
+        SBC     A,A
+        LD      H,A
+        CALL    CONSIH                  ; convert integer to single real
+        CALL    C3042                   ; convert DAC from single real to double real
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECADD                  ; DAC + ARG
+        LD      HL,I2D3B
+        JP      C2C3B                   ; DAC = DAC * 2.3025850929940 (1/log(e))
+
+;       Subroutine      SQR function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SQR:
+C2AFF:  CALL    SIGN                    ; get sign DAC
+        RET     Z                       ; DAC is zero, quit (result is zero)
+        JP      M,FCERR                 ; DAC is negative, illegal function call
+        CALL    C2C4D                   ; ARG = DAC
+        LD      A,(DAC+0)
+        OR      A
+        RRA
+        ADC     A,20H
+        LD      (ARG+0),A
+        LD      A,(DAC+1)
+        OR      A                       ; clear Cx
+        RRCA
+        OR      A                       ; clear Cx
+        RRCA
+        AND     33H
+        ADD     A,10H
+        LD      (ARG+1),A
+        LD      A,7
+J2B23:  LD      (TEMP3),A
+        CALL    C2CCC                   ; push DAC
+        CALL    C2CC7                   ; push ARG
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECADD                  ; DAC + ARG
+        LD      HL,I2D11
+        CALL    C2C3B                   ; DAC = DAC * 0.5
+        CALL    C2C4D                   ; ARG = DAC
+        CALL    C2CE1                   ; pop DAC
+        LD      A,(TEMP3)
+        DEC     A
+        JR      NZ,J2B23
+        JP      C2C59                   ; DAC = ARG
+
+;       Subroutine      EXP function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+EXP:
+C2B4A:  LD      HL,I2D09
+        CALL    C2C3B                   ; DAC = DAC * 0.43429448190324 (log(e))
+        CALL    C2CCC                   ; push DAC
+        CALL    FRCINT                  ; convert DAC to integer
+        LD      A,L
+        RLA
+        SBC     A,A
+        CP      H
+        JR      Z,J2B70
+        LD      A,H
+        OR      A
+        JP      P,J2B6D                 ; overflow error
+        CALL    C304F                   ; DAC type = double real
+        CALL    C2CE1                   ; pop DAC
+        LD      HL,I2D13
+        JP      C2C5C                   ; DAC = 0.0
+
+J2B6D:  JP      OVERR                   ; overflow error
+
+J2B70:  LD      (TEMP3),HL
+        CALL    FRCDBL                  ; convert DAC to double real
+        CALL    C2C4D                   ; ARG = DAC
+        CALL    C2CE1                   ; pop DAC
+        CALL    DECSUB                  ; DAC - ARG
+        LD      HL,I2D11
+        CALL    C2C47                   ; compare DAC with 0.5
+        PUSH    AF
+        JR      Z,J2B90
+        JR      C,J2B90
+        LD      HL,I2D11
+        CALL    C2C32                   ; DAC = DAC - 0.5
+J2B90:  CALL    C2CCC                   ; push DAC
+        LD      HL,I2D8C
+        CALL    C2C88                   ; polynomial approximation odd series
+        CALL    C2C6F                   ; exchange DAC with stack
+        LD      HL,I2D6B
+        CALL    C2C9A                   ; polynomial approximation even series
+        CALL    C2CDC                   ; pop ARG
+        CALL    C2CC7                   ; push ARG
+        CALL    C2CCC                   ; push DAC
+        CALL    DECSUB                  ; DAC - ARG
+        LD      HL,HOLD8+56
+        CALL    C2C67                   ; = DAC
+        CALL    C2CDC                   ; pop ARG
+        CALL    C2CE1                   ; pop DAC
+        CALL    DECADD                  ; DAC + ARG
+        LD      HL,HOLD8+56
+        CALL    C2C50                   ; ARG =
+        CALL    DECDIV                  ; DAC / ARG
+        POP     AF
+        JR      C,J2BD1
+        JR      Z,J2BD1
+        LD      HL,I2D2B
+        CALL    C2C3B                   ; DAC = DAC * 3.1622776601684 (sqr(10))
+J2BD1:  LD      A,(TEMP3)
+        LD      HL,DAC+0
+        LD      C,(HL)
+        ADD     A,(HL)
+        LD      (HL),A
+        XOR     C
+        RET     P
+        JP      OVERR                   ; overflow error
+
+;       Subroutine      RND function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RND:
+C2BDF:  CALL    SIGN                    ; get sign DAC
+        LD      HL,RNDX
+        JR      Z,J2C15                 ; DAC is zero, use current RNDX value
+        CALL    M,C2C67                 ; DAC is negative, RNDX = DAC
+        LD      HL,HOLD8+56
+        LD      DE,RNDX
+        CALL    C2C6A                   ; HOLD8+56 = RNDX
+        LD      HL,I2CF9
+        CALL    C2C50                   ; ARG = 0.21132486540519
+        LD      HL,I2CF1
+        CALL    C2C5C                   ; DAC = 0.14389820420821
+        LD      DE,HOLD8+56+7
+        CALL    C282E                   ; construct multiply factors
+        LD      DE,DAC+8
+        LD      HL,RNDX+1
+        LD      B,7
+        CALL    MOVE1                   ; copy mantissa to RNDX
+        LD      HL,RNDX+0
+        LD      (HL),0
+J2C15:  CALL    C2C5C                   ; DAC = RNDX
+        LD      HL,DAC+0
+        LD      (HL),40H                ; in 0-1 range
+        XOR     A
+        LD      (DAC+8),A               ; clear expansion byte DAC
+        JP      C26FA                   ; normalize DAC
+
+;       Subroutine      initialize RNDX
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RNDINI:
+C2C24:  LD      DE,I2D01
+        LD      HL,RNDX
+        JR      C2C6A                   ; RNDX = 0.40649651372358 and quit
+
+;       Subroutine      DAC = DAC + operand
+;       Inputs          HL = pointer to operand
+;       Outputs         ________________________
+
+C2C2C:  CALL    C2C50                   ; ARG =
+        JP      DECADD                  ; DAC + ARG
+
+;       Subroutine      DAC = DAC - operand
+;       Inputs          HL = pointer to operand
+;       Outputs         ________________________
+
+C2C32:  CALL    C2C50                   ; ARG =
+        JP      DECSUB                  ; DAC - ARG
+
+;       Subroutine      DAC = DAC^2
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C38:  LD      HL,DAC
+
+;       Subroutine      DAC = DAC * operand
+;       Inputs          HL = pointer to operand
+;       Outputs         ________________________
+
+C2C3B:  CALL    C2C50                   ; ARG =
+        JP      DECMUL                  ; DAC * ARG and quit
+
+;       Subroutine      DAC = DAC / operand
+;       Inputs          HL = pointer to operand
+;       Outputs         ________________________
+;       Remark          Unused Code
+;                       Not called from anywhere, leftover from a early Microsoft BASIC
+
+?2C41:  CALL    C2C50                   ; ARG =
+        JP      DECDIV                  ; DAC / ARG and quit
+
+;       Subroutine      compare with DAC
+;       Inputs          HL = pointer to operand
+;       Outputs         ________________________
+
+
+C2C47:  CALL    C2C50                   ; ARG =
+        JP      XDCOMP                  ; compare double real
+
+;       Subroutine      MAF (copy DAC to ARG)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C4D:  LD      HL,DAC
+
+;       Subroutine      MAM (copy HL to ARG)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C50:  LD      DE,ARG
+
+;       Subroutine      MOV8DH (copy HL to DE)
+;       Inputs          HL = source, DE = destination
+;       Outputs         ________________________
+
+J2C53:  EX      DE,HL
+        CALL    C2C6A                   ; copy double real
+        EX      DE,HL
+        RET
+
+;       Subroutine      MFA (copy ARG to DAC)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C59:  LD      HL,ARG
+
+;       Subroutine      MFM (copy HL to DAC)
+;       Inputs          HL = source
+;       Outputs         ________________________
+
+C2C5C:  LD      DE,DAC
+        JR      J2C53
+
+;       Subroutine      initialize RNDX
+;       Inputs          HL = value
+;       Outputs         ________________________
+;       Remark          Unused Code
+;                       Not called from anywhere, leftover from a early Microsoft BASIC
+
+?2C61:  CALL    CONSIH                  ; convert integer to single real
+        LD      HL,RNDX
+
+;       Subroutine      MMF (copy DAC to HL)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C67:  LD      DE,DAC
+
+;       Subroutine      MOV8HD (copy double real)
+;       Inputs          DE = source, HL = destination
+;       Outputs         ________________________
+
+C2C6A:  LD      B,8
+        JP      MOVE1                   ; copy bytes
+
+;       Subroutine      XTF (exchange DAC with stack)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2C6F:  POP     HL
+        LD      (FBUFFR),HL             ; store return address
+        CALL    C2CDC                   ; pop ARG
+        CALL    C2CCC                   ; push DAC
+        CALL    C2C59                   ; DAC = ARG
+        LD      HL,(FBUFFR)
+        JP      (HL)                    ; continue at return address
+
+;       Subroutine      start operation (code after call), negate DAC before and after
+;       Inputs          DAC = operand
+;       Outputs         DAC = result
+
+C2C80:  CALL    C2E8D                   ; NEG DAC
+        LD      HL,C2E8D
+        EX      (SP),HL                 ; NEG DAC afterwards
+        JP      (HL)                    ; start operation
+
+;       Subroutine      polynomial approximation odd series
+;       Inputs          HL = pointer to polynomial series
+;       Outputs         ________________________
+
+C2C88:  LD      (FBUFFR),HL             ; store pointer to polynomial series
+        CALL    C2CCC                   ; push DAC
+        LD      HL,(FBUFFR)             ; restore pointer to polynomial series
+        CALL    C2C9A                   ; polynomial approximation even series
+        CALL    C2CDC                   ; pop ARG
+        JP      DECMUL                  ; DAC * ARG and quit
+
+;       Subroutine      polynomial approximation even series
+;       Inputs          HL = pointer to polynomial series
+;       Outputs         ________________________
+
+C2C9A:  LD      (FBUFFR),HL             ; store pointer to polynomial series
+        CALL    C2C38                   ; DAC = DAC^2
+        LD      HL,(FBUFFR)             ; restore pointer to polynomial series
+
+;       Subroutine      polynomial approximation
+;       Inputs          HL = pointer to polynomial series
+;       Outputs         ________________________
+
+C2CA3:  LD      A,(HL)
+        PUSH    AF			; save length of series
+        INC     HL
+        PUSH    HL
+        LD      HL,FBUFFR
+        CALL    C2C67                   ; FBUFFR = DAC
+        POP     HL
+        CALL    C2C5C                   ; DAC = 1st entry of series
+J2CB1:  POP     AF
+        DEC     A			; end of series ?
+        RET     Z			; yep, quit
+        PUSH    AF
+        PUSH    HL
+        LD      HL,FBUFFR
+        CALL    C2C3B                   ; DAC = DAC * FBUFFR
+        POP     HL
+        CALL    C2C50                   ; ARG = entry of series
+        PUSH    HL
+        CALL    DECADD                  ; DAC + ARG
+        POP     HL
+        JR      J2CB1			; next
+
+;       Subroutine      PHA (push ARG on stack)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2CC7:  LD      HL,ARG+7
+        JR      J2CCF
+
+;       Subroutine      PHF (push DAC on stack)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2CCC:  LD      HL,DAC+7
+J2CCF:  LD      A,4
+        POP     DE
+J2CD2:  LD      B,(HL)
+        DEC     HL
+        LD      C,(HL)
+        DEC     HL
+        PUSH    BC
+        DEC     A
+        JR      NZ,J2CD2
+        EX      DE,HL
+        JP      (HL)
+
+;       Subroutine      PPA (pop ARG from stack)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2CDC:  LD      HL,ARG
+        JR      J2CE4
+
+;       Subroutine      PPF (pop DAC from stack)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2CE1:  LD      HL,DAC
+J2CE4:  LD      A,4
+        POP     DE
+J2CE7:  POP     BC
+        LD      (HL),C
+        INC     HL
+        LD      (HL),B
+        INC     HL
+        DEC     A
+        JR      NZ,J2CE7
+        EX      DE,HL
+        JP      (HL)
+
+; rnd #1
+
+I2CF1:  DEFB    000H,014H,038H,098H,020H,042H,008H,021H         ; 0.14389820420821
+
+; rnd #2
+
+I2CF9:  DEFB    000H,021H,013H,024H,086H,054H,005H,019H         ; 0.21132486540519
+
+; rnd
+
+I2D01:  DEFB    000H,040H,064H,096H,051H,037H,023H,058H         ; 0.40649651372358
+
+; log(e)
+
+I2D09:  DEFB    040H,043H,042H,094H,048H,019H,003H,024H         ; 0.43429448190324
+
+; 1/2
+
+I2D11:  DEFB    040H,050H                                       ; 0.5
+
+; 0
+
+I2D13:  DEFB    000H,000H,000H,000H,000H,000H,000H,000H         ; 0.0
+
+; 1
+
+FONE:
+I2D1B:  DEFB    041H,010H,000H,000H,000H,000H,000H,000H         ; 1.0
+
+; 1/4
+
+I2D23:  DEFB    040H,025H,000H,000H,000H,000H,000H,000H         ; 0.25
+
+; sqr(10)
+
+I2D2B:  DEFB    041H,031H,062H,027H,076H,060H,016H,084H         ; 3.1622776601684
+
+; 2^log(e)
+
+I2D33:  DEFB    040H,086H,085H,088H,096H,038H,006H,050H         ; 0.86858896380650
+
+; 1/log(e)
+
+I2D3B:  DEFB    041H,023H,002H,058H,050H,092H,099H,040H         ; 2.3025850929940
+
+; pi/2
+
+I2D43:  DEFB    041H,015H,070H,079H,063H,026H,079H,049H         ; 1.5707963267949
+
+; tan(pi/12)
+
+I2D4B:  DEFB    040H,026H,079H,049H,019H,024H,031H,012H         ; 0.26794919243112
+
+; sqr(3)
+
+I2D53:  DEFB    041H,017H,032H,005H,008H,007H,056H,089H         ; 1.7320508075689
+
+; pi/6
+
+I2D5B:  DEFB    040H,052H,035H,098H,077H,055H,098H,030H         ; 0.52359877559830
+
+; 1/(2*pi)
+
+I2D63:  DEFB    040H,015H,091H,054H,094H,030H,091H,090H         ; 0.15915494309190
+
+; exp polynomial series #1
+
+I2D6B:  DEFB    4
+        DEFB    041H,010H,000H,000H,000H,000H,000H,000H         ; 1.0
+        DEFB    043H,015H,093H,074H,015H,023H,060H,031H         ; 159.37415236031
+        DEFB    044H,027H,009H,031H,069H,040H,085H,016H         ; 2709.3169408516
+        DEFB    044H,044H,097H,063H,035H,057H,040H,058H         ; 4497.6335574058
+
+; exp polynomial series #2
+
+I2D8C:  DEFB    3
+        DEFB    042H,018H,031H,023H,060H,015H,092H,075H         ; 18.312360159275
+        DEFB    043H,083H,014H,006H,072H,012H,093H,071H         ; 831.40672129371
+        DEFB    044H,051H,078H,009H,019H,091H,051H,062H         ; 5178.0919915162
+
+; log polynomial series #1
+
+I2DA5:  DEFB    4
+        DEFB    0C0H,071H,043H,033H,082H,015H,032H,026H         ; -0.71433382153226
+        DEFB    041H,062H,050H,036H,051H,012H,079H,008H         ; 6.2503651127908
+        DEFB    0C2H,013H,068H,023H,070H,024H,015H,003H         ; -13.682370241503
+        DEFB    041H,085H,016H,073H,019H,087H,023H,089H         ; 8.5167319872389
+
+; log polynomial series #2
+
+I2DC6:  DEFB    5
+        DEFB    041H,010H,000H,000H,000H,000H,000H,000H         ; 1.0
+        DEFB    0C2H,013H,021H,004H,078H,035H,001H,056H         ; -13.210478350156
+        DEFB    042H,047H,092H,052H,056H,004H,038H,073H         ; 47.925256043873
+        DEFB    0C2H,064H,090H,066H,082H,074H,009H,043H         ; -64.906682740943
+        DEFB    042H,029H,041H,057H,050H,017H,023H,023H         ; 29.415750172323
+
+; sinus polynomial series
+
+I2DEF:  DEFB    8
+        DEFB    0C0H,069H,021H,056H,092H,029H,018H,009H         ; -0.69215692291809
+        DEFB    041H,038H,017H,028H,086H,038H,057H,071H         ; 3.8172886385771
+        DEFB    0C2H,015H,009H,044H,099H,047H,048H,001H         ; -15.094499474801
+        DEFB    042H,042H,005H,086H,089H,066H,073H,055H         ; 42.058689667355
+        DEFB    0C2H,076H,070H,058H,059H,068H,032H,091H         ; -76.705859683291
+        DEFB    042H,081H,060H,052H,049H,027H,055H,013H         ; 81.605249275513
+        DEFB    0C2H,041H,034H,017H,002H,024H,003H,098H         ; -41.341702240398
+        DEFB    041H,062H,083H,018H,053H,007H,017H,096H         ; 6.2831853071796
+
+; atan polynomial series
+
+I2E30:  DEFB    8
+        DEFB    0BFH,052H,008H,069H,039H,004H,000H,000H         ; -0.05208693904000
+        DEFB    03FH,075H,030H,071H,049H,013H,048H,000H         ; 0.07530714913480
+        DEFB    0BFH,090H,081H,034H,032H,024H,070H,050H         ; -0.09081343224705
+        DEFB    040H,011H,011H,007H,094H,018H,040H,029H         ; 0.11110794184029
+        DEFB    0C0H,014H,028H,057H,008H,055H,048H,084H         ; -0.14285708554884
+        DEFB    040H,019H,099H,099H,099H,094H,089H,067H         ; 0.19999999948967
+        DEFB    0C0H,033H,033H,033H,033H,033H,031H,060H         ; -0.33333333333160
+        DEFB    041H,010H,000H,000H,000H,000H,000H,000H         ; 1.0
+
+
+;       Subroutine      SIGN
+;       Inputs          ________________________
+;       Outputs         Zx set and A = 000H if zero, Zx reset and Cx set and A = 0FFH if negative, Zx reset and Cx reset and A = 001H if postive
+
+SIGN:
+C2E71:  LD      A,(DAC+0)
+        OR      A               ; DAC is zero ?
+        RET     Z               ; yep, quit
+        DEFB    0FEH            ; CP xx, trick to skip the next instruction
+J2E77:  CPL
+J2E78:  RLA
+
+SIGNS:
+J2E79:  SBC     A,A             ; negative ?
+        RET     NZ              ; yep, quit
+        INC     A
+        RET
+
+;       Subroutine      DAC zero
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J2E7D:  XOR     A
+        LD      (DAC+0),A
+        RET
+
+;       Subroutine      ABS function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ABSFN:
+C2E82:  CALL    VSIGN                   ; get sign DAC
+        RET     P                       ; already postive, quit
+
+;       Subroutine      negate
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VNEG:
+C2E86:  _RST    GETYPR
+        JP      M,J322B                 ; integer, negate integer in DAC and quit
+        JP      Z,TMERR                 ; string, type mismatch error
+
+;       Subroutine      NEG (for single and double real)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NEG:
+C2E8D:  LD      HL,DAC+0
+        LD      A,(HL)
+        OR      A                       ; operand is zero ?
+        RET     Z                       ; yep, quit
+        XOR     80H
+        LD      (HL),A                  ; negate sign bit
+        RET
+
+;       Subroutine      SGN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGN:
+C2E97:  CALL    VSIGN                   ; get sign DAC
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CONIA:
+C2E9A:  LD      L,A
+        RLA
+        SBC     A,A
+        LD      H,A
+        JP      MAKINT                  ; store integer in DAC and quit
+
+;       Subroutine      get sign DAC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VSIGN:
+C2EA1:  _RST    GETYPR
+        JP      Z,TMERR                 ; string, type mismatch error
+        JP      P,SIGN                  ; single or double real, get sign DAC and quit
+        LD      HL,(DAC+2)              ; integer value
+
+;       Subroutine      get sign of integer
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ISIGN:
+C2EAB:  LD      A,H
+        OR      L                       ; integer 0 ?
+        RET     Z                       ; yep, quit
+        LD      A,H
+        JR      J2E78                   ; sign in A
+
+;       Subroutine      PUSHF (push DAC on stack, single real)
+;       Inputs          DAC = single real
+;       Outputs         ________________________
+
+PUSHF:
+C2EB1:  EX      DE,HL
+        LD      HL,(DAC+2)
+        EX      (SP),HL
+        PUSH    HL
+        LD      HL,(DAC+0)
+        EX      (SP),HL
+        PUSH    HL
+        EX      DE,HL
+        RET
+
+;       Subroutine      MOVFM (DAC =)
+;       Inputs          HL = address
+;       Outputs         ________________________
+
+MOVFM:
+C2EBE:  CALL    MOVRM                   ; load from HL (single)
+
+;       Subroutine      MOVFR (DAC =)
+;       Inputs          DEBC = single real
+;       Outputs         ________________________
+
+MOVFR:
+C2EC1:  EX      DE,HL
+        LD      (DAC+2),HL
+        LD      H,B
+        LD      L,C
+        LD      (DAC+0),HL
+        EX      DE,HL
+        RET
+
+;       Subroutine      MOVRF (= DAC)
+;       Inputs          none
+;       Outputs         DEBC = single real
+
+MOVRF:
+C2ECC:  LD      HL,(DAC+2)
+        EX      DE,HL
+        LD      HL,(DAC+0)
+        LD      C,L
+        LD      B,H
+        RET
+
+;       Subroutine      MOVRMI
+;       Inputs          HL = address
+;       Outputs         DEBC = single real
+
+MOVRMI:
+C2ED6:  LD      C,(HL)
+        INC     HL
+        LD      B,(HL)
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        RET
+
+;       Subroutine      MOVRM
+;       Inputs          HL = address
+;       Outputs         BCDE =
+
+MOVRM:
+C2EDF:  LD      E,(HL)
+        INC     HL
+
+;       Subroutine      get size and address of string
+;       Inputs          HL = pointer to stringdescriptor
+;       Outputs         D = size of string, BC = address of string
+
+GETBCD:
+C2EE1:  LD      D,(HL)
+        INC     HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2EE6:  INC     HL
+        RET
+
+;       Subroutine      MOVMF (DAC =)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MOVMF:
+C2EE8:  LD      DE,DAC
+
+;       Subroutine      MOVE ( =)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MOVE:
+C2EEB:  LD      B,4
+        JR      MOVE1                   ; copy bytes
+
+;       Subroutine      VMOVAM (ARG =)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VMOVAM:
+C2EEF:  LD      DE,ARG
+
+;       Subroutine      MOVVFM (DE = HL)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MOVVFM:
+C2EF2:  EX      DE,HL
+
+;       Subroutine      VMOVE (copy variable content)
+;       Inputs          HL = source variable pointer, DE = destination variable pointer, (VALTYP) = variabletype
+;       Outputs         ________________________
+
+VMOVE:
+C2EF3:  LD      A,(VALTYP)
+        LD      B,A
+
+;       Subroutine      copy bytes
+;       Inputs          DE = source, HL = destination, B = number of bytes
+;       Outputs         ________________________
+
+MOVE1:
+C2EF7:  LD      A,(DE)
+        LD      (HL),A
+        INC     DE
+        INC     HL
+        DJNZ    C2EF7
+        RET
+
+;       Subroutine      copy bytes (decrease)
+;       Inputs          DE = source, HL = destination, B = number of bytes
+;       Outputs         ________________________
+
+C2EFE:  LD      A,(DE)
+        LD      (HL),A
+        DEC     DE
+        DEC     HL
+        DJNZ    C2EFE
+        RET
+
+;       Subroutine      VMOVFA (DAC = ARG)
+;       Inputs          _______________________
+;       Outputs         ________________________
+
+VMOVFA:
+C2F05:  LD      HL,ARG
+
+;       Subroutine      VMOVFM (DAC = HL)
+;       Inputs          _______________________
+;       Outputs         ________________________
+
+VMOVFM:
+C2F08:  LD      DE,C2EF2                ; afterwards DE = HL
+        JR      J2F13                   ; load DAC address
+
+;       Subroutine      VMOVAF (ARG = DAC)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VMOVAF:
+C2F0D:  LD      HL,ARG
+
+;       Subroutine      VMOVMF (HL = DAC)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VMOVMF:
+C2F10:  LD      DE,VMOVE                ; afterwards HL = DE
+J2F13:  PUSH    DE
+        LD      DE,DAC+0
+        LD      A,(VALTYP)
+        CP      4
+        RET     NC
+        LD      DE,DAC+2
+        RET
+
+;       Subroutine      FCOMP (single real compare)
+;       Inputs          DEBC = first operand, (DAC) = second operand
+;       Outputs         ________________________
+
+FCOMP:
+C2F21:  LD      A,C
+        OR      A
+        JP      Z,SIGN                  ; get sign DAC and quit
+        LD      HL,J2E77
+        PUSH    HL
+        CALL    SIGN                    ; get sign DAC
+        LD      A,C
+        RET     Z                       ; DAC is zero,
+        LD      HL,DAC+0
+        XOR     (HL)
+        LD      A,C
+        RET     M
+        CALL    C2F3B
+        RRA
+        XOR     C
+        RET
+
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+
+C2F3B:  LD      A,C
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        LD      A,B
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        LD      A,E
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        LD      A,D
+        SUB     (HL)
+        RET     NZ
+        POP     HL
+        POP     HL
+        RET
+
+;       Subroutine      ICOMP (compare integer)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ICOMP:
+C2F4D:  LD      A,D
+        XOR     H                       ; sign equal ?
+        LD      A,H
+        JP      M,J2E78                 ; nope, sign in A
+        CP      D                       ; high byte equal ?
+        JR      NZ,J2F59                ; nope,
+        LD      A,L
+        SUB     E
+        RET     Z
+J2F59:  JP      SIGNS
+
+;       Subroutine      XDCOMP (compare double real)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+XDCOMP:
+C2F5C:  LD      DE,ARG+0
+        LD      A,(DE)
+        OR      A
+        JP      Z,SIGN                  ; get sign DAC and quit
+        LD      HL,J2E77
+        PUSH    HL
+        CALL    SIGN                    ; get sign DAC
+        LD      A,(DE)
+        LD      C,A
+        RET     Z                       ; DAC is zero,
+        LD      HL,DAC+0
+        XOR     (HL)
+        LD      A,C
+        RET     M
+        LD      B,8
+J2F76:  LD      A,(DE)
+        SUB     (HL)
+        JR      NZ,J2F80
+        INC     DE
+        INC     HL
+D2F7C:  DJNZ    J2F76
+        POP     BC
+        RET
+
+J2F80:  RRA
+        XOR     C
+        RET
+
+DCOMP:
+C2F83:  CALL    XDCOMP                  ; compare double real
+        JP      NZ,J2E77
+        RET
+
+;       Subroutine      FRCINT (convert DAC to integer), also CINT function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FRCINT:
+C2F8A:  _RST    GETYPR
+        LD      HL,(DAC+2)
+        RET     M                       ; already integer, quit
+        JP      Z,TMERR                 ; string, type mismatch error
+
+;       Subroutine      convert single real or double real to integer
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FDBINT:
+C2F92:  CALL    C305D                   ; convert real to signed integer
+        JP      C,OVERR                 ; overflow error
+        EX      DE,HL
+
+
+;       Subroutine      store integer in DAC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MAKINT:
+C2F99:  LD      (DAC+2),HL
+
+
+;       Subroutine      DAC type = integer
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VALINT:
+C2F9C:  LD      A,2
+J2F9E:  LD      (VALTYP),A
+        RET
+
+;       Subroutine      if single real is -32768, convert to integer -32768
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Remark          does funny stuff to the stack when single real is -32768
+
+CONIS2:
+C2FA2:  LD      BC,032C5H
+        LD      DE,08076H
+        CALL    FCOMP                   ; single real compare
+        RET     NZ                      ; not -32768 SGN, quit
+        LD      HL,08000H               ; -32768 INT
+J2FAF:  POP     DE                      ; remove return address
+        JR      MAKINT                  ; store integer in DAC and quit
+
+;       Subroutine      FRCSNG (convert DAC to single real), also CSNG function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FRCSNG:
+C2FB2:  _RST    GETYPR
+        RET     PO                      ; already single real, quit
+        JP      M,C2FC8                 ; integer, convert integer (DAC) to single real and quit
+        JP      Z,TMERR                 ; string, type mismatch
+        CALL    C3053                   ; DAC type = single real
+
+        CALL    C3752                   ; get number of BCD digits DAC type
+        INC     HL
+        LD      A,B
+        OR      A                       ; clear Cx
+        RRA
+        LD      B,A                     ; number of bytes DAC type
+
+
+                                        ; why not LD B,3 LD HL,DAC+4 instead of previous complex code ?
+
+
+        JP      C2741                   ; round up
+
+;       Subroutine      convert integer (DAC) to single real
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C2FC8:  LD      HL,(DAC+2)
+
+;       Subroutine      convert integer to single real
+;       Inputs          HL = integer value
+;       Outputs         ________________________
+
+CONSIH:
+C2FCB:  LD      A,H
+J2FCC:  OR      A
+        PUSH    AF                      ; store sign flag
+        CALL    M,C3221                 ; negative, negate integer and store in DAC
+        CALL    C3053                   ; DAC type = single real
+        EX      DE,HL
+        LD      HL,0
+        LD      (DAC+0),HL
+        LD      (DAC+2),HL              ; DAC = 0.0
+        LD      A,D
+        OR      E                       ; integer is zero ?
+        JP      Z,PPSWRT                ; yep, clean up stack and quit
+        LD      BC,5*256+0              ; number of table entries = 5, clear ? flag
+        LD      HL,DAC+1
+        PUSH    HL                      ; store pointer in mantissa
+        LD      HL,J3030                ; table with adders
+J2FED:  LD      A,-1                    ; initialize count
+        PUSH    DE                      ; store integer
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)                  ; get adder
+        INC     HL
+        EX      (SP),HL                 ; restore integer, store pointer in table
+        PUSH    BC                      ; store entry counter
+J2FF6:  LD      B,H
+        LD      C,L
+        ADD     HL,DE
+        INC     A                       ; update count
+        JR      C,J2FF6                 ; no underflow, continue
+        LD      H,B
+        LD      L,C
+        POP     BC                      ; restore entry counter
+        POP     DE                      ; restore pointer in table
+        EX      DE,HL
+        INC     C
+        DEC     C                       ; ? flag cleared ?
+        JR      NZ,J3010                ; nope, skip
+        OR      A                       ; count is zero ?
+        JR      Z,J3024                 ; yep,
+        PUSH    AF                      ; store count
+        LD      A,40H
+        ADD     A,B
+        LD      (DAC+0),A
+        POP     AF                      ; restore count
+J3010:  INC     C                       ; update ? flag
+        EX      (SP),HL                 ; restore position in mantissa, store pointer in table
+        PUSH    AF                      ; store count
+        LD      A,C
+        RRA                             ; high BCD digit ?
+        JR      NC,J301F                ; nope,
+        POP     AF                      ; restore count
+        ADD     A,A
+        ADD     A,A
+        ADD     A,A
+        ADD     A,A
+        LD      (HL),A                  ; put high BCD digit in mantissa
+        JR      J3023
+
+J301F:  POP     AF                      ; restore count
+        OR      (HL)                    ; combine low BCD digit with high BCD digit
+        LD      (HL),A                  ; update BCD byte in mantissa
+        INC     HL                      ; update position in mantissa
+J3023:  EX      (SP),HL                 ; store position in mantissa, restore pointer in table
+J3024:  LD      A,D
+        OR      E                       ; integer is zero ?
+        JR      Z,J302A                 ; yep, quit
+        DJNZ    J2FED                   ; next entry
+J302A:  POP     HL
+        POP     AF                      ; restore sign flag
+        RET     P                       ; positive integer, quit
+        JP      C2E8D                   ; NEG DAC
+
+J3030:  DEFW    -10000
+        DEFW    -1000
+        DEFW    -100
+        DEFW    -10
+        DEFW    -1
+
+;       Subroutine      FRCDBL (convert DAC to double real), also CDBL function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FRCDBL:
+C303A:  _RST    GETYPR
+        RET     NC                      ; already double real, quit
+        JP      Z,TMERR                 ; string, type mismatch error
+        CALL    M,C2FC8                 ; integer, convert integer (DAC) to single real
+
+;       Subroutine      convert DAC from single real to double real
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CONDS:
+C3042:  LD      HL,0
+        LD      (DAC+4),HL
+        LD      (DAC+6),HL
+        LD      A,H
+        LD      (DAC+8),A               ; clear expansion byte DAC
+
+;       Subroutine      DAC type = double real
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C304F:  LD      A,8
+        JR      J3055
+
+;       Subroutine      DAC type = single real
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C3053:  LD      A,4
+J3055:  JP      J2F9E
+
+
+;       Subroutine      check if string
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHKSTR:
+C3058:  _RST    GETYPR
+        RET     Z                       ; already string, quit
+        JP      TMERR                   ; not a string, type mismatch error
+
+;       Subroutine      convert real to signed integer
+;       Inputs          DAC = real
+;       Outputs         DE = signed integer
+
+C305D:  LD      HL,C30BA
+        PUSH    HL
+        LD      HL,DAC+0
+        LD      A,(HL)
+        AND     7FH
+        CP      46H
+        RET     NC
+        SUB     41H
+        JR      NC,J3074
+        OR      A
+        POP     DE
+        LD      DE,0
+        RET
+
+J3074:  INC     A
+        LD      B,A
+        LD      DE,0
+        LD      C,D
+        INC     HL
+J307B:  LD      A,C
+        INC     C
+        RRA
+        LD      A,(HL)
+        JR      C,J3087
+        RRA
+        RRA
+        RRA
+        RRA
+        JR      J3088
+
+J3087:  INC     HL
+J3088:  AND     0FH
+        LD      (DECTMP),HL
+        LD      H,D
+        LD      L,E
+        ADD     HL,HL
+        RET     C
+        ADD     HL,HL
+        RET     C
+        ADD     HL,DE
+        RET     C
+        ADD     HL,HL
+        RET     C
+        LD      E,A
+        LD      D,00H
+        ADD     HL,DE
+        RET     C
+        EX      DE,HL
+        LD      HL,(DECTMP)
+        DJNZ    J307B
+        LD      HL,08000H
+        _RST    DCOMPR
+        LD      A,(DAC+0)
+        RET     C
+        JR      Z,J30B6
+        POP     HL
+        OR      A
+        RET     P
+        EX      DE,HL
+        CALL    C3221                   ; negate integer and store in DAC
+        EX      DE,HL
+        OR      A
+        RET
+
+J30B6:  OR      A
+        RET     P
+        POP     HL
+        RET
+
+C30BA:  SCF
+        RET
+
+;       Subroutine      ?
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Unused Code     Not called from anywhere, leftover from a early Microsoft BASIC
+
+?30BC:  DEC     BC
+        RET
+
+;       Subroutine      FIXER (round DAC), also FIX function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FIXER:
+C30BE:  _RST    GETYPR
+        RET     M                       ; integer, quit doing nothing
+        CALL    SIGN                    ; get sign DAC
+        JP      P,VINT                  ; DAC is postive, just do a INT
+        CALL    C2E8D                   ; NEG DAC
+        CALL    VINT                    ; INT DAC
+        JP      VNEG                    ; negate
+
+;       Subroutine      INT function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VINT:
+C30CF:  _RST    GETYPR
+        RET     M                       ; integer, quit doing nothing
+INT:    LD      HL,DAC+7+1
+        LD      C,14                    ; 14 BCD digits
+        JR      NC,J30E0                ; double real,
+        JP      Z,TMERR                 ; string, type mismatch error
+        LD      HL,DAC+3+1
+        LD      C,6                     ; 6 BCD digits
+J30E0:  LD      A,(DAC+0)
+        OR      A                       ; negative exponent ?
+        JP      M,J3100                 ; yep,
+        AND     7FH                     ; ?? why, we already known it is positive
+        SUB     41H
+        JP      C,J2E7D                 ; DAC = 0 and quit
+        INC     A
+        SUB     C
+        RET     NC
+        CPL
+        INC     A
+        LD      B,A                     ; number of BCD digits to zero
+J30F4:  DEC     HL
+        LD      A,(HL)
+        AND     0F0H
+        LD      (HL),A                  ; lower BCD digit = 0
+        DEC     B
+        RET     Z
+        XOR     A
+        LD      (HL),A                  ; both BCD digits = 0
+        DJNZ    J30F4                   ; next
+        RET
+
+J3100:  AND     7FH                     ; force exponent positive
+        SUB     41H
+        JR      NC,J310C
+        LD      HL,-1
+        JP      MAKINT                  ; store integer in DAC and quit
+
+J310C:  INC     A
+        SUB     C
+        RET     NC
+        CPL
+        INC     A
+        LD      B,A                     ; number of BCD digits
+        LD      E,0                     ; mantissa not updated
+J3114:  DEC     HL
+        LD      A,(HL)
+        LD      D,A
+        AND     0F0H
+        LD      (HL),A                  ; lower BCD digit = 0
+        CP      D                       ; was lower BCD digit already zero ?
+        JR      Z,J311E                 ; yep,
+        INC     E                       ; mantissa updated
+J311E:  DEC     B                       ; update BCD count
+        JR      Z,J3129                 ; all BCD digits finished, finish
+        XOR     A
+        LD      (HL),A                  ; both BCD digits = 0
+        CP      D                       ; where both BCD digits already zero ?
+        JR      Z,J3127                 ; yep, skip
+        INC     E                       ; mantissa updated
+J3127:  DJNZ    J3114                   ; next
+J3129:  INC     E
+        DEC     E                       ; mantissa updated ?
+        RET     Z                       ; nope, quit
+        LD      A,C
+        CP      6                       ; single real ?
+        LD      BC,10C1H
+        LD      DE,0                    ; single real -1.0
+        JP      Z,SGNADD                ; yep, single real addition and quit
+        EX      DE,HL
+        LD      (ARG+6),HL
+        LD      (ARG+4),HL
+        LD      (ARG+2),HL
+        LD      H,B
+        LD      L,C
+        LD      (ARG+0),HL              ; ARG = double real -1.0
+        JP      DECADD                  ; DAC + ARG
+
+;       Subroutine      UMULT (unsigned integer multiply)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+UMULT:
+C314A:  PUSH    HL
+        LD      HL,0
+        LD      A,B
+        OR      C
+        JR      Z,J3164
+        LD      A,16
+J3154:  ADD     HL,HL
+        JP      C,BSERR                 ; subscript out of range
+        EX      DE,HL
+        ADD     HL,HL
+        EX      DE,HL
+        JR      NC,J3161
+        ADD     HL,BC
+        JP      C,BSERR                 ; subscript out of range
+J3161:  DEC     A
+        JR      NZ,J3154
+J3164:  EX      DE,HL
+        POP     HL
+        RET
+
+;       Subroutine      ISUB (subtract integer)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+ISUB:
+C3167:  LD      A,H
+        RLA
+        SBC     A,A
+        LD      B,A                     ; sign flag
+        CALL    C3221                   ; negate integer and store in DAC
+        LD      A,C                     ; A = 0
+        SBC     A,B                     ; sign flag
+        JR      J3175
+
+;       Subroutine      IADD (add integer)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+IADD:
+C3172:  LD      A,H
+        RLA
+        SBC     A,A                     ; sign flag
+J3175:  LD      B,A
+        PUSH    HL                      ; store operand2
+        LD      A,D
+        RLA
+        SBC     A,A
+        ADD     HL,DE
+        ADC     A,B
+        RRCA
+        XOR     H
+        JP      P,J2FAF                 ; clean up stack, store integer in DAC and quit
+        PUSH    BC
+        EX      DE,HL
+        CALL    CONSIH                  ; convert integer (operand1) to single real
+        POP     AF
+        POP     HL                      ; restore operand2
+        CALL    PUSHF                   ; push DAC (single)
+        CALL    CONSIH                  ; convert integer (operand2) to single real
+        POP     BC
+        POP     DE                      ; restore single real from stack
+        JP      SGNADD                  ; single real addition
+
+;       Subroutine      IMULT (multiply integer)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+IMULT:
+C3193:  LD      A,H
+        OR      L
+        JP      Z,MAKINT                ; store integer 0 in DAC and quit
+        PUSH    HL                      ; store operand2
+        PUSH    DE                      ; store operand1
+        CALL    C3215                   ; force postive operands and store operand1 in DAC
+        PUSH    BC                      ; store sign difference flag
+        LD      B,H
+        LD      C,L                     ; operand1
+        LD      HL,0
+        LD      A,16
+J31A5:  ADD     HL,HL
+        JR      C,J31C7
+        EX      DE,HL
+        ADD     HL,HL
+        EX      DE,HL
+        JR      NC,J31B0
+        ADD     HL,BC
+        JR      C,J31C7
+J31B0:  DEC     A
+        JR      NZ,J31A5                ; next
+        POP     BC
+        POP     DE
+J31B5:  LD      A,H
+        OR      A
+        JP      M,J31BF
+        POP     DE
+        LD      A,B
+        JP      J321D                   ; force postive integer and store in DAC (with sign flag)
+
+J31BF:  XOR     80H
+        OR      L
+        JR      Z,J31D8
+        EX      DE,HL
+        JR      J31C9
+
+J31C7:  POP     BC
+        POP     HL
+J31C9:  CALL    CONSIH                  ; convert integer to single real
+        POP     HL
+        CALL    PUSHF                   ; push DAC (single)
+        CALL    CONSIH                  ; convert integer to single real
+        POP     BC
+        POP     DE                      ; restore single real from stack
+        JP      SGNMUL                  ; single real multiply
+
+J31D8:  LD      A,B
+        OR      A
+        POP     BC
+        JP      M,MAKINT                ; store integer in DAC and quit
+        PUSH    DE
+        CALL    CONSIH                  ; convert integer to single real
+        POP     DE
+        JP      C2E8D                   ; NEG DAC
+
+;       Subroutine      IDIV (integer divide)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+IDIV:
+C31E6:  LD      A,H
+        OR      L                       ; operand2 is zero ?
+        JP      Z,DV0ERR                ; yep, division by zero error
+        CALL    C3215                   ; force postive operands and store operand1 in DAC
+        PUSH    BC                      ; store sign difference flag
+        EX      DE,HL                   ; operand2
+        CALL    C3221                   ; negate integer and store in DAC
+        LD      B,H
+        LD      C,L                     ;
+        LD      HL,0
+        LD      A,17
+        OR      A                       ; clear Cx
+        JR      J3206
+
+J31FD:  PUSH    HL
+        ADD     HL,BC
+        JR      NC,J3205
+        INC     SP
+        INC     SP
+        SCF
+        DEFB    030H                    ; JR NC,xx, trick to skip the next instruction
+J3205:  POP     HL
+J3206:  RL      E
+        RL      D
+        ADC     HL,HL
+        DEC     A
+        JR      NZ,J31FD                ; next
+        EX      DE,HL
+        POP     BC                      ; restore sign difference flag
+        PUSH    DE
+        JP      J31B5
+
+;       Subroutine      force postive operands and store operand1 in DAC
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         B = sign difference flag, DAC = operand1
+
+C3215:  LD      A,H
+        XOR     D
+        LD      B,A                     ; store sign difference flag
+        CALL    C321C                   ; force postive integer and store in DAC
+        EX      DE,HL
+
+;       Subroutine      force postive integer and store in DAC
+;       Inputs          HL = integer
+;       Outputs         ________________________
+
+C321C:  LD      A,H
+J321D:  OR      A
+        JP      P,MAKINT                ; store integer in DAC and quit
+
+;       Subroutine      negate integer and store in DAC
+;       Inputs          HL = integer
+;       Outputs         ________________________
+
+C3221:  XOR     A
+        LD      C,A
+        SUB     L
+        LD      L,A
+        LD      A,C
+        SBC     A,H
+        LD      H,A
+        JP      MAKINT                  ; store integer in DAC and quit
+
+;       Subroutine      negate integer in DAC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J322B:  LD      HL,(DAC+2)
+        CALL    C3221                   ; negate integer and store in DAC
+        LD      A,H
+        XOR     80H
+        OR      L                       ; integer = -32768 ?
+        RET     NZ                      ; nope, quit
+
+;       Subroutine      convert unsigned integer to single real
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CONSUI:
+C3236:  XOR     A                       ; sign flag = positive
+        JP      J2FCC
+
+;       Subroutine      IMOD (integer mod)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+IMOD:
+C323A:  PUSH    DE
+        CALL    IDIV                    ; integer divide
+        XOR     A
+        ADD     A,D
+        RRA
+        LD      H,A
+        LD      A,E
+        RRA
+        LD      L,A
+        CALL    C2F9C                   ; DAC type = integer
+        POP     AF
+        JR      J321D                   ; force postive integer and store in DAC (with sign flag)
+
+;       Subroutine      ?
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Unused Code     Not called from anywhere, leftover from a early Microsoft BASIC
+
+?324B:  CALL    MOVRM                   ; load from HL (single)
+
+;       Subroutine      single real addition
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGNADD:
+C324E:  CALL    C3280                   ; store single real as double real in ARG
+        CALL    C3042                   ; convert DAC from single real to double real
+        JP      DECADD                  ; DAC + ARG
+
+;       Subroutine      single real subtract
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGNSUB:
+C3257:  CALL    C2E8D                   ; NEG DAC
+        JR      SGNADD                  ; single real addition
+
+;       Subroutine      single real multiply
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGNMUL:
+C325C:  CALL    C3280                   ; store single real as double real in ARG
+        CALL    C3042                   ; convert DAC from single real to double real
+        JP      DECMUL                  ; DAC * ARG and quit
+
+SGNDVT:
+J3265:  POP     BC
+        POP     DE
+
+;       Subroutine      single real divide
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGNDIV:
+C3267:  LD      HL,(DAC+2)
+        EX      DE,HL
+        LD      (DAC+2),HL
+        PUSH    BC
+        LD      HL,(DAC+0)
+        EX      (SP),HL
+        LD      (DAC+0),HL
+        POP     BC
+        CALL    C3280                   ; store single real as double real in ARG
+        CALL    C3042                   ; convert DAC from single real to double real
+        JP      DECDIV                  ; DAC / ARG and quit
+
+;       Subroutine      store single real as double real in ARG
+;       Inputs          DEBC = single real
+;       Outputs         ________________________
+
+C3280:  EX      DE,HL
+        LD      (ARG+2),HL
+        LD      H,B
+        LD      L,C
+        LD      (ARG+0),HL
+        LD      HL,0
+        LD      (ARG+4),HL
+        LD      (ARG+6),HL
+        RET
+
+;       Subroutine      decrease A
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DCRART:
+C3293:  DEC     A
+        RET
+
+;       Subroutine      decrease HL
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DCXHRT:
+C3295:  DEC     HL
+        RET
+
+;       Subroutine      restore HL from stack and quit (should not be called)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+POPHRT:
+J3297:  POP     HL
+        RET
+
+;       Subroutine      FIN (convert text to number)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FIN:
+C3299:  EX      DE,HL                   ; store pointer to text
+        LD      BC,00FFH                ; decimal point count = 0, no decimal point flag
+        LD      H,B
+        LD      L,B                     ; result = 0
+        CALL    MAKINT                  ; store integer in DAC
+        EX      DE,HL                   ; restore pointer to text, also exponent (E) = 0, number of digits (D) = 0
+        LD      A,(HL)
+        CP      '&'
+        JP      Z,OCTCNS                ; convert text with radix indication to number
+        CP      '-'                     ; minus character ?
+        PUSH    AF                      ; store minus flag
+        JR      Z,J32B3                 ; yep, start FIN
+        CP      '+'                     ; plus character ?
+        JR      Z,J32B3                 ; yep, start FIN
+        DEC     HL
+
+J32B3:  _RST    CHRGTR                  ; get next BASIC character
+        JP      C,J3386                 ; numeric,
+        CP      '.'                     ; decimal point ?
+        JP      Z,J334F                 ; yep, handle floating point notation
+        CP      'e'                     ; possible exponent ?
+        JR      Z,J32C2                 ; yep,
+        CP      'E'                     ; possible exponent ?
+J32C2:  JR      NZ,J32DE                ; nope, check if type indicator
+        PUSH    HL
+        _RST    CHRGTR                  ; get next BASIC character
+        CP      'l'                     ; is it a EL(SE) ?
+        JR      Z,J32D4                 ; yep, no exponent
+        CP      'L'                     ; is it a EL(SE) ?
+        JR      Z,J32D4                 ; yep, no exponent
+        CP      'q'                     ; is it a EQ(V) ?
+        JR      Z,J32D4                 ; yep, no exponent
+        CP      'Q'                     ; is it a EQ(V) ?
+J32D4:  POP     HL
+        JR      Z,J32DD                 ; no exponent, check if type indicator
+        _RST    GETYPR
+        JR      NC,J32F5                ; double real, convert to double real and continue
+        XOR     A                       ; single real
+        JR      J32F6                   ; convert to single real and continue
+
+J32DD:  LD      A,(HL)
+J32DE:  CP      '%'                     ; integer type indicator ?
+        JP      Z,J3362                 ; yep, finish FIN with a convert to integer
+        CP      '#'                     ; double real indicator ?
+        JP      Z,J3370                 ; yep, finish FIN with a convert to double real
+        CP      '!'                     ; single real indicator ?
+        JP      Z,J3371                 ; yep, finish FIN with a convert to single real
+        CP      'd'
+        JR      Z,J32F5                 ; yep, convert to double real and continue
+        CP      'D'
+        JR      NZ,J331E                ; nope, finish FIN
+J32F5:  OR      A                       ; double real
+
+;  handle exponent
+
+J32F6:  CALL    C3377                   ; convert DAC to real
+        _RST    CHRGTR                  ; get next BASIC character
+        PUSH    DE                      ; store exponent and flag
+        LD      D,0                     ; initialize flag
+        CALL    MINPLS                  ; minus or plus character (including token) ?
+        LD      C,D                     ; store flag
+        POP     DE                      ; restore exponent and flag
+J3302:  _RST    CHRGTR                  ; get next BASIC character
+        JR      NC,J3318                ; not numeric,
+        LD      A,E
+        CP      12                      ; exponent becomes overflowed ?
+        JR      NC,J3314                ; yep, make sure it does
+        RLCA
+        RLCA                            ; *4
+        ADD     A,E                     ; *5
+        RLCA                            ; *10
+        ADD     A,(HL)
+        SUB     '0'
+        LD      E,A                     ; update exponent
+        JR      J3302                   ; next exponent digit
+
+J3314:  LD      E,80H                   ; force exponent to be overflowed
+        JR      J3302                   ; next exponent digit
+
+; exponent is finished
+
+J3318:  INC     C                       ; minus character ?
+        JR      NZ,J331E                ; nope, finish FIN
+        XOR     A
+        SUB     E
+        LD      E,A                     ; negate exponent
+
+FINE:
+J331E:  _RST    GETYPR
+        JP      M,J3334                 ; integer,
+        LD      A,(DAC+0)
+        OR      A                       ; DAC zero ?
+        JR      Z,J3334                 ; yep, skip exponent
+        LD      A,D
+        SUB     B
+        ADD     A,E
+        ADD     A,40H
+        LD      (DAC+0),A
+        OR      A
+        CALL    M,C334C                 ; overflow error (wierd, why a call which never returns? why not JP M,OVERR)
+J3334:  POP     AF                      ; restore sign flag
+        PUSH    HL                      ; store pointer
+        CALL    Z,VNEG                  ; negate
+        _RST    GETYPR
+        JR      NC,J3347                ; double real,
+        POP     HL
+        RET     PE                      ; no single real, quit
+        PUSH    HL                      ; store pointer
+        LD      HL,POPHRT
+        PUSH    HL                      ; restore pointer routine (all this strange stuff because CONIS2 does wierd stuff with stack)
+        CALL    CONIS2                  ; if single real is -32768, convert to integer -32768
+        RET
+
+J3347:  CALL    C273C                   ; round up DAC
+        POP     HL                      ; restore pointer
+        RET
+
+;       Subroutine      overflow error
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C334C:  JP      OVERR                   ; overflow error
+
+; FIN, handle floating point notation
+
+J334F:  _RST    GETYPR
+        INC     C                       ; first point character ?
+        JR      NZ,J331E                ; nope, finish FIN
+        JR      NC,J335F                ; DAC = real,
+        CALL    C3377                   ; convert DAC to single real
+        LD      A,(DAC+0)
+        OR      A                       ; DAC is zero ?
+        JR      NZ,J335F                ; nope,
+        LD      D,A
+J335F:  JP      J32B3                   ; continue FIN
+
+J3362:  _RST    CHRGTR                  ; get next BASIC character
+        POP     AF                      ; restore minus flag
+        PUSH    HL                      ; store pointer
+        LD      HL,POPHRT
+        PUSH    HL                      ; restore pointer routine
+        LD      HL,FRCINT
+        PUSH    HL                      ; convert DAC to integer on stack
+        PUSH    AF                      ; store minus flag
+        JR      J331E                   ; finish FIN
+
+J3370:  OR      A                       ; double real
+J3371:  CALL    C3377                   ; convert DAC to real
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      J331E                   ; finish FIN
+
+;       Subroutine      convert DAC to real
+;       Inputs          Zx set = convert DAC to single real, Zx reset = convert DAC to double real
+;       Outputs         ________________________
+
+C3377:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    AF                      ; store flag
+        CALL    Z,FRCSNG                ; convert DAC to single real
+        POP     AF                      ; restore flag
+        CALL    NZ,FRCDBL               ; convert DAC to double real
+        POP     BC
+        POP     DE
+        POP     HL
+        RET
+
+; FIN, handle numeric
+
+J3386:  SUB     '0'                     ; zero digit ?
+        JP      NZ,J3393                ; nope,
+        OR      C                       ; decimal point found ?
+        JP      Z,J3393                 ; yep,
+        AND     D                       ; digits other than zero ?
+        JP      Z,J32B3                 ; nope, continue FIN
+J3393:  INC     D                       ; increase number of digits
+        LD      A,D
+        CP      6+1                     ; > 6 digits ?
+        JR      NZ,J339D                ; nope,
+        OR      A                       ; double real
+        CALL    C3377                   ; convert DAC to real
+J339D:  PUSH    DE                      ; store number of digits, store exponent
+        LD      A,B
+        ADD     A,C
+        INC     A
+        LD      B,A
+        PUSH    BC                      ; store
+        PUSH    HL                      ; store pointer
+        LD      A,(HL)
+        SUB     '0'
+        PUSH    AF                      ; store value
+        _RST    GETYPR
+        JP      P,J33D1                 ; not a integer,
+        LD      HL,(DAC+2)
+        LD      DE,0+(32767/10)+1
+        _RST    DCOMPR                  ; can mutiply by 10 without overflow ?
+        JR      NC,J33CE                ; nope, convert to single real
+        LD      D,H
+        LD      E,L
+        ADD     HL,HL
+        ADD     HL,HL                   ; *4
+        ADD     HL,DE                   ; *5
+        ADD     HL,HL                   ; *10
+        POP     AF                      ; restore value
+        LD      C,A
+        ADD     HL,BC                   ; add value
+        LD      A,H
+        OR      A                       ; overflow ?
+        JP      M,J33CC                 ; yep, convert to single real
+        LD      (DAC+2),HL              ; update integer in DAC
+J33C6:  POP     HL                      ; restore pointer
+        POP     BC
+        POP     DE
+        JP      J32B3                   ; continue FIN
+
+J33CC:  LD      A,C
+        PUSH    AF
+J33CE:  CALL    C2FC8                   ; convert integer (DAC) to single real
+J33D1:  POP     AF
+        POP     HL                      ; restore pointer
+        POP     BC                      ; restore
+        POP     DE
+        JR      NZ,J33E3
+        LD      A,(DAC+0)
+        OR      A                       ; operand is zero ?
+        LD      A,0
+        JR      NZ,J33E3                ; nope,
+        LD      D,A
+        JP      J32B3                   ; continue FIN
+
+J33E3:  PUSH    DE
+        PUSH    BC
+        PUSH    HL
+        PUSH    AF
+        LD      HL,DAC+0
+        LD      (HL),01H
+        LD      A,D
+        CP      10H
+        JR      C,J33F4
+        POP     AF
+        JR      J33C6                   ; restore and continue FIN
+
+J33F4:  INC     A
+        OR      A
+        RRA
+        LD      B,0
+        LD      C,A
+        ADD     HL,BC
+        POP     AF
+        LD      C,A
+        LD      A,D
+        RRA
+        LD      A,C
+        JR      NC,J3406
+        ADD     A,A
+        ADD     A,A
+        ADD     A,A
+        ADD     A,A
+J3406:  OR      (HL)
+        LD      (HL),A
+        JR      J33C6                   ; restore and continue FIN
+
+;       Subroutine      " in " number to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INPRT:
+C340A:  PUSH    HL
+        LD      HL,INTXT
+        CALL    STROUT                  ; message to interpreter output
+        POP     HL
+
+;       Subroutine      number to interpreter output
+;       Inputs          HL = number
+;       Outputs         ________________________
+
+LINPRT:
+C3412:  LD      BC,STROUI
+        PUSH    BC                      ; after this: skip first char, message to interpreter
+        CALL    MAKINT                  ; store integer in DAC
+        XOR     A
+        LD      (TEMP3),A               ; clear format flags
+        LD      HL,FBUFFR+1
+        LD      (HL),' '
+        OR      (HL)                    ; clear Cx
+        JR      J3441
+
+;       Subroutine      FOUT (convert DAC to text, unformatted)
+;       Inputs          B = number of digits before floating point, C = number of digits after floating point
+;       Outputs         ________________________
+
+FOUT:
+C3425:  XOR     A                       ; clear format flags
+
+;       Subroutine      PUFOUT (convert DAC to text, formatted)
+;       Inputs          A = format flags, B = number of digits before floating point, C = number of digits after floating point
+;       Outputs         ________________________
+
+PUFOUT:
+C3426:  CALL    C375F                   ; initialize for DAC convert to text
+        AND     08H                     ; force sign flag ?
+        JR      Z,J342F                 ; nope,
+        LD      (HL),'+'
+J342F:  EX      DE,HL
+        CALL    VSIGN                   ; get sign DAC
+        EX      DE,HL
+        JP      P,J3441                 ; postive, skip
+        LD      (HL),'-'
+        PUSH    BC
+        PUSH    HL
+        CALL    VNEG                    ; negate
+        POP     HL
+        POP     BC
+        OR      H                       ; clear Cx
+J3441:  INC     HL
+        LD      (HL),'0'
+        LD      A,(TEMP3)               ; format flags
+        LD      D,A
+        RLA
+        LD      A,(VALTYP)
+        JP      C,J34F7                 ; formatted output flag,
+        JP      Z,J34EF                 ; no flags,
+        CP      4                       ; real ?
+        JP      NC,J34A1                ; yep,
+        LD      BC,0                    ; decimal point count = 0, comma count = 0
+        CALL    C36DB                   ; put integer (DAC) in buffer
+
+;       Subroutine      supress zero's with fill character
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FOUTZS:
+C345D:  LD      HL,FBUFFR+1
+        LD      B,(HL)
+        LD      C,' '                   ; assume fill = space character
+        LD      A,(TEMP3)               ; format flags
+        LD      E,A
+        AND     20H                     ; fill with asterix flag ?
+        JR      Z,J3477                 ; nope,
+        LD      A,B
+        CP      C                       ; currently a space character ?
+        LD      C,'*'                   ; fill = asterix character
+        JR      NZ,J3477                ; nope,
+        LD      A,E
+        AND     04H                     ; sign after flag ?
+        JR      NZ,J3477                ; yep,
+        LD      B,C
+J3477:  LD      (HL),C                  ; fill character
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      Z,J348F                 ; end of statement or line,
+        CP      'E'
+        JR      Z,J348F
+        CP      'D'
+        JR      Z,J348F
+        CP      '0'                     ; zero digit ?
+        JR      Z,J3477                 ; yep, next
+        CP      ','                     ; thousand seperator ?
+        JR      Z,J3477                 ; yep, next
+        CP      '.'                     ; decimal point ?
+        JR      NZ,J3492                ; nope,
+J348F:  DEC     HL
+        LD      (HL),'0'
+J3492:  LD      A,E
+        AND     10H                     ; currency before flag ?
+        JR      Z,J349A                 ; nope, skip
+        DEC     HL
+        LD      (HL),CHRCUR             ; currency character
+J349A:  LD      A,E
+        AND     04H                     ; sign after flag ?
+        RET     NZ                      ; yep, quit
+        DEC     HL
+        LD      (HL),B
+        RET
+
+; PUFOUT for single or double real
+
+J34A1:  PUSH    HL
+        CALL    C3752                   ; get number of BCD digits DAC type
+        LD      D,B
+        INC     D
+        LD      BC,3*256+0              ; assume decimal point count = 3, comma count = 0
+        LD      A,(DAC+0)
+        SUB     3FH
+        JR      C,J34B9
+        INC     D
+        CP      D
+        JR      NC,J34B9
+        INC     A
+        LD      B,A                     ; decimal point count
+        LD      A,2
+J34B9:  SUB     2
+        POP     HL
+        PUSH    AF
+        CALL    C368E                   ; put comma or point with 0 digits when needed
+        LD      (HL),'0'
+        CALL    Z,C2EE6
+        CALL    C36B3                   ; put real mantissa in buffer
+J34C8:  DEC     HL
+        LD      A,(HL)
+        CP      '0'
+        JR      Z,J34C8
+        CP      '.'
+        CALL    NZ,C2EE6
+        POP     AF
+        JR      Z,J34F0                 ; put string end marker in buffer and quit
+
+;       Subroutine      put exponent as E notation in buffer
+;       Inputs          A = exponent, HL = pointer in buffer
+;       Outputs         ________________________
+
+C34D6:  LD      (HL),'E'
+        INC     HL
+        LD      (HL),'+'
+        JP      P,J34E2
+        LD      (HL),'-'
+        CPL
+        INC     A
+J34E2:  LD      B,'0'-1
+J34E4:  INC     B
+        SUB     10
+        JR      NC,J34E4
+        ADD     A,'0'+10
+        INC     HL
+        LD      (HL),B
+        INC     HL
+        LD      (HL),A
+J34EF:  INC     HL
+J34F0:  LD      (HL),0                  ; string end marker
+        EX      DE,HL
+        LD      HL,FBUFFR+1
+        RET
+
+J34F7:  INC     HL
+        PUSH    BC
+        CP      04H
+        LD      A,D
+        JP      NC,J3566
+        RRA
+        JP      C,J35EF
+        LD      BC,6*256+3              ; assume decimal point count = 6, comma count = 3
+        CALL    C3686                   ; comma count = 0 when thousends seperator flag is reset
+        POP     DE
+        LD      A,D
+        SUB     05H
+        CALL    P,C3666
+        CALL    C36DB                   ; put integer (DAC) in buffer
+J3513:  LD      A,E
+        OR      A
+        CALL    Z,DCXHRT                ; pointer 1 back
+        DEC     A
+        CALL    P,C3666
+J351C:  PUSH    HL                      ; store pointer
+        CALL    FOUTZS                  ; supress zero's with fill character
+        POP     HL                      ; restore pointer
+        JR      Z,J3525
+        LD      (HL),B
+        INC     HL
+J3525:  LD      (HL),0                  ; string end marker
+        LD      HL,FBUFFR
+J352A:  INC     HL
+J352B:  LD      A,(TEMP2)               ; pointer to decimal point
+        SUB     L
+        SUB     D
+        RET     Z
+        LD      A,(HL)
+        CP      ' '
+        JR      Z,J352A
+        CP      '*'
+        JR      Z,J352A
+        DEC     HL
+        PUSH    HL
+I353C:  PUSH    AF
+        LD      BC,I353C
+        PUSH    BC
+        _RST    CHRGTR                  ; get next BASIC character
+        CP      '-'
+        RET     Z
+        CP      '+'
+        RET     Z
+        CP      CHRCUR                  ; currency character ?
+        RET     Z                       ; yep, quit
+        POP     BC
+        CP      '0'
+        JR      NZ,J355F
+        INC     HL
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      NC,J355F                ; not numeric,
+        DEC     HL
+        JR      J3559
+
+J3557:  DEC     HL
+        LD      (HL),A
+J3559:  POP     AF
+        JR      Z,J3557
+        POP     BC
+        JR      J352B
+
+J355F:  POP     AF
+        JR      Z,J355F
+        POP     HL
+        LD      (HL),'%'
+        RET
+
+J3566:  PUSH    HL
+        RRA
+        JP      C,J35F5
+        CALL    C3752                   ; get number of BCD digits DAC type
+        LD      D,B
+        LD      A,(DAC+0)
+        SUB     4FH
+        JR      C,J3581
+        POP     HL
+        POP     BC
+        CALL    FOUT                    ; convert DAC to text, unformatted
+        LD      HL,FBUFFR
+        LD      (HL),'%'
+        RET
+
+J3581:  CALL    SIGN                    ; get sign DAC
+        CALL    NZ,C37A2                ; DAC not zero,
+        POP     HL
+        POP     BC
+        JP      M,J35A6
+        PUSH    BC
+        LD      E,A
+        LD      A,B
+        SUB     D
+        SUB     E
+        CALL    P,C3666
+        CALL    C367A                   ; calculate decimal point count and comma count
+        CALL    C36B3                   ; put real mantissa in buffer
+        OR      E
+        CALL    NZ,C3674
+        OR      E
+        CALL    NZ,C36A0                ; put point or comma in buffer when needed
+        POP     DE
+        JP      J3513
+
+J35A6:  LD      E,A
+        LD      A,C
+        OR      A                       ; already zero ?
+        CALL    NZ,DCRART               ; nope, decrease
+        ADD     A,E
+        JP      M,J35B1
+        XOR     A
+J35B1:  PUSH    BC
+        PUSH    AF
+        CALL    M,C377B
+        POP     BC
+        LD      A,E
+        SUB     B
+        POP     BC
+        LD      E,A
+        ADD     A,D
+        LD      A,B
+        JP      M,J35CB
+        SUB     D
+        SUB     E
+        CALL    P,C3666
+        PUSH    BC
+        CALL    C367A                   ; calculate decimal point count and comma count
+        JR      J35DC
+
+J35CB:  CALL    C3666
+        LD      A,C
+        CALL    C36A3                   ; put point in buffer, update comma count
+        LD      C,A
+        XOR     A
+        SUB     D
+        SUB     E
+        CALL    C3666
+        PUSH    BC
+        LD      B,A
+        LD      C,A
+J35DC:  CALL    C36B3                   ; put real mantissa in buffer
+        POP     BC
+        OR      C
+        JR      NZ,J35E6
+        LD      HL,(TEMP2)              ; pointer to decimal point
+J35E6:  ADD     A,E
+        DEC     A
+        CALL    P,C3666
+        LD      D,B
+        JP      J351C
+
+J35EF:  PUSH    HL
+        PUSH    DE
+        CALL    C2FC8                   ; convert integer (DAC) to single real
+        POP     DE
+J35F5:  CALL    C3752                   ; get number of BCD digits DAC type
+        LD      E,B
+        CALL    SIGN                    ; get sign DAC
+        PUSH    AF
+        CALL    NZ,C37A2                ; DAC not zero,
+        POP     AF
+        POP     HL
+        POP     BC
+        PUSH    AF
+        LD      A,C
+        OR      A                       ; already zero ?
+        PUSH    AF
+        CALL    NZ,DCRART               ; nope, decrease
+        ADD     A,B
+        LD      C,A
+        LD      A,D
+        AND     04H
+        CP      01H
+        SBC     A,A
+        LD      D,A
+        ADD     A,C
+        LD      C,A
+        SUB     E
+        PUSH    AF
+        JP      P,J3628
+        CALL    C377B
+        JR      NZ,J3628
+        PUSH    HL
+        CALL    C27DB                   ; shift mantissa 1 digit right
+        LD      HL,DAC+0
+        INC     (HL)
+        POP     HL
+J3628:  POP     AF
+        PUSH    BC
+        PUSH    AF
+        JP      M,J362F
+        XOR     A
+J362F:  CPL
+        INC     A
+        ADD     A,B
+        INC     A
+        ADD     A,D
+        LD      B,A                     ; decimal point count
+        LD      C,0                     ; comma count = 0
+        CALL    Z,C368E                 ; put comma or point with 0 digits when needed
+        CALL    C36B3                   ; put real mantissa in buffer
+        POP     AF
+        CALL    P,C366E
+        CALL    C36A0                   ; put point or comma in buffer when needed
+        POP     BC
+        POP     AF
+        JR      NZ,J3654
+        CALL    DCXHRT                  ; pointer 1 back
+        LD      A,(HL)
+        CP      '.'
+        CALL    NZ,C2EE6
+        LD      (TEMP2),HL              ; store pointer to decimal point
+J3654:  POP     AF
+        LD      A,(DAC+0)
+        JR      Z,J365D
+        ADD     A,E
+        SUB     B
+        SUB     D
+J365D:  PUSH    BC
+        CALL    C34D6                   ; put exponent as E notation in buffer
+        EX      DE,HL
+        POP     DE
+        JP      J351C
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C3666:  OR      A
+J3667:  RET     Z
+        DEC     A
+        LD      (HL),'0'
+        INC     HL
+        JR      J3667
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C366E:  JR      NZ,C3674
+J3670:  RET     Z
+        CALL    C36A0                   ; put point or comma in buffer when needed
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C3674:  LD      (HL),'0'
+        INC     HL
+        DEC     A
+        JR      J3670
+
+;       Subroutine      calculate decimal point count and comma count
+;       Inputs          ________________________
+;       Outputs         B = decimal point count, C = comma count
+
+C367A:  LD      A,E
+        ADD     A,D
+        INC     A
+        LD      B,A
+        INC     A
+J367F:  SUB     3
+        JR      NC,J367F
+        ADD     A,3+2
+        LD      C,A
+
+;       Subroutine      comma count = 0 when thousends seperator flag is reset
+;       Inputs          C = comma count
+;       Outputs         C = updated command count
+
+C3686:  LD      A,(TEMP3)
+        AND     40H                     ; thousends seperator flag ?
+        RET     NZ                      ; yep, quit
+        LD      C,A                     ; C = 0
+        RET
+
+;       Subroutine      put comma or point with 0 digits when needed
+;       Inputs          B = decimal point count, C = comma count
+;       Outputs         ________________________
+
+C368E:  DEC     B                       ; update decimal point count
+        JP      P,J36A1
+        LD      (TEMP2),HL              ; store pointer to decimal point
+        LD      (HL),'.'
+J3697:  INC     HL
+        LD      (HL),'0'
+        INC     B
+        LD      C,B                     ; update comma count
+        JR      NZ,J3697
+        INC     HL
+        RET
+
+;       Subroutine      put point or comma in buffer when needed
+;       Inputs          B = decimal point count, C = comma count
+;       Outputs         ________________________
+
+C36A0:  DEC     B                       ; update decimal point count
+J36A1:  JR      NZ,J36AB
+
+;       Subroutine      put point in buffer, update comma count
+;       Inputs          B = decimal point count, C = comma count
+;       Outputs         ________________________
+
+C36A3:  LD      (HL),'.'
+        LD      (TEMP2),HL              ; store pointer to decimal point
+        INC     HL
+        LD      C,B                     ; update comma count
+        RET
+
+J36AB:  DEC     C                       ; update comma count
+        RET     NZ                      ; counter is not zero, quit
+        LD      (HL),','
+        INC     HL
+        LD      C,3                     ; comma count = 3
+        RET
+
+;       Subroutine      put real mantissa in buffer
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C36B3:  PUSH    DE
+        PUSH    HL
+        PUSH    BC
+        CALL    C3752                   ; get number of BCD digits DAC type
+        LD      A,B                     ; number of BCD digits
+        POP     BC
+        POP     HL
+        LD      DE,DAC+1                ; start of mantissa
+        SCF                             ; set high BCD digit flag
+J36C0:  PUSH    AF                      ; store number of BCD digits, BCD digit flag
+        CALL    C36A0                   ; put point or comma in buffer when needed
+        LD      A,(DE)                  ; get BCD byte
+        JR      NC,J36CD                ; low BCD digit,
+        RRA
+        RRA
+        RRA
+        RRA                             ; shift high BCD digit
+        JR      J36CE
+
+J36CD:  INC     DE
+J36CE:  AND     0FH
+        ADD     A,'0'
+        LD      (HL),A
+        INC     HL
+        POP     AF                      ; restore number of BCD digits, BCD digit flag
+        DEC     A                       ; update
+        CCF                             ; flip BCD digit flag
+        JR      NZ,J36C0                ; next digit
+        JR      J370A
+
+;       Subroutine      put integer (DAC) in buffer
+;       Inputs          B = decimal point count, C = comma count
+;       Outputs         ________________________
+
+C36DB:  PUSH    DE
+        LD      DE,I3710                ; table with dividers
+        LD      A,5                     ; number of entries in table
+J36E1:  CALL    C36A0                   ; put point or comma in buffer when needed
+        PUSH    BC
+        PUSH    AF                      ; store counter
+        PUSH    HL                      ; store pointer in buffer
+        EX      DE,HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)
+        PUSH    BC                      ; store divider
+        INC     HL
+        EX      (SP),HL                 ; store pointer in table, restore divider
+        EX      DE,HL
+        LD      HL,(DAC+2)
+        LD      B,'0'-1
+J36F4:  INC     B
+        LD      A,L
+        SUB     E
+        LD      L,A
+        LD      A,H
+        SBC     A,D
+        LD      H,A
+        JR      NC,J36F4
+        ADD     HL,DE
+        LD      (DAC+2),HL
+        POP     DE                      ; restore pointer in table
+        POP     HL                      ; restore pointer in buffer
+        LD      (HL),B
+        INC     HL
+        POP     AF                      ; restore counter
+        POP     BC
+        DEC     A
+        JR      NZ,J36E1                ; next entry
+J370A:  CALL    C36A0                   ; put point or comma in buffer when needed
+        LD      (HL),A
+        POP     DE
+        RET
+
+I3710:  DEFW    10000
+        DEFW    1000
+        DEFW    100
+        DEFW    10
+        DEFW    1
+
+;       Subroutine      FOUTB (convert integer to binary text)
+;       Inputs          ________________________
+;       Outputs         HL = pointer to text buffer
+
+FOUTB:
+C371A:  LD      B,1                     ; bit count = bit
+        JR      J3724
+
+;       Subroutine      FOUTO (convert integer to octal text)
+;       Inputs          ________________________
+;       Outputs         HL = pointer to text buffer
+
+FOUTO:
+C371E:  LD      B,3                     ; bit count = octal
+        JR      J3724
+
+;       Subroutine      FOUTH (convert integer to hexadecimal text)
+;       Inputs          ________________________
+;       Outputs         HL = pointer to text buffer
+
+FOUTH:
+C3722:  LD      B,4                     ; bit count = hexdecimal
+J3724:  PUSH    BC                      ; store bit count
+        CALL    FRQINT                  ; convert address to integer
+        LD      DE,FBUFFR+1+16
+        XOR     A
+        LD      (DE),A                  ; string end marker
+        POP     BC                      ; restore bit count
+        LD      C,A                     ; clear result
+J372F:  PUSH    BC                      ; store bit count
+        DEC     DE                      ; to new position in buffer
+J3731:  AND     A
+        LD      A,H
+        RRA
+        LD      H,A
+        LD      A,L
+        RRA
+        LD      L,A
+        LD      A,C
+        RRA
+        LD      C,A                     ; shift bit in result
+        DJNZ    J3731                   ; next bit
+        POP     BC                      ; restore bit count
+        PUSH    BC                      ; store bit count
+J373F:  RLCA
+        DJNZ    J373F                   ; result from higher bits to lower bits
+        ADD     A,'0'
+        CP      '9'+1
+        JR      C,J374A
+        ADD     A,7
+J374A:  LD      (DE),A
+        POP     BC                      ; restore bit count
+        LD      A,L
+        OR      H                       ; remaining bits zero ?
+        JR      NZ,J372F                ; nope, continue
+        EX      DE,HL
+        RET
+
+;       Subroutine      get number of BCD digits DAC type
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C3752:  _RST    GETYPR
+        LD      HL,DAC+7
+        LD      B,14                    ; 14 BCD digits
+        RET     NC                      ; double real, quit
+        LD      HL,DAC+3
+        LD      B,6                     ; 6 BCD digits
+        RET
+
+;       Subroutine      initialize for DAC convert to text
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C375F:  LD      (TEMP3),A               ; store format flags
+        PUSH    AF
+        PUSH    BC
+        PUSH    DE
+        CALL    FRCDBL                  ; convert DAC to double real
+        LD      HL,I2D13
+        LD      A,(DAC+0)
+        AND     A                       ; operand is zero ?
+        CALL    Z,C2C5C                 ; yep, DAC = 0.0 (but why ? DAC is already zero)
+        POP     DE
+        POP     BC
+        POP     AF
+        LD      HL,FBUFFR+1
+        LD      (HL),' '
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C377B:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    AF
+        CPL
+        INC     A
+        LD      E,A
+        LD      A,1
+        JP      Z,J379C
+        CALL    C3752                   ; get number of BCD digits DAC type
+        PUSH    HL                      ; store end of DAC
+J378B:  CALL    C27DB                   ; shift mantissa 1 digit right
+        DEC     E
+        JR      NZ,J378B
+        POP     HL                      ; restore end of DAC
+        INC     HL
+        LD      A,B
+        RRCA
+        LD      B,A                     ; number of bytes
+        CALL    C2741                   ; round up
+        CALL    C37B4
+J379C:  POP     BC
+        ADD     A,B
+        POP     BC
+        POP     DE
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C37A2:  PUSH    BC
+        PUSH    HL
+        CALL    C3752                   ; get number of BCD digits DAC type
+        LD      A,(DAC+0)
+        SUB     40H
+        SUB     B
+        LD      (DAC+0),A
+        POP     HL
+        POP     BC
+        OR      A
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C37B4:  PUSH    BC
+        CALL    C3752                   ; get number of BCD digits DAC type
+J37B8:  LD      A,(HL)
+        AND     0FH                     ; 2nd BCD digit zero ?
+        JR      NZ,J37C5                ; nope, quit
+        DEC     B
+        LD      A,(HL)
+        OR      A                       ; 1st and 2nd BCD digit zero ?
+        JR      NZ,J37C5                ; nope, quit
+        DEC     HL
+        DJNZ    J37B8
+J37C5:  LD      A,B
+        POP     BC
+        RET
+
+;       Subroutine      SGNEXP (single real to the power)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SGNEXP:
+C37C8:  CALL    C3280                   ; store single real as double real in ARG
+        CALL    C3042                   ; convert DAC from single real to double real
+        CALL    C2CC7                   ; push ARG
+        CALL    C2C6F                   ; exchange DAC with stack
+        CALL    C2CDC                   ; pop ARG
+
+;       Subroutine      DBLEXP (double real to the power)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DBLEXP:
+C37D7:  LD      A,(ARG+0)
+        OR      A                       ; 2nd operand is zero ?
+        JP      Z,J3843                 ; yep, store integer 1 in DAC
+        LD      H,A                     ; store sign flag 2nd operand
+        LD      A,(DAC+0)
+        OR      A                       ; 1st operand is zero ?
+        JP      Z,J384D                 ; yep,
+        CALL    C2CCC                   ; push DAC
+        CALL    C391A                   ; check if ARG is whole number
+        JR      C,J382A                 ; nope,
+        EX      DE,HL
+        LD      (TEMP8),HL              ; store operand2 as integer (can not use stack)
+        CALL    C304F                   ; DAC type = double real
+        CALL    C2CDC                   ; pop ARG
+        CALL    C391A                   ; check if ARG is whole number
+        CALL    C304F                   ; DAC type = double real
+        LD      HL,(TEMP8)              ; restore operand2 as integer
+        JP      NC,J385A                ; yep, use INTEXP
+        LD      A,(ARG+0)
+        PUSH    AF
+        PUSH    HL
+        CALL    C2C59                   ; DAC = ARG
+        LD      HL,FBUFFR
+        CALL    C2C67                   ; = DAC
+        LD      HL,FONE
+        CALL    C2C5C                   ; DAC = 1.0
+        POP     HL
+        LD      A,H
+        OR      A
+        PUSH    AF
+        JP      P,J3826
+        XOR     A
+        LD      C,A
+        SUB     L
+        LD      L,A
+        LD      A,C
+        SBC     A,H
+        LD      H,A
+J3826:  PUSH    HL
+        JP      J3894
+
+J382A:  CALL    C304F                   ; DAC type = double real
+        CALL    C2C59                   ; DAC = ARG
+        CALL    C2C6F                   ; exchange DAC with stack
+        CALL    LOG                     ; LOG DAC
+        CALL    C2CDC                   ; pop ARG
+        CALL    DECMUL                  ; DAC * ARG
+        JP      EXP                     ; EXP DAC
+
+;       Subroutine      INTEXP (integer to the power)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+INTEXP:
+C383F:  LD      A,H
+        OR      L                       ; 2nd operand is zero ?
+        JR      NZ,J3849                ; nope,
+J3843:  LD      HL,1
+        JP      J3857                   ; store integer 1 in DAC and quit
+
+J3849:  LD      A,D
+        OR      E                       ; 1st operand is zero ?
+        JR      NZ,J385A                ; nope,
+J384D:  LD      A,H
+        RLA                             ; operand negative ?
+        JR      NC,J3854                ; nope, store integer 0 in DAC and quit
+        JP      DV0ERR                  ; division by zero error
+
+J3854:  LD      HL,0
+J3857:  JP      MAKINT                  ; store integer in DAC and quit
+
+J385A:  LD      (TEMP8),HL              ; store 2nd operand
+        PUSH    DE
+        LD      A,H
+        OR      A
+        PUSH    AF                      ; store sign flag 2nd operand
+        CALL    M,C3221                 ; 2nd operand negative, negate integer and store in DAC
+        LD      B,H
+        LD      C,L
+        LD      HL,1
+J3869:  OR      A
+        LD      A,B
+        RRA
+        LD      B,A
+        LD      A,C
+        RRA
+        LD      C,A
+        JR      NC,J3877
+        CALL    C390D                   ; multiply (check if result is integer)
+        JR      NZ,J38C3                ; result is not an integer,
+J3877:  LD      A,B
+        OR      C
+        JR      Z,J38DE
+        PUSH    HL
+        LD      H,D
+        LD      L,E
+        CALL    C390D                   ; multiply (check if result is integer)
+        EX      DE,HL
+        POP     HL
+        JR      Z,J3869                 ; result is integer,
+        PUSH    BC
+        PUSH    HL
+        LD      HL,FBUFFR
+        CALL    C2C67                   ; = DAC
+        POP     HL
+        CALL    CONSIH                  ; convert integer to single real
+        CALL    C3042                   ; convert DAC from single real to double real
+J3894:  POP     BC
+        LD      A,B
+        OR      A
+        RRA
+        LD      B,A
+        LD      A,C
+        RRA
+        LD      C,A
+        JR      NC,J38A6
+        PUSH    BC
+        LD      HL,FBUFFR
+        CALL    C2C3B                   ; DAC = DAC * .
+        POP     BC
+J38A6:  LD      A,B
+        OR      C
+        JR      Z,J38DE
+        PUSH    BC
+        CALL    C2CCC                   ; push DAC
+        LD      HL,FBUFFR
+        PUSH    HL
+        CALL    C2C5C                   ; DAC =
+        POP     HL
+        PUSH    HL
+        CALL    C2C3B                   ; DAC = DAC * .
+        POP     HL
+        CALL    C2C67                   ; = DAC
+        CALL    C2CE1                   ; pop DAC
+        JR      J3894
+
+J38C3:  PUSH    BC
+        PUSH    DE
+        CALL    FRCDBL                  ; convert DAC to double real
+        CALL    C2C4D                   ; ARG = DAC
+        POP     HL
+        CALL    CONSIH                  ; convert integer to single real
+        CALL    C3042                   ; convert DAC from single real to double real
+        LD      HL,FBUFFR
+        CALL    C2C67                   ; = DAC
+        CALL    C2C59                   ; DAC = ARG
+        POP     BC
+        JR      J38A6
+
+J38DE:  POP     AF
+        POP     BC
+        RET     P
+        LD      A,(VALTYP)
+        CP      2
+        JR      NZ,J38F0
+        PUSH    BC
+        CALL    CONSIH                  ; convert integer to single real
+        CALL    C3042                   ; convert DAC from single real to double real
+        POP     BC
+J38F0:  LD      A,(DAC+0)
+        OR      A
+        JR      NZ,J3901
+        LD      HL,(TEMP8)
+        OR      H
+        RET     P
+        LD      A,L
+        RRCA
+        AND     B
+        JP      OVERR                   ; overflow error
+
+J3901:  CALL    C2C4D                   ; ARG = DAC
+        LD      HL,FONE
+        CALL    C2C5C                   ; DAC = 1.0
+        JP      DECDIV                  ; DAC / ARG
+
+;       Subroutine      multiply (check if result is integer)
+;       Inputs          DE = operand1, HL = operand2
+;       Outputs         ________________________
+
+C390D:  PUSH    BC
+        PUSH    DE                      ; store operand1
+        CALL    IMULT                   ; integer multiply
+        LD      A,(VALTYP)
+        CP      2
+        POP     DE                      ; store operand1
+        POP     BC
+        RET
+
+;       Subroutine      check if ARG is whole number
+;       Inputs          ________________________
+;       Outputs         Cx reset if ARG is whole number, DE = whole number
+
+C391A:  CALL    C2C59                   ; DAC = ARG
+        CALL    C2CC7                   ; push ARG
+        CALL    VINT			; INT DAC
+        CALL    C2CDC                   ; pop ARG
+        CALL    XDCOMP                  ; compare double real
+        SCF
+        RET     NZ                      ; not equal, quit
+        JP      C305D                   ; convert real to signed integer
+
+
+; END	SUBTTL	F4
+
+        END
+

@@ -1,0 +1,479 @@
+; SLOT.MAC
+
+; BIOS slot functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     015CH
+
+        INCLUDE MSX.INC
+
+
+RDPRIM  equ     0F380H
+WRPRIM  equ     0F385H
+CLPRIM  equ     0F38CH
+EXPTBL  equ     0FCC1H
+SLTTBL  equ     0FCC5H
+D.FFFF  equ     0FFFFH
+
+
+        PUBLIC  RDSLT
+        PUBLIC  WRSLT
+        PUBLIC  ENASLT
+        PUBLIC  CALSLT
+        PUBLIC  CALLF
+        PUBLIC  CALBAS
+        PUBLIC  WR_PORT
+        PUBLIC  RD_PORT
+        
+	IF	SLOTFIX EQ 1
+	EXTRN	C7FBE		; helper routine RDSLT in basicrom
+	EXTRN	C7FC4		; helper routine WRSLT in basicrom
+	ENDIF
+
+
+; START SUBTTL  SLOT
+
+        SUBTTL  SLOT
+
+        IF	SLOTFIX EQ 0
+
+        defs    001B6H-$,0
+
+        ELSE
+        
+        defs    0016FH-$,0
+
+C016F:  CALL    C01AD
+        JR      NZ,A01C6
+        PUSH    HL
+        CALL    C0199
+        EX      (SP),HL
+        CALL    C7FBE
+        JR      J018D
+
+C017E:  CALL    C01AD
+        JP      NZ,A01E1
+        POP     DE
+        PUSH    HL
+        CALL    C0199
+        EX      (SP),HL
+        CALL    C7FC4
+J018D:  EX      (SP),HL
+        PUSH    AF
+        LD      A,L
+        RST     28h
+        defb    0a8h ; OUT     (0A8H),A
+        LD      A,H
+        LD      (D.FFFF),A
+        POP     AF
+        POP     HL
+        RET
+
+C0199:  PUSH    AF
+        LD      A,(D.FFFF)
+        CPL
+        LD      H,A
+        AND     0F3H
+        LD      (D.FFFF),A
+        RST     038h 
+        defb    0a8h ; IN      A,(0A8H)
+        LD      L,A
+        AND     0F3H
+        RST     28h
+        defb    0a8h ; OUT     (0A8H),A
+        POP     AF
+        RET
+
+C01AD:  INC     D
+        DEC     D
+        RET     NZ
+        LD      B,A
+        LD      A,E
+        CP      3
+        LD      A,B
+        RET
+        ENDIF
+
+;       Subroutine      RDSLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+RDSLT:
+    push ix
+    ld ix, 0006h
+    DEFB 05bh ; .LIL
+    rst 38h
+    pop ix
+    ret
+;RDSLT:
+;A01B6:  call    A027E                   ; calculate masks
+
+;        IF	SLOTFIX EQ 1
+;        jp      m,C016F
+;        ELSE
+;        jp      m,A01C6                 ; expanded slot, handle
+;        ENDIF
+
+;        RST     038h 
+;        defb    0a8h ; in      a,(0A8H)
+;        ld      d,a
+;        and     c                       ; clear slot of page
+;        or      b                       ; set new slot
+;        call    RDPRIM                  ; read byte
+;        ld      a,e
+;        ret
+;
+;A01C6:  push    hl
+;        call    A02A3                   ; store and change secundairy slot register
+;        ex      (sp),hl
+;        push    bc
+;        call    A01B6                   ; do a RDSLT for primary slot
+;        jr      A01EC
+
+;       Subroutine      WRSLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+WRSLT:
+    push ix
+    ld ix, 0008h
+    DEFB 05bh ; .LIL
+    rst 38h
+    pop ix
+    ret
+
+;WRSLT:
+;A01D1:  push    de
+;        call    A027E                   ; calculate masks
+
+;        IF	SLOTFIX EQ 1
+;        jp      m,C017E
+;        ELSE
+;        jp      m,A01E1                 ; expanded slot, handle
+;        ENDIF
+
+;        pop     de
+;        RST     038h 
+;        defb    0a8h ; in      a,(0A8H)
+;        ld      d,a
+;        and     c                       ; clear slot of page
+;        or      b                       ; set new slot
+;        jp      WRPRIM                  ; write byte
+;
+;A01E1:  ex      (sp),hl
+;        push    hl
+;        call    A02A3                   ; store and change secundairy slot register
+;        pop     de
+;        ex      (sp),hl
+;        push    bc
+;        call    A01D1                   ; do a WRSLT for primairy slot
+;A01EC:  pop     bc
+;        ex      (sp),hl
+;        push    af
+;        ld      a,b
+;        and     03FH
+;        or      c                       ; slot of sec. slotreg
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a
+;        ld      a,l
+;        ld      (D.FFFF),a              ; restore secundairy slot register
+;        ld      a,b
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a                ; restore prim. slotreg
+;        pop     af
+;        pop     hl
+;        ret
+
+;       Subroutine      CALBAS
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CALBAS:
+A01FF:  ld      iy,(EXPTBL+0-1)         ; slotid mainrom
+        jr      A0217                   ; CALSLT
+
+
+;Address  : #0030
+;Function : Executes an interslot call
+;Output   : Depends on the calling routine
+;Registers: AF, and the other registers depending on the calling routine
+;Remark   : The following is the calling sequence:
+;           RST #30
+;           DB destination slot ID, see RDSLT
+;           DW destination address
+CALLF:
+    ex      (sp),hl
+    push    af
+    push    de
+    ld      a,(hl)
+    push    af
+    pop     iy                      ; slotid
+    inc     hl
+    ld      e,(hl)
+    inc     hl
+    ld      d,(hl)
+    inc     hl
+    push    de
+    pop     ix                      ; adres
+    pop     de
+    pop     af
+    ex      (sp),hl
+    ; now slotid is in IY and address is in IX
+    ; continues in CALSLT
+
+;Address  : #001C
+;Function : Executes inter-slot call.
+;Input    : IY - High byte with slot ID, see RDSLT
+;           IX - The address that will be called
+;Remark   : Variables can never be given in alternative registers or IX and IY
+CALSLT:
+A0217:
+    ; first save IX
+    DEFB 05bh ; .LIL
+    rst 18h
+    ;  electron os calslt
+    ld ix, 000ah
+    DEFB 05bh ; .LIL
+    rst 38h
+    ret
+
+;Address  : #0024
+;Function : Switches indicated slot at indicated page on perpetually
+;Input    : A - Slot ID, see RDSLT
+;           H - Bit 6 and 7 must contain the page number (00-11)
+ENASLT:
+    push ix
+    ld ix, 0000ch
+    DEFB 05bh ; .LIL
+    rst 38h
+    pop ix
+    ret
+
+;       Subroutine      CALLF
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+;CALLF:
+;A0205:  ex      (sp),hl
+;        push    af
+;        push    de
+;        ld      a,(hl)
+;        push    af
+;        pop     iy                      ; slotid
+;        inc     hl
+;        ld      e,(hl)
+;        inc     hl
+;        ld      d,(hl)
+;        inc     hl
+;        push    de
+;        pop     ix                      ; adres
+;        pop     de
+;        pop     af
+;        ex      (sp),hl
+
+;       Subroutine      CALSLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+;CALSLT:
+;A0217:  exx
+;        ex      af,af'                  ; alternative set
+;        push    iy
+;        pop     af                      ; A = slotid
+;        push    ix
+;        pop     hl                      ; HL = address
+;        call    A027E                   ; calculate masks
+;        jp      m,A022E                 ; expanded slot, handle
+;        RST     038h 
+;        defb    0a8h ; in      a,(0A8H)
+;        push    af
+;        and     c
+;        or      b
+;        exx
+;        jp      CLPRIM
+;
+;A022E:  call    A02A3                   ; store and change secundairy slot register
+;        push    af
+;        pop     iy
+;        push    hl
+;        push    bc
+;        ld      c,a
+;        ld      b,0
+;        ld      a,l
+;        and     h
+;        or      d
+;        ld      hl,SLTTBL
+;        add     hl,bc
+;        ld      (hl),a                  ; update secundairy slot register copy in SLTTBL
+;        push    hl
+;        ex      af,af'
+;        exx
+;        call    A0217                   ; do a CALSLT with primairy slot
+;        exx
+;        ex      af,af'
+;        pop     hl
+;        pop     bc
+;        pop     de
+;        ld      a,b
+;        and     03FH
+;        or      c
+;        di
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a
+;        ld      a,e
+;        ld      (D.FFFF),a
+;        ld      a,b
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a
+;        ld      (hl),e                  ; update secundairy slot register copy in SLTTBL
+;        ex      af,af'
+;        exx
+;        ret
+
+;       Subroutine      ENASLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+;ENASLT:
+;A025E:  call    A027E                   ; calculate masks
+;        jp      m,A026B                 ; expanded slot, handle
+;        RST     038h 
+;        defb    0a8h ; in      a,(0A8H)
+;        and     c
+;        or      b
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a
+;        ret
+;
+;A026B:  push    hl
+;        call    A02A3                   ; store and change secundairy slot register
+;        ld      c,a
+;        ld      b,0
+;        ld      a,l
+;        and     h
+;        or      d
+;        ld      hl,SLTTBL
+;        add     hl,bc
+;        ld      (hl),a                  ; update secundairy slot register copy in SLTTBL
+;        pop     hl
+;        ld      a,c
+;        jr      A025E                   ; ENASLT for primairy slot
+
+;       Subroutine      calculate masks
+;       Inputs          A=slotid, HL=adres
+;       Outputs         P set if expanded slot, A=slotid, D=PPPPPPPP, E=page select mask
+;                       B=primairy slot OR mask, C=page clear mask
+
+;A027E:  di
+;        push    af
+;        ld      a,h
+;        rlca
+;        rlca
+;        and     003H                    ; page
+;        ld      e,a
+;        ld      a,0C0H
+;A0288:  rlca
+;        rlca
+;        dec     e
+;        jp      p,A0288
+;        ld      e,a                     ; e = page select AND mask
+;        cpl
+;        ld      c,a                     ; c = page clear AND mask
+;        pop     af
+;        push    af
+;        and     003H                    ; primairy slot
+;        inc     a                       ; +1
+;        ld      b,a
+;        ld      a,0-01010101b
+;A0299:  add     a,01010101b
+;        djnz    A0299
+;        ld      d,a                     ; d = primairy slot OR mask (all pages)
+;        and     e
+;        ld      b,a                     ; b = primairy slot OR mask (page of address)
+;        pop     af
+;        and     a                       ; flag expanded slot
+;        ret
+
+;       Subroutine      store and change secundairy slot register
+;       Inputs          A=slotid, D=primairy slot OR mask (all pages), E=page select AND mask
+;       Outputs         A=slotid primairy slot
+
+;A02A3:  push    af
+;        ld      a,d                     ; primairy slot OR mask (all pages)
+;        and     0C0H
+;        ld      c,a                     ; primairy slot OR mask (page 3)
+;        pop     af
+;        push    af
+;        ld      d,a                     ; store slotid
+;        RST     038h 
+;        defb    0a8h ; in      a,(0A8H)
+;        ld      b,a                     ; store primairy slot register
+;        and     03FH
+;        or      c
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a                ; make secundairy slot register accessable
+;        ld      a,d
+;        rrca
+;        rrca
+;        and     003H                    ; get secundairy slot from slotid
+;        ld      d,a
+;        ld      a,0-01010101b
+;A02BB:  add     a,01010101b
+;        dec     d
+;        jp      p,A02BB                 ; secundairy slot OR mask (all pages)
+;        and     e
+;        ld      d,a                     ; secundairy slot OR mask (page of address)
+;        ld      a,e
+;        cpl
+;        ld      h,a                     ; page clear mask
+;        ld      a,(D.FFFF)
+;        cpl
+;        ld      l,a                     ; store currrent secundairy slot register
+;        and     h                       ; clear page
+;        or      d                       ; set new slot
+;        ld      (D.FFFF),a
+;        ld      a,b
+;        RST     28h
+;        defb    0a8h ; out     (0A8H),a                ; restore primairy slot register (switch back page 3)
+;        pop     af
+;        and     003H
+;        ret
+
+WR_PORT:
+    POP IY      ; get address of following instruction
+    INC IY
+    PUSH IY     ; return address is next byte
+    push af     ; store A to stack
+    LD A,(IY-1) ; port number we want to write
+    defb 0fdh,06fh ; ld iyl,a    ; port in IYl
+    pop af      ; restore original A
+    defb 0fdh,067h ;ld iyh,a    ; value in IYh
+    scf         ; set carry = write
+    defb 05bh   ; .LIL
+    rst 028h
+    ret
+
+RD_PORT:
+    POP IY
+    INC IY
+    PUSH IY
+    LD A,(IY-1)
+    defb 0fdh,06fh ; ld iyl,a    ; port in IYl
+    and a       ; reset carry = read
+    defb 05bh   ; .LIL
+    rst 028h
+    ret
+
+; END   SUBTTL  SLOT
+
+        end

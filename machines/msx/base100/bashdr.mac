@@ -1,0 +1,63 @@
+; BASHDR.MAC
+
+; BASIC jump table, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     2680H
+
+        INCLUDE MSX.INC
+
+
+        PUBLIC  INIENT
+        PUBLIC  SYNENT
+        PUBLIC  CHRENT
+        PUBLIC  GETENT
+
+        EXTRN   INIT
+        EXTRN   SYNCHR
+        EXTRN   CHRGTR
+        EXTRN   GETYPR
+
+
+; START	SUBTTL	BASHDR
+
+	SUBTTL	BASHDR
+
+; Some sort of jumptable for routines in basicrom
+
+
+; entrypoint for BASIC interpreter init
+
+INIENT:
+A2680:  jp      INIT
+
+; entrypoint for SYNCHR
+
+SYNENT:
+A2683:  jp      SYNCHR
+
+; entrypoint for CHRGTR
+
+CHRENT:
+A2686:  jp      CHRGTR
+
+; entrypoint for GETYPR
+
+GETENT:
+A2689:  jp      GETYPR
+
+
+; END	SUBTTL	BASHDR
+
+        end

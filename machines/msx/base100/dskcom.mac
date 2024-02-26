@@ -1,0 +1,439 @@
+; DSKCOM.MAC
+
+; COMMON 'DISK' BASIC functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     06D91h ; 6D55H
+
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  EQU     0008H
+CHRGTR  EQU     0010H
+GETYPR  EQU     0028H
+
+BUFMIN  EQU     0F55DH
+BUF     EQU     0F55EH
+NLONLY  EQU     0F87CH
+SAVEND  EQU     0F87DH
+FLBMEM  EQU     0FCAEH
+RUNBNF  EQU     0FCBEH
+SAVENT  EQU     0FCBFH
+
+H.BAKU  EQU     0FEADH
+
+
+        PUBLIC  DERNMF
+        PUBLIC  DERFAO
+        PUBLIC  ERRFDR
+        PUBLIC  DERFNF
+        PUBLIC  DERFNO
+        PUBLIC  DERFOV
+        PUBLIC  DERBFN
+        PUBLIC  DERIER
+        PUBLIC  DERSOO
+        PUBLIC  DERRPE
+        PUBLIC  PRGFIN
+        PUBLIC  BLDFIN
+        PUBLIC  DLINE
+        PUBLIC  FILINP
+        PUBLIC  FILGET
+        PUBLIC  FILIND
+        PUBLIC  BLOAD
+        PUBLIC  BSAVE
+
+        EXTRN   FIN
+        EXTRN   FRMEVL
+        EXTRN   GTBYTC
+        EXTRN   CHKSTR
+        EXTRN   ERROR
+        EXTRN   INDSKC
+        EXTRN   CLSFIL
+        EXTRN   PTRGET
+        EXTRN   GENDSP
+        EXTRN   FINPRT
+        EXTRN   FILEVL
+        EXTRN   SETFIL
+        EXTRN   CBLOAD
+        EXTRN   CBSAVE
+        EXTRN   STRLT3
+        EXTRN   GTMPRT
+        EXTRN   DOASIG
+        EXTRN   LETCON
+        EXTRN   ISDDEV
+        EXTRN   POPHR2
+        EXTRN   FRQINT
+        EXTRN   GETENT
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL	DSKCOM
+
+        SUBTTL	DSKCOM
+
+
+;       Subroutine      redirect interpreter input if i/o channel specified
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FILINP:
+C6D55:  LD      C,1
+
+;       Subroutine      redirect interpreter input/output if i/o channel specified
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FILGET:
+C6D57:  CP      "#"
+        RET     NZ
+        PUSH    BC
+        CALL    GTBYTC                  ; skip basic char and evaluate byte operand
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        LD      A,E
+        PUSH    HL
+        CALL    SETFIL                  ; redirect interpreter input/output to i/o channel
+        LD      A,(HL)
+        POP     HL
+        POP     BC
+        CP      C                       ; correct filemode ?
+        JR      Z,J6D79                 ; yep, quit
+        CP      4                       ; random mode ?
+        JR      Z,J6D79                 ; yep, quit
+        CP      8                       ; append mode ?
+        JR      NZ,J6D76                ; nope, bad filenumber error
+        LD      A,C
+        CP      2                       ; request output mode ?
+J6D76:  JP      NZ,DERBFN               ; nope, bad filenumber
+J6D79:  LD      A,(HL)
+        RET
+
+;       Subroutine      close i/o channel 0 and load HL from (TEMP)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PRGFIN:
+C6D7B:  LD      BC,GTMPRT               ; load BASIC pointer from (TEMP)
+        PUSH    BC
+        XOR     A
+        JP      CLSFIL                  ; close i/o channel 0
+
+FILIND:
+J6D83:  _RST    GETYPR
+        LD      BC,DOASIG
+        LD      DE,2C20H
+        JR      NZ,J6DA3                ; not a string,
+        LD      E,D
+        JR      J6DA3
+
+DLINE:
+J6D8F:  LD      BC,FINPRT
+        PUSH    BC
+        CALL    FILINP                  ; redirect interpreter input if i/o channel specified
+        CALL    PTRGET                  ; locate variable
+        CALL    CHKSTR                  ; check if string
+        PUSH    DE
+        LD      BC,LETCON
+        XOR     A
+        LD      D,A
+        LD      E,A
+J6DA3:  PUSH    AF
+        PUSH    BC
+        PUSH    HL
+J6DA6:  CALL    INDSKC                  ; get sequential input
+        JP      C,DERRPE
+        CP      20H
+        JR      NZ,J6DB4
+        INC     D
+        DEC     D
+        JR      NZ,J6DA6
+J6DB4:  CP      22H
+        JR      NZ,J6DC6
+        LD      A,E
+        CP      2CH
+        LD      A,22H
+        JR      NZ,J6DC6
+        LD      D,A
+        LD      E,A
+        CALL    INDSKC                  ; get sequential input
+        JR      C,J6E0D
+J6DC6:  LD      HL,BUF
+        LD      B,0FFH
+J6DCB:  LD      C,A
+        LD      A,D
+        CP      22H
+        LD      A,C
+        JR      Z,J6DFC
+        CP      0DH
+        PUSH    HL
+        JR      Z,J6E27
+        POP     HL
+        CP      0AH
+        JR      NZ,J6DFC
+J6DDC:  LD      C,A
+        LD      A,E
+        CP      2CH
+        LD      A,C
+        CALL    NZ,C6E61
+        CALL    INDSKC                  ; get sequential input
+        JR      C,J6E0D
+        CP      0AH
+        JR      Z,J6DDC
+        CP      0DH
+        JR      NZ,J6DFC
+        LD      A,E
+        CP      20H
+        JR      Z,J6E08
+        CP      2CH
+        LD      A,0DH
+        JR      Z,J6E08
+J6DFC:  OR      A
+        JR      Z,J6E08
+        CP      D
+        JR      Z,J6E0D
+        CP      E
+        JR      Z,J6E0D
+        CALL    C6E61
+J6E08:  CALL    INDSKC                  ; get sequential input
+        JR      NC,J6DCB
+J6E0D:  PUSH    HL
+        CP      22H
+        JR      Z,J6E16
+        CP      20H
+        JR      NZ,J6E41
+J6E16:  CALL    INDSKC                  ; get sequential input
+        JR      C,J6E41
+        CP      20H
+        JR      Z,J6E16
+        CP      2CH
+        JR      Z,J6E41
+        CP      0DH
+        JR      NZ,J6E30
+J6E27:  CALL    INDSKC                  ; get sequential input
+        JR      C,J6E41
+        CP      0AH
+        JR      Z,J6E41
+J6E30:  LD      C,A
+        CALL    ISDDEV                  ; current i/o channel a diskdrive device ?
+        JR      NC,J6E3C                ; nope,
+        CALL    H.BAKU                  ; backup for disk hook
+        JP      DERIER                  ; internal error (should not return to here)
+
+J6E3C:  LD      A,18                    ; function backup
+        CALL    GENDSP                  ; i/o function dispatcher
+J6E41:  POP     HL
+J6E42:  LD      (HL),00H
+        LD      HL,BUFMIN
+        LD      A,E
+        SUB     20H
+        JR      Z,J6E53
+        LD      B,0
+        CALL    STRLT3                  ; analyze string with specified endmaker (1st char is skipped) and create temporary stringdescriptor
+        POP     HL
+        RET
+
+J6E53:  _RST    GETYPR
+        PUSH    AF
+        _RST    CHRGTR                  ; get next BASIC character
+        POP     AF
+        PUSH    AF
+        CALL    C,FIN                   ; not a double real, convert text to number
+        POP     AF
+        CALL    NC,FIN                  ; double real, convert text to number
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C6E61:  OR      A
+        RET     Z
+        LD      (HL),A
+        INC     HL
+        DEC     B
+        RET     NZ
+        POP     AF
+        JP      J6E42
+
+DERNMF:
+J6E6B:  LD      E,56
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERFAO:
+J6E6E:  LD      E,54
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+ERRFDR:
+J6E71:  LD      E,57
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERFNF:
+J6E74:  LD      E,53
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERFNO:
+J6E77:  LD      E,59
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERFOV:
+J6E7A:  LD      E,50
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERBFN:
+J6E7D:  LD      E,52
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERIER:
+J6E80:  LD      E,51
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERRPE:
+J6E83:  LD      E,55
+        DEFB    001H			; LD BC,xxxx, trick to skip next instruction
+
+DERSOO:
+J6E86:  LD      E,58
+        XOR     A
+        LD      (NLONLY),A              ; not loading basic program, close i/o channels when requested
+        LD      (FLBMEM),A
+        JP      ERROR
+
+;       Subroutine      BSAVE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BSAVE:
+C6E92:  CALL    FILEVL                  ; evaluate filespecification
+        PUSH    DE                      ; save devicecode
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    C6F0B                   ; evaluate BLOAD/BSAVE address operand
+        EX      DE,HL
+        LD      (SAVENT),HL
+        EX      DE,HL                   ; assume start address = execute address
+        PUSH    DE                      ; save start address
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    C6F0B                   ; evaluate BLOAD/BSAVE address operand
+        EX      DE,HL
+        LD      (SAVEND),HL
+        EX      DE,HL                   ; save end address
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JR      Z,J6EB9                 ; yep, skip execute address
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    C6F0B                   ; evaluate BLOAD/BSAVE address operand
+        EX      DE,HL
+        LD      (SAVENT),HL
+        EX      DE,HL                   ; save execute address
+J6EB9:  POP     BC                      ; start address
+        POP     DE                      ; devicecode
+        PUSH    HL
+        PUSH    BC
+        LD      A,D
+        CP      0FFH                    ; device is CAS ?
+        JP      Z,CBSAVE                ; yep, BSAVE to cassette
+        JP      DERNMF                  ; bad filename error
+
+;       Subroutine      BLOAD statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BLOAD:
+C6EC6:  CALL    FILEVL                  ; evaluate filespecification
+        PUSH    DE
+        XOR     A
+        LD      (RUNBNF),A              ; assume no execute after load
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        LD      BC,0                    ; assume offset 0
+        JR      Z,J6EE8                 ; yep, go
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CP      "R"                     ; run option ?
+        JR      NZ,J6EE3                ; nope, offset option
+        LD      (RUNBNF),A              ; execute after load
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      Z,J6EE8                 ; end of statement, go
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+J6EE3:  CALL    C6F0B                   ; evaluate BLOAD/BSAVE address operand (offset)
+        LD      B,D
+        LD      C,E                     ; offset
+J6EE8:  POP     DE                      ; devicecode
+        PUSH    HL
+        PUSH    BC
+        LD      A,D
+        CP      0FFH                    ; device is CAS ?
+        JP      Z,CBLOAD                ; BLOAD from cassette
+        JP      DERNMF                  ; bad filename
+
+;       Subroutine      finish BLOAD
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BLDFIN:
+J6EF4:  LD      A,(RUNBNF)
+        OR      A                       ; execute after load ?
+        JR      Z,J6F06                 ; nope, close channel and quit
+        XOR     A
+        CALL    CLSFIL                  ; close i/o channel 0
+        LD      HL,POPHR2
+        PUSH    HL                      ; after this, retore BASIC pointer and continue
+        LD      HL,(SAVENT)
+        JP      (HL)                    ; start code
+
+J6F06:  POP     HL                      ; restore BASIC pointer
+        XOR     A
+        JP      CLSFIL                  ; close i/o channel 0
+
+;       Subroutine      evaluate BLOAD/BSAVE address operand
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C6F0B:  CALL    FRMEVL                  ; evaluate expression
+        PUSH    HL
+        CALL    FRQINT                  ; convert address to integer
+        POP     DE
+        EX      DE,HL
+        RET
+
+; END   SUBTTL  DSKCOM
+
+        END
+

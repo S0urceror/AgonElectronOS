@@ -1,0 +1,251 @@
+; BASBIO.MAC
+
+; BASIC I/O functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     07344h ; 7304H
+
+        INCLUDE MSX.INC
+
+
+CHRGTR  EQU     0010H
+OUTDO   EQU     0018H
+CHSNS   EQU     009CH
+CHGET   EQU     009FH
+LPTOUT  EQU     00A5H
+ISFLIO  EQU     014AH
+
+LPTPOS  EQU     0F415H
+PRTFLG  EQU     0F416H
+BUFMIN  EQU     0F55DH
+BUF     EQU     0F55EH
+TTYPOS  EQU     0F661H
+VALTYP  EQU     0F663H
+DAC     EQU     0F7F6H
+FILNAM  EQU     0F866H
+NLONLY  EQU     0F87CH
+
+H.CRDO  EQU     0FEE9H
+H.DSKC  EQU     0FEEEH
+
+
+        PUBLIC  FINLPT
+        PUBLIC  CRDONZ
+        PUBLIC  CRDO
+        PUBLIC  DSKCHI
+        PUBLIC  INKEY
+        PUBLIC  DIOERR
+        PUBLIC  OUTCH1
+        PUBLIC  CRFIN
+
+        EXTRN   RUNC
+        EXTRN   NEWSTT
+        EXTRN   STPRDY
+        EXTRN   ERROR
+        EXTRN   INDSKC
+        EXTRN   NULSTR
+        EXTRN   STRIN1
+        EXTRN   SETSTR
+        EXTRN   PRGFIN
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL 	BIO
+
+        SUBTTL	BIO
+
+;       Subroutine      end printeroutput
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FINLPT:
+C7304:  XOR     A
+        LD      (PRTFLG),A              ; interpreter output to screen
+        LD      A,(LPTPOS)
+        OR      A
+        RET     Z
+        LD      A,0DH
+        CALL    C731C
+        LD      A,0AH
+        CALL    C731C
+        XOR     A
+        LD      (LPTPOS),A
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C731C:  CALL    LPTOUT
+        RET     NC
+        JP      DIOERR                  ; device I/O error
+
+;       Subroutine      fresh line to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CRDONZ:
+C7323:  LD      A,(TTYPOS)
+        OR      A
+        RET     Z
+
+;       Subroutine      newline to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CRDO:
+C7328:  CALL    H.CRDO
+        LD      A,0DH
+        _RST    OUTDO
+        LD      A,0AH
+        _RST    OUTDO
+
+;       Subroutine      interpreter output pos = 0
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CRFIN:
+C7331:  CALL    ISFLIO                  ; interpreter input/output device = file ?
+        JR      Z,J7338                 ; nope,
+        XOR     A
+        RET
+
+J7338:  LD      A,(PRTFLG)
+        OR      A                       ; interpreter output to screen ?
+        JR      Z,J7343                 ; yep, ttypos = 0
+        XOR     A
+        LD      (LPTPOS),A              ; nope, lptpos = 0
+        RET
+
+J7343:  LD      (TTYPOS),A
+        RET
+
+;       Subroutine      INKEY$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INKEY:
+J7347:  _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        CALL    CHSNS			; keyboard input available ?
+        JR      Z,J735A			; nope, return empty string
+        CALL    CHGET			; get keyboard input
+        PUSH    AF
+        CALL    STRIN1                  ; allocate temporary string of 1 char
+        POP     AF
+        LD      E,A			; keyboard input
+        CALL    SETSTR                  ; set first character of temporary string and put on heap and quit
+J735A:  LD      HL,NULSTR
+        LD      (DAC+2),HL
+        LD      A,3
+        LD      (VALTYP),A              ; empty string
+        POP     HL
+        RET
+
+;       Subroutine      char to interpreter output, LF expanded
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+OUTCH1:
+C7367:  _RST    OUTDO
+        CP      0AH
+        RET     NZ
+        LD      A,0DH
+        _RST    OUTDO
+        CALL    CRFIN                   ; interpreter output pos = 0
+        LD      A,0AH
+        RET
+
+;       Subroutine      get line from interpreter input file
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DSKCHI:
+C7374:  CALL    H.DSKC
+        LD      B,255
+        LD      HL,BUF
+J737C:  CALL    INDSKC                  ; get sequential input
+        JR      C,J7397
+        LD      (HL),A
+        CP      0DH                     ; CR ?
+        JR      Z,J7391                 ; yep, stop input
+        CP      09H                     ; TAB ?
+        JR      Z,J738E                 ; yep, continue
+
+
+	IF	CHIFIX EQ 1
+
+        CP      0AH                     ; LF ?
+        JR      Z,J737C                 ; yep, ignore
+	
+	ELSE
+
+	CP	20H
+	JR	C,J737C
+	
+	ENDIF
+
+
+J738E:  INC     HL
+        DJNZ    J737C                   ; next
+J7391:  XOR     A
+        LD      (HL),A                  ; endmarker
+        LD      HL,BUFMIN
+        RET
+
+J7397:  INC     B                       ; empty line ?
+        JR      NZ,J7391                ; nope, return line
+C739A:  LD      A,(NLONLY)
+        AND     80H
+        LD      (NLONLY),A              ; basic program not loading
+        CALL    PRGFIN                  ; close i/o channel 0 and load HL from (TEMP)
+        LD      A,(FILNAM+0)
+        AND     A                       ; RUN after LOAD ?
+        JP      Z,STPRDY                ; nope, ok and mainloop (+POP)
+        CALL    RUNC                    ; initialize interpreter, basic pointer at start of program
+        JP      NEWSTT                  ; execute new statement
+
+;       Subroutine      device I/O error
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DIOERR:
+J73B2:  LD      E,19
+        JP      ERROR                   ; device i/o error
+
+; END   SUBTTL  BIO
+
+        END
+

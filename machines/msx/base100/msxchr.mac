@@ -1,0 +1,71 @@
+; MSXCHR.MAC
+
+; BIOS character set, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     1BBFH
+
+        INCLUDE MSX.INC
+
+
+        PUBLIC  CGTABL
+
+
+
+; START SUBTTL  MSXCHR
+
+        SUBTTL  MSXCHR
+
+
+CGTABL:
+T1BBF:  
+
+
+        IF      CNTRY EQ 9
+ 
+        INCLUDE CHRKOR.MAC
+ 
+        ENDIF
+ 
+ 
+        IF      CNTRY EQ 0
+ 
+        INCLUDE CHRJAPV2.MAC
+ 
+        ENDIF
+ 
+ 
+        IF      CNTRY EQ 10
+ 
+        INCLUDE CHRRUS.MAC
+ 
+        ENDIF
+ 
+ 
+        IF      CNTRY EQ 5
+ 
+        INCLUDE CHRGER.MAC
+ 
+        ENDIF
+ 
+ 
+        IF      (CNTRY NE 9) AND (CNTRY NE 0) AND (CNTRY NE 10) AND (CNTRY NE 5)
+ 
+        INCLUDE CHRINT.MAC
+ 
+        ENDIF
+
+; END   SUBTTL  MSXCHR
+
+        end

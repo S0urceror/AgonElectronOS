@@ -8,6 +8,11 @@ AGON-ZDI-LOAD=../../../../development/agon-zdi-load/agon-zdi-load.py
 
 all: compile 
 	make -C kingsvalley -f Makefile
+	make -C base100 -f Makefile
+	make -C sd-device-rom -f Makefile
+	cp $(OUTPUT_DIR)/general/bios.bin ../../../AgonElectron/msx/bios.bin
+	cp $(OUTPUT_DIR)/general/diskrom.bin ../../../AgonElectron/msx/diskrom.bin
+	cp $(OUTPUT_DIR)/sd-device-rom/Debug/bin/sd-device.bin ../../../AgonElectron/msx/sd-device.bin
 
 compile: $(OUTPUT_DIR)/general/bios.rom $(OUTPUT_DIR)/general/diskrom.rom \
 		 $(OUTPUT_DIR)/general/bios.bin $(OUTPUT_DIR)/general/diskrom.bin \
@@ -61,6 +66,8 @@ deploy:
 
 clean:
 	make -C kingsvalley -f Makefile clean
+	make -C base100 -f Makefile clean
+	make -C sd-device-rom -f Makefile clean
 	rm $(OUTPUT_DIR)/general/*.bin
 	rm $(OUTPUT_DIR)/general/*.rom
 	rm $(OUTPUT_DIR)/helloworld/*.rom

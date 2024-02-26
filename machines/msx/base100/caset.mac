@@ -1,0 +1,315 @@
+; CASET.MAC
+
+; MSX BIOS CASSETTE functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     19DDH
+
+        INCLUDE MSX.INC
+
+
+LOW.    equ     0F406H
+HIGH.   equ     0F408H
+HEADER  equ     0F40AH
+LOWLIM  equ     0FCA4H
+WINWID  equ     0FCA5H
+
+
+        PUBLIC  TAPION
+        PUBLIC  TAPIN
+        PUBLIC  TAPIOF
+        PUBLIC  TAPOON
+        PUBLIC  TAPOUT
+        PUBLIC  TAPOOF
+
+        EXTRN   BREAKX
+
+
+; START SUBTTL  CASET
+
+        SUBTTL  CASET
+
+
+;       Subroutine      TAPOOF
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPOOF:
+A19DD:  push    bc
+        push    af
+        ld      bc,0
+A19E2:  dec     bc
+        ld      a,b
+        or      c
+        jr      nz,A19E2                ; wait 550 msec
+        pop     af
+        pop     bc                      ; cassettemotor off
+
+;       Subroutine      TAPIOF
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPIOF:
+A19E9:  push    af
+        ld      a,009H
+        RST     28h
+        defb    0abh ; out     (0ABH),a
+        pop     af
+        ei
+        ret
+
+;       Subroutine      TAPOON
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPOON:
+A19F1:  or      a
+        push    af                      ; flag for headerlength
+        ld      a,008H
+        RST     28h
+        defb    0abh ; out     (0ABH),a                ; cassettemotor on
+        ld      hl,0
+A19FA:  dec     hl
+        ld      a,h
+        or      l
+        jr      nz,A19FA                ; wait 550 msec
+        pop     af
+        ld      a,(HEADER)              ; headerlength
+        jr      z,A1A07                 ; short header
+        add     a,a
+        add     a,a                     ; *4 for long header
+A1A07:  ld      b,a
+        ld      c,0                     ; *256 = # of cycli
+        di
+A1A0B:  call    A1A4D                   ; high cycle
+        call    A1A3F                   ; wait
+        dec     bc
+        ld      a,b
+        or      c
+        jr      nz,A1A0B                ; next cyclus
+        jp      BREAKX                  ; quit with BREAKX
+
+;       Subroutine      TAPOUT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPOUT:
+A1A19:  ld      hl,(LOW.)               ; size of low cycle
+        push    af
+        ld      a,l
+        sub     00EH
+        ld      l,a                     ; 14 units shorter
+        call    A1A50                   ; low cycle (start bit)
+        pop     af
+        ld      b,8                     ; 8 bits data
+A1A27:  rrca
+        call    c,A1A40                 ; 1, write mark
+        call    nc,A1A39                ; 0, write space
+        djnz    A1A27                   ; next bit
+        call    A1A40
+        call    A1A40                   ; write 2 marks (stopbits)
+        jp      BREAKX                  ; quit with BREAKX
+;
+A1A39:  ld      hl,(LOW.)               ; low cycle size
+        call    A1A50                   ; write low cycle
+A1A3F:  ret
+;
+A1A40:  call    A1A4D                   ; write high cycle
+        ex      (sp),hl
+        ex      (sp),hl
+        nop
+        nop
+        nop
+        nop                             ; wait
+        call    A1A4D                   ; write high cycle
+        ret
+;
+A1A4D:  ld      hl,(HIGH.)              ; length of high cycle
+A1A50:  push    af
+A1A51:  dec     l
+        jp      nz,A1A51                ; wait low part
+        ld      a,00BH
+        RST     28h
+        defb    0abh ; out     (0ABH),a                ; high
+A1A59:  dec     h
+        jp      nz,A1A59                ; wait high part
+        ld      a,00AH
+        RST     28h
+        defb    0abh ; out     (0ABH),a               ; low
+        pop     af
+        ret
+
+;       Subroutine      TAPION
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPION:
+A1A63:  ld      a,008H
+        RST     28h
+        defb    0abh ; out     (0ABH),a                ; cassettemotor on
+        di
+        ld      a,00EH
+        RST     28h
+        defb    0a0h ; out     (0A0H),a                ; select register 14 of PSG
+A1A6C:  ld      hl,1111
+A1A6F:  ld      d,c
+        call    A1B34                   ; count length of cycle
+        ret     c                       ; break, quit
+        ld      a,c
+        cp      222
+        jr      nc,A1A6C                ; illegal, start again
+        cp      4+1
+        jr      c,A1A6C                 ; illegal, start again
+        sub     d                       ; compare with previous cycle
+        jr      nc,A1A82
+        cpl
+        inc     a
+A1A82:  cp      4                       ; difer less then 35 �sec ?
+        jr      nc,A1A6C                ; nop, start again
+        dec     hl
+        ld      a,h
+        or      l                       ; all 1111 cycles tollerant ?
+        jr      nz,A1A6F                ; nop, cont
+        ld      hl,0
+        ld      b,l
+        ld      d,l                     ; 256
+A1A90:  call    A1B34                   ; count length of cycle
+        ret     c                       ; break, quit
+        add     hl,bc                   ; add to total
+        dec     d
+        jp      nz,A1A90                ; next cycle
+        ld      bc,1710
+        add     hl,bc                   ; add extra for calc
+        ld      a,h
+        rra
+        and     07FH
+        ld      d,a                     ; /2
+        add     hl,hl                   ; *2
+        ld      a,h
+        sub     d                       ; = 1.5*
+        ld      d,a
+        sub     6                       ; - extra
+        ld      (LOWLIM),a              ; min. size of startbit
+        ld      a,d
+        add     a,a
+        ld      b,0
+A1AAF:  sub     3
+        inc     b
+        jr      nc,A1AAF
+        ld      a,b
+        sub     3
+        ld      (WINWID),a
+        or      a
+        ret
+
+;       Subroutine      TAPIN
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TAPIN:
+A1ABC:  ld      a,(LOWLIM)
+        ld      d,a                     ; min. size of startbit
+A1AC0:  call    BREAKX                  ; BREAKX
+        ret     c                       ; break, quit
+        RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        rlca
+        jr      nc,A1AC0                ; wait for high
+A1AC9:  call    BREAKX                  ; BREAKX
+        ret     c                       ; break, quit
+        RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        rlca
+        jr      c,A1AC9                 ; wait for low
+        ld      e,0
+        call    A1B1F                   ; count length of cycle
+A1AD7:  ld      b,c
+        call    A1B1F                   ; count length of cycle
+        ret     c                       ; break, quit
+        ld      a,b
+        add     a,c                     ; size of two cycles
+        jp      c,A1AD7                 ; illegal, try again
+        cp      d                       ; > as LOWLIM ?
+        jr      c,A1AD7                 ; nop, try again
+        ld      l,8                     ; 8 bits
+A1AE6:  call    A1B03                   ; count transitions
+        cp      4
+        ccf
+        ret     c                       ; illegal, quit
+        cp      2
+        ccf                             ; databit
+        rr      d
+        ld      a,c
+        rrca                            ; even transitions ?
+        call    nc,A1B23                ; yep, skip 1 transitions
+        call    A1B1F                   ; skip 1 transitions
+        dec     l
+        jp      nz,A1AE6                ; next bit
+        call    BREAKX                  ; BREAKX
+        ld      a,d
+        ret
+;
+A1B03:  ld      a,(WINWID)
+        ld      b,a
+        ld      c,0
+A1B09:  RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        xor     e
+        jp      p,A1B17
+        ld      a,e
+        cpl
+        ld      e,a
+        inc     c
+        djnz    A1B09
+        ld      a,c
+        ret
+;
+A1B17:  nop
+        nop
+        nop
+        nop
+A1B1B:  djnz    A1B09
+        ld      a,c
+        ret
+;
+A1B1F:  call    BREAKX                  ; BREAKX
+        ret     c
+A1B23:  ld      c,0
+A1B25:  inc     c
+        jr      z,A1B32
+        RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        xor     e
+        jp      p,A1B25
+        ld      a,e
+        cpl
+        ld      e,a
+        ret
+;
+A1B32:  dec     c
+        ret
+;
+A1B34:  call    BREAKX                  ; BREAKX
+        ret     c                       ; break, quit
+        RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        rlca
+        jr      c,A1B34                 ; wait until casinput = 0
+        ld      e,0
+        call    A1B23                   ; count to high input
+        jp      A1B25                   ; add count to low input
+
+; END   SUBTTL  CASET
+
+        end

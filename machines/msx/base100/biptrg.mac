@@ -1,0 +1,474 @@
+; BIPTRG.MAC
+
+; BASIC DIMENSION & VARIABLE SEARCHING function, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     05EC8h ; 5E9AH
+
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  EQU     0008H
+CHRGTR  EQU     0010H
+DCOMPR  EQU     0020H
+GETYPR  EQU     0028H
+
+DIMFLG  EQU     0F662H
+VALTYP  EQU     0F663H
+TEMP3   EQU     0F69DH
+SUBFLG  EQU     0F6A5H
+TEMP2   EQU     0F6BCH
+VARTAB  EQU     0F6C2H
+ARYTAB  EQU     0F6C4H
+STREND  EQU     0F6C6H
+DEFTBL  EQU     0F6CAH
+PRMLEN  EQU     0F6E6H
+PARM1   EQU     0F6E8H
+PRMFLG  EQU     0F7B4H
+ARYTA2  EQU     0F7B5H
+NOFUNS  EQU     0F7B7H
+DAC     EQU     0F7F6H
+
+H.PTRG  EQU     0FFA2H
+
+
+        PUBLIC  PTRGET
+        PUBLIC  PTRGT2
+        PUBLIC  PTRGTV
+        PUBLIC  BSERR
+        PUBLIC  DIM
+
+        EXTRN   UMULT
+        EXTRN   FCERR
+        EXTRN   SNERR
+        EXTRN   BLTU
+        EXTRN   REASON
+        EXTRN   OMERR
+        EXTRN   DDERR
+        EXTRN   ERROR
+        EXTRN   NULSTR
+        EXTRN   ISLET
+        EXTRN   ISLET2
+        EXTRN   GETSTK
+        EXTRN   POPHRT
+        EXTRN   ISVAR
+        EXTRN   INTIDX
+        EXTRN   GETENT
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	BIPTRG
+
+	SUBTTL	BIPTRG
+
+I5E9A:  DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        RET     Z                       ; yep, quit
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+
+;       Subroutine      DIM statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DIM:
+C5E9F:  LD      BC,I5E9A
+        PUSH    BC                      ; 
+
+;       Subroutine      locate array variable
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+        DEFB    0F6H                    ; OR 0AFH, trick to skip next instruction
+
+;       Subroutine      locate variable
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PTRGET:
+C5EA4:  XOR     A                       ; not DIM
+        LD      (DIMFLG),A
+        LD      C,(HL)
+PTRGT2:
+J5EA9:  CALL    H.PTRG
+        CALL    ISLET                   ; is current BASIC character a upcase letter ?
+        JP      C,SNERR                 ; nope, syntax error
+        XOR     A
+        LD      B,A                     ; assume no 2nd variablename character
+        _RST    CHRGTR                  ; get next BASIC character
+        JR      C,J5EBC                 ; digit, use as 2nd variablename character
+        CALL    ISLET2                  ; is upcase letter character ?
+        JR      C,J5EC5                 ; nope, may be a variabletype indicator
+J5EBC:  LD      B,A                     ; 2nd variablename character
+J5EBD:  _RST    CHRGTR                  ; get next BASIC character
+        JR      C,J5EBD                 ; digit, skip
+        CALL    ISLET2                  ; is upcase letter character ?
+        JR      NC,J5EBD                ; yep, skip
+J5EC5:  CP      26H
+        JR      NC,J5EE0                ; speedup for 26H-0FFH
+        LD      DE,I5EEE
+        PUSH    DE
+        LD      D,2                     ; integer
+        CP      "%"                     ; integer type indicator ?
+        RET     Z                       ; yep, do not use default type
+        INC     D                       ; string
+        CP      "$"                     ; string type indicator ?
+        RET     Z                       ; yep, do not use default type
+        INC     D                       ; single real
+        CP      "!"                     ; single real indicator ?
+        RET     Z                       ; yep, do not use default type
+        LD      D,8                     ; double real
+        CP      "#"                     ; double real indicator ?
+        RET     Z                       ; yep, do not use default type
+        POP     AF
+J5EE0:  LD      A,C
+        AND     7FH                     ; clear b7 (for function variable)
+        LD      E,A
+        LD      D,0
+        PUSH    HL
+        LD      HL,DEFTBL-"A"
+        ADD     HL,DE
+        LD      D,(HL)                  ; default type
+        POP     HL
+        DEC     HL                      ; BASIC pointer back to compensate upcoming CHRGTR
+I5EEE:  LD      A,D
+        LD      (VALTYP),A              ; set DAC type
+        _RST    CHRGTR                  ; get next BASIC character (type indicator)
+        LD      A,(SUBFLG)
+        DEC     A                       ; variable search flags
+        JP      Z,J5FE8                 ; search for ERASE statement,
+        JP      P,J5F08                 ; search for function variables or loop variables, do not check for subscript
+        LD      A,(HL)
+        SUB     "("
+        JP      Z,J5FBA                 ; array variable
+        SUB     "["-"("
+        JP      Z,J5FBA                 ; array variable
+J5F08:  XOR     A
+        LD      (SUBFLG),A              ; flag normal variable
+        PUSH    HL                      ; save BASIC pointer
+        LD      A,(NOFUNS)
+        OR      A                       ; local function variables ?
+        LD      (PRMFLG),A              ; yep, search simple variables afterwards
+        JR      Z,J5F52                 ; nope, continue with simple variables
+        LD      HL,(PRMLEN)
+        LD      DE,PARM1                ; start of the local function variables
+        ADD     HL,DE
+        LD      (ARYTA2),HL             ; end of the local function variables
+        EX      DE,HL
+        JR      J5F3A                   ; start search
+
+J5F23:  LD      A,(DE)
+        LD      L,A                     ; variable type (also the length)
+        INC     DE
+        LD      A,(DE)                  ; first variablename character
+        INC     DE
+        CP      C                       ; match ?
+        JR      NZ,J5F36                ; nope,
+        LD      A,(VALTYP)
+        CP      L                       ; correct variabletype ?
+        JR      NZ,J5F36                ; nope,
+        LD      A,(DE)                  ; second variablename character
+        CP      B                       ; match ?
+        JP      Z,J5FA4                 ; variable found, quit
+J5F36:  INC     DE
+        LD      H,0
+        ADD     HL,DE                   ; to next variable
+J5F3A:  EX      DE,HL
+        LD      A,(ARYTA2+0)
+        CP      E                       ; end of area ?
+        JP      NZ,J5F23                ; nope, next variable
+        LD      A,(ARYTA2+1)
+        CP      D                       ; end of area ?
+        JR      NZ,J5F23                ; nope, next variable
+        LD      A,(PRMFLG)
+        OR      A                       ; in local function variable search ?
+        JR      Z,SMKVAR                ; nope, not found
+        XOR     A
+        LD      (PRMFLG),A              ; now search the simple variables
+J5F52:  LD      HL,(ARYTAB)
+        LD      (ARYTA2),HL             ; end of searcharea is the start of the array variable area
+        LD      HL,(VARTAB)             ; start of area is the start of the simple variable area
+        JR      J5F3A                   ; start search
+
+;       Subroutine      locate variable (search only)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PTRGTV:
+C5F5D:  CALL    PTRGET                  ; locate variable
+        RET
+
+J5F61:  LD      D,A
+        LD      E,A                     ; null pointer
+        POP     BC
+        EX      (SP),HL
+        RET
+
+SMKVAR:
+J5F66:  POP     HL
+        EX      (SP),HL                 ; call address
+        PUSH    DE
+        LD      DE,PTRGTV+3
+        _RST    DCOMPR                  ; called from VARPTR ?
+        JR      Z,J5F61                 ; yep, return without creating a variable
+        LD      DE,ISVAR+3
+        _RST    DCOMPR                  ; called from factor evaluator ?
+        POP     DE
+        JR      Z,J5FA7                 ; yep, return value 0
+        EX      (SP),HL
+        PUSH    HL
+        PUSH    BC
+        LD      A,(VALTYP)
+        LD      C,A
+        PUSH    BC
+        LD      B,0                     ; size of variable
+        INC     BC
+        INC     BC
+        INC     BC                      ; three bytes for housekeeping
+        LD      HL,(STREND)
+        PUSH    HL
+        ADD     HL,BC
+        POP     BC
+        PUSH    HL
+        CALL    BLTU                    ; check for enough stackspace and move data
+        POP     HL
+        LD      (STREND),HL
+        LD      H,B
+        LD      L,C
+        LD      (ARYTAB),HL
+J5F96:  DEC     HL
+        LD      (HL),0
+        _RST    DCOMPR
+        JR      NZ,J5F96                ; clear variable
+        POP     DE
+        LD      (HL),E                  ; variable type
+        INC     HL
+        POP     DE
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D                  ; variable name
+        EX      DE,HL
+J5FA4:  INC     DE
+        POP     HL
+        RET
+
+J5FA7:  LD      (DAC+0),A               ; if single real or double real, DAC = 0
+        LD      H,A
+        LD      L,A
+        LD      (DAC+2),HL              ; if integer, DAC = 0
+        _RST    GETYPR
+        JR      NZ,J5FB8                ; not a string, quit
+        LD      HL,NULSTR
+        LD      (DAC+2),HL              ; empty string
+J5FB8:  POP     HL                      ; restore BASIC pointer
+        RET
+
+;       Subroutine      locate array variable with subscript
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J5FBA:  PUSH    HL
+        LD      HL,(DIMFLG)
+        EX      (SP),HL                 ; save DIMFLG
+        LD      D,A                     ; index 0
+J5FC0:  PUSH    DE
+        PUSH    BC
+        CALL    INTIDX                  ; skip basic char, evaluate word operand and check for 0-32767 range
+        POP     BC
+        POP     AF
+        EX      DE,HL
+        EX      (SP),HL
+        PUSH    HL
+        EX      DE,HL                   ; subscript on stack
+        INC     A
+        LD      D,A                     ; next index
+        LD      A,(HL)
+        CP      ","                     ; more subscripts ?
+        JP      Z,J5FC0                 ; yep, get next subscript
+        CP      ")"
+        JR      Z,J5FDC
+        CP      "]"
+        JP      NZ,SNERR                ; nope, syntax error
+J5FDC:  _RST    CHRGTR                  ; get next BASIC character
+        LD      (TEMP2),HL              ; save BASIC pointer
+        POP     HL
+        LD      (DIMFLG),HL             ; restore DIMFLG
+        LD      E,0
+        PUSH    DE
+        DEFB    011H                    ; LD DE,xxxx, trick to skip next 2 instruction
+J5FE8:  PUSH    HL
+        PUSH    AF
+        LD      HL,(ARYTAB)             ; start of the array variable area
+        DEFB    03EH                    ; LD A,xx, trick to skip next instruction
+J5FEE:  ADD     HL,DE
+        LD      DE,(STREND)
+        _RST    DCOMPR                  ; end of the array variable area ?
+        JR      Z,J6023                 ; yep, create array
+        LD      E,(HL)                  ; arraytype
+        INC     HL
+        LD      A,(HL)                  ; first name character
+        INC     HL
+        CP      C                       ; match ?
+        JR      NZ,J6005                ; nope, not found
+        LD      A,(VALTYP)
+        CP      E                       ; correct arraytype ?
+        JR      NZ,J6005                ; nope, not found
+        LD      A,(HL)                  ; second name character
+        CP      B                       ; match ?
+J6005:  INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)                  ; offset to next array
+        INC     HL
+        JR      NZ,J5FEE                ; no match, next array
+        LD      A,(DIMFLG)
+        OR      A                       ; DIM statement ?
+        JP      NZ,DDERR                ; yep, redimensioned array error
+        POP     AF
+        LD      B,H
+        LD      C,L
+        JP      Z,POPHRT                ; ERASE, restore BASIC pointer and quit
+        SUB     (HL)                    ; dimension correct ?
+        JP      Z,J607D                 ; yep,
+
+BSERR:
+J601D:  LD      DE,9                    ; ?? LD E,9 should be enough ??
+        JP      ERROR                   ; subscript out of range error
+
+J6023:  LD      A,(VALTYP)
+        LD      (HL),A
+        INC     HL
+        LD      E,A
+        LD      D,0
+        POP     AF
+        JP      Z,FCERR                 ; ERASE, illegal function call
+        LD      (HL),C
+        INC     HL
+        LD      (HL),B                  ; variablename
+        INC     HL
+        LD      C,A                     ; number of words
+        CALL    GETSTK                  ; check if enough stackspace
+        INC     HL
+        INC     HL                      ; leave offset empty for now
+        LD      (TEMP3),HL
+        LD      (HL),C                  ; dimension
+        INC     HL
+        LD      A,(DIMFLG)
+        RLA                             ; DIM statement ?
+        LD      A,C
+J6043:  LD      BC,11
+        JR      NC,J604A                ; nope, use a default of 11
+        POP     BC                      ; subscript
+        INC     BC
+J604A:  LD      (HL),C
+        PUSH    AF
+        INC     HL
+        LD      (HL),B
+        INC     HL
+        CALL    UMULT                   ; unsigned integer multiply
+        POP     AF
+        DEC     A
+        JR      NZ,J6043                ; next
+        PUSH    AF
+        LD      B,D
+        LD      C,E
+        EX      DE,HL
+        ADD     HL,DE
+        JP      C,OMERR                 ; out of memory
+        CALL    REASON                  ; check if enough stackspace left
+        LD      (STREND),HL             ; new end of array area
+J6064:  DEC     HL
+        LD      (HL),0
+        _RST    DCOMPR
+        JR      NZ,J6064                ; clear array
+        INC     BC
+        LD      D,A
+        LD      HL,(TEMP3)
+        LD      E,(HL)
+        EX      DE,HL
+        ADD     HL,HL
+        ADD     HL,BC
+        EX      DE,HL
+        DEC     HL
+        DEC     HL
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        INC     HL
+        POP     AF
+        JR      C,J60AD
+J607D:  LD      B,A
+        LD      C,A
+        LD      A,(HL)
+        INC     HL
+        DEFB    016H                    ; LD D,xx, trick to skip next instruction
+J6082:  POP     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        EX      (SP),HL
+        PUSH    AF
+        _RST    DCOMPR
+        JP      NC,J601D                ; subscript out of range
+        CALL    UMULT                   ; unsigned integer multiply
+        ADD     HL,DE
+        POP     AF
+        DEC     A
+        LD      B,H
+        LD      C,L
+        JR      NZ,J6082
+        LD      A,(VALTYP)
+        LD      B,H
+        LD      C,L
+        ADD     HL,HL
+        SUB     4
+        JR      C,J60A5
+        ADD     HL,HL
+        JR      Z,J60AA
+        ADD     HL,HL
+J60A5:  OR      A
+        JP      PO,J60AA
+        ADD     HL,BC
+J60AA:  POP     BC
+        ADD     HL,BC
+        EX      DE,HL
+J60AD:  LD      HL,(TEMP2)
+        RET
+
+; END	SUBTTL	BIPTRG
+
+        END
+

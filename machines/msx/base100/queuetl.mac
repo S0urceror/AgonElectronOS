@@ -1,0 +1,234 @@
+; QUEUETL.MAC
+
+; BIOS queue functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+; NOTE:
+;       Generic queue functions, only used by PLAY statement
+;       The BAKQ function was left out (unused), but info block does have a backup byte flag
+;       used in code. There is also a backup byte location, also used in code.
+;       But since there is no putback code, both are not actually used
+;       The NUMQ function was also left out (unused)
+
+; queue info block
+;       +0      PUT offset
+;       +1      GET offset
+;       +2      0 = no backup byte, >0 = backup location in QUEBAK
+;       +3      queue size (must be a power of 2 -1)
+;       +4,2    pointer to queue
+
+        .Z80
+        ASEG
+        ORG     1492H
+
+        INCLUDE MSX.INC
+
+
+QUEUES  EQU     0F3F3H
+QUEBAK  EQU     0F971H
+
+
+; START SUBTTL  QUEUTL
+
+        SUBTTL  QUEUTL
+
+
+        PUBLIC  PUTQ
+        PUBLIC  LFTQ
+        PUBLIC  GETQ
+        PUBLIC  INITQ
+
+
+;       Subroutine      PUTQ
+;       Inputs          A = queue, E = byte
+;       Outputs         Zx set if queue is full
+
+PUTQ:
+A1492:  call    A14FA                   ; get queue info
+        ld      a,b                     ; PUT offset
+        inc     a
+        inc     hl
+        and     (hl)                    ; warp around queue size
+        cp      c                       ; space left in queue ?
+        ret     z                       ; nope, quit
+        push    hl                      ; store pointer to queue size
+        dec     hl
+        dec     hl
+        dec     hl
+        ex      (sp),hl                 ; store pointer to queue info block, restore pointer to queue size
+        inc     hl
+        ld      c,a
+        ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a                     ; pointer to queue
+        ld      b,0
+        add     hl,bc
+        ld      (hl),e                  ; store byte in queue
+        pop     hl                      ; restore pointer to queue info block
+        ld      (hl),c                  ; update PUT offset
+        ret
+
+;       Subroutine      GETQ
+;       Inputs          A = queue
+;       Outputs         Zx set if empty queue, A = byte (only when Zx reset)
+
+GETQ:
+A14AD:  call    A14FA                   ; get queue info
+        ld      (hl),0                  ; reset backup byte flag
+        jr      nz,A14D1                ; backup byte, return backup byte
+        ld      a,c                     ; GET offset
+        cp      b
+        ret     z                       ; queue empty, quit
+        inc     hl
+        inc     a                       ; update GET offset
+        and     (hl)                    ; warp around queue size
+        dec     hl
+        dec     hl
+        push    hl                      ; store pointer to GET offset
+        inc     hl
+        inc     hl
+        inc     hl
+        ld      c,a
+        ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a                     ; pointer to queue
+        ld      b,0
+        add     hl,bc
+        ld      a,(hl)                  ; get byte from queue
+        pop     hl                      ; restore pointer to GET offset
+        ld      (hl),c                  ; update GET offset
+        or      a
+        ret     nz
+        inc     a
+        ld      a,0                     ; Zx reset
+        ret
+
+A14D1:  ld      c,a                     ; backup offset
+        ld      b,0
+        ld      hl,QUEBAK-1
+        add     hl,bc
+        ld      a,(hl)                  ; return backup byte
+        ret
+
+;       Subroutine      INITQ
+;       Inputs          A = queue, B = queue size (must be a power of 2 -1), DE = pointer to queue
+;       Outputs         ________________________
+
+INITQ:
+A14DA:  push    bc
+        call    A1504                   ; get queue info block
+        ld      (hl),b                  ; PUT offset = 0
+        inc     hl
+        ld      (hl),b                  ; GET offset = 0
+        inc     hl
+        ld      (hl),b                  ; reset backup byte flag
+        inc     hl
+        pop     af
+        ld      (hl),a                  ; queue size
+        inc     hl
+        ld      (hl),e
+        inc     hl
+        ld      (hl),d                  ; pointer to queue
+        ret
+
+
+        IF      0
+
+;       Subroutine BAKQ
+;       Inputs  A = queue, E = backup byte
+;       Outputs ________________________
+;       Unused Code with SVI, left out with MSX
+
+BAKQ:	push	af
+	call	A14FA                   ; get queue info
+	pop	af
+	inc	a
+	ld	(hl),a
+	ld	c,a
+	ld	b,0
+	ld	hl,QUEBAK-1
+	add	hl,bc
+	ld	(hl),e
+	ret
+
+;	  Subroutine NUMQ
+;	     Inputs  A = queue
+;	     Outputs HL = bytes in queue
+;       Unused Code with SVI, left out with MSX
+
+NUMQ:	call	A14FA                   ; get queue info
+	sub	1
+	sbc	a,a
+	inc	a
+	ld	e,a                     ; extra byte if backup byte
+	ld	a,b
+	sub	c
+	inc	hl
+	and	(hl)                    ; warp around queue size
+	ld	l,a
+	ld	h,0                     ; bytes in queue
+	ld	d,h
+	add	hl,de                   ; + backup byte
+	ret
+
+        ENDIF
+
+
+;       Subroutine      LFTQ
+;       Inputs          A = queue
+;       Outputs         A = HL = bytes left in queue
+
+LFTQ:
+A14EB:  call    A14FA                   ; get queue info
+        ld      a,b                     ; GET offset
+        inc     a                       ; update
+        inc     hl
+        and     (hl)                    ; warp around queue size
+        ld      b,a
+        ld      a,c                     ; PUT offset
+        sub     b
+        and     (hl)
+        ld      l,a
+        ld      h,0
+        ret
+
+;       Subroutine      get queue info
+;       Inputs          A = queue
+;       Outputs         B = PUT offset, C = GET offset, A = backup byte flag, HL = pointer to backup flag queue info block
+
+A14FA:  call    A1504                   ; get queue info block
+        ld      b,(hl)                  ; PUT offset
+        inc     hl
+        ld      c,(hl)                  ; GET offset
+        inc     hl
+        ld      a,(hl)
+        or      a                       ; backup byte ?
+        ret
+
+;       Subroutine      get queue info block
+;       Inputs          A = queue
+;       Outputs         HL = pointer to queue info block
+
+A1504:  rlca
+        ld      b,a                     ; *2
+        rlca                            ; *4
+        add     a,b                     ; *6
+        ld      c,a
+        ld      b,0
+        ld      hl,(QUEUES)             ; base of queue info blocks
+        add     hl,bc
+        ret
+
+; END   SUBTTL  QUEUTL
+
+        end

@@ -1,0 +1,301 @@
+; MACLNG.MAC
+
+; BASIC macro language functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     569ah; 566CH
+
+
+        INCLUDE MSX.INC
+
+
+BUF     EQU     0F55EH
+MCLTAB  EQU     0F956H
+MCLFLG  EQU     0F958H
+MCLLEN  EQU     0FB3BH
+MCLPTR  EQU     0FB3CH
+
+
+        PUBLIC  MCLSCN
+        PUBLIC  FETCHR
+        PUBLIC  DECFET
+        PUBLIC  VALSC2
+        PUBLIC  MCLXEQ
+	PUBLIC	MACLNG
+	PUBLIC	FETCHZ
+	PUBLIC	VALSCN
+
+        EXTRN   FCERR
+        EXTRN   FRMEVL
+        EXTRN   FRESTR
+        EXTRN   GETSTK
+        EXTRN   ISLET2
+        EXTRN   ISVAR
+        EXTRN   FRCINT
+        EXTRN   MOVRM
+        EXTRN   PLYHDL
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	MACLNG
+
+MACLNG:
+J566C:  LD      (MCLTAB),DE
+        CALL    FRMEVL                  ; evaluate expression
+        PUSH    HL
+        LD      DE,0
+        PUSH    DE
+        PUSH    AF
+J5679:  CALL    FRESTR                  ; free temporary string with type check
+        CALL    MOVRM                   ; load from HL (single)
+        LD      B,C
+        LD      C,D                     ; pointer to string
+        LD      D,E                     ; size of string
+        LD      A,B
+        OR      C                       ; zero pointer ?
+        JR      Z,J568C                 ; yep,
+        LD      A,D
+        OR      A                       ; size of string zero ?
+        JR      Z,J568C                 ; yep,
+        PUSH    BC
+        PUSH    DE
+J568C:  POP     AF
+        LD      (MCLLEN),A
+        POP     HL
+        LD      A,H
+        OR      L
+        JR      NZ,J569F
+        LD      A,(MCLFLG)
+        OR      A
+        JP      Z,J5709
+        JP      PLYHDL
+
+J569F:  LD      (MCLPTR),HL
+
+MCLSCN:
+J56A2:  CALL    FETCHR
+        JR      Z,J568C
+        ADD     A,A
+        LD      C,A
+        LD      HL,(MCLTAB)
+J56AC:  LD      A,(HL)
+        ADD     A,A
+J56AE:  CALL    Z,FCERR                 ; illegal function call
+        CP      C
+        JR      Z,J56B9
+        INC     HL
+        INC     HL
+        INC     HL
+        JR      J56AC
+
+J56B9:  LD      BC,MCLSCN
+        PUSH    BC
+        LD      A,(HL)
+        LD      C,A
+        ADD     A,A
+        JR      NC,J56E2
+        OR      A
+        RRA
+        LD      C,A
+        PUSH    BC
+        PUSH    HL
+        CALL    FETCHR
+        LD      DE,1
+        JP      Z,J56DF
+        CALL    ISLET2                  ; is upcase letter character ?
+        JP      NC,J56DC
+        CALL    C571C
+        SCF
+        JR      J56E0
+
+J56DC:  CALL    DECFET
+J56DF:  OR      A
+J56E0:  POP     HL
+        POP     BC
+J56E2:  INC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A
+        JP      (HL)
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FETCHZ:
+C56E8:  CALL    FETCHR
+        JR      Z,J56AE
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FETCHR:
+C56EE:  PUSH    HL
+J56EF:  LD      HL,MCLLEN
+        LD      A,(HL)
+        OR      A
+        JR      Z,J5709
+        DEC     (HL)
+        LD      HL,(MCLPTR)
+        LD      A,(HL)
+        INC     HL
+        LD      (MCLPTR),HL
+        CP      " "
+        JR      Z,J56EF
+        CP      60H
+        JR      C,J5709
+        SUB     20H
+J5709:  POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DECFET:
+C570B:  PUSH    HL
+        LD      HL,MCLLEN
+        INC     (HL)
+        LD      HL,(MCLPTR)
+        DEC     HL
+        LD      (MCLPTR),HL
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VALSCN:
+C5719:  CALL    FETCHZ
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VALSC3:
+C571C:  CP      "="
+        JP      Z,J577A
+        CP      "+"
+        JR      Z,VALSCN
+        CP      "-"
+        JR      NZ,C572F
+        LD      DE,C5795
+        PUSH    DE
+        JR      VALSCN
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VALSC2:
+C572F:  LD      DE,0
+J5732:  CP      ","
+        JR      Z,DECFET
+        CP      ";"
+        RET     Z
+        CP      "9"+1
+        JR      NC,DECFET
+        CP      "0"
+        JR      C,DECFET
+        LD      HL,0
+        LD      B,10
+J5746:  ADD     HL,DE
+        JR      C,J5773
+        DJNZ    J5746
+        SUB     "0"
+        LD      E,A
+        LD      D,0
+        ADD     HL,DE
+        JR      C,J5773
+        EX      DE,HL
+        CALL    FETCHR
+        JR      NZ,J5732
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCNVR2:
+C575A:  CALL    FETCHZ
+        LD      DE,BUF
+        PUSH    DE
+        LD      B,40
+        CALL    ISLET2                  ; is upcase letter character ?
+        JR      C,J5773                 ; nope, illegal function call
+J5768:  LD      (DE),A
+        INC     DE
+        CP      ";"                     ; end of variablename ?
+        JR      Z,J5776                 ; yep,
+        CALL    FETCHZ
+        DJNZ    J5768
+J5773:  CALL    FCERR                   ; illegal function call
+
+J5776:  POP     HL
+        JP      ISVAR                   ; get variable value
+
+J577A:  CALL    C575A
+        CALL    FRCINT                  ; convert DAC to integer
+        EX      DE,HL
+        RET
+
+MCLXEQ:
+C5782:  CALL    C575A
+        LD      A,(MCLLEN)
+        LD      HL,(MCLPTR)
+        EX      (SP),HL
+        PUSH    AF
+        LD      C,2
+        CALL    GETSTK                  ; check if enough stackspace for 2 words
+        JP      J5679
+
+NEGD:
+C5795:  XOR     A
+        SUB     E
+        LD      E,A
+        SBC     A,D
+        SUB     E
+        LD      D,A
+        RET
+
+
+; END	SUBTTL	MACLNG
+
+        END
+

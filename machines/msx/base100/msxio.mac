@@ -1,0 +1,3017 @@
+; MSXIO.MAC
+
+; BIOS MSX I/O function, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     02D7H
+
+
+        INCLUDE MSX.INC
+
+
+VARWRK  EQU     0F380H
+LINL40  equ     0F3AEH
+LINL32  equ     0F3AFH
+LINLEN  equ     0F3B0H
+CRTCNT  equ     0F3B1H
+TXTNAM  equ     0F3B3H
+TXTCGP  equ     0F3B7H
+T32NAM  equ     0F3BDH
+T32COL  equ     0F3BFH
+T32CGP  equ     0F3C1H
+T32ATR  equ     0F3C3H
+T32PAT  equ     0F3C5H
+GRPNAM  equ     0F3C7H
+GRPCOL  equ     0F3C9H
+GRPCGP  equ     0F3CBH
+GRPATR  equ     0F3CDH
+GRPPAT  equ     0F3CFH
+MLTNAM  equ     0F3D1H
+MLTCGP  equ     0F3D5H
+MLTATR  equ     0F3D7H
+MLTPAT  equ     0F3D9H
+CLIKSW  equ     0F3DBH
+CSRY    equ     0F3DCH
+CSRX    equ     0F3DDH
+CNSDFG  equ     0F3DEH
+RG0SAV  equ     0F3DFH
+RG1SAV  equ     0F3E0H
+STATFL  equ     0F3E7H
+TRGFLG  equ     0F3E8H
+FORCLR  equ     0F3E9H
+BAKCLR  equ     0F3EAH
+BDRCLR  equ     0F3EBH
+SCNCNT  equ     0F3F6H
+REPCNT  equ     0F3F7H
+PUTPNT  equ     0F3F8H
+GETPNT  equ     0F3FAH
+LPTPOS  equ     0F415H
+CURLIN  equ     0F41CH
+TTYPOS  equ     0F661H
+SAVSTK  equ     0F6B1H
+PTRFIL  equ     0F864H
+FILNAM  equ     0F866H
+FNKSTR  equ     0F87FH
+CGPNT   equ     0F91FH
+NAMBAS  equ     0F922H
+CGPBAS  equ     0F924H
+PATBAS  equ     0F926H
+ATRBAS  equ     0F928H
+VOICAQ  equ     0F975H
+VOICEN  equ     0FB38H
+QUEUEN  equ     0FB3EH
+MUSICF  equ     0FB3FH
+PLYCNT  equ     0FB40H
+VCBA    equ     0FB41H
+VCBB    equ     0FB66H
+VCBC    equ     0FB8BH
+ENSTOP  equ     0FBB0H
+BASROM  equ     0FBB1H
+LINTTB  equ     0FBB2H
+FSTPOS  equ     0FBCAH
+CURSAV  equ     0FBCCH
+FNKSWI  equ     0FBCDH
+FNKFLG  equ     0FBCEH
+ONGSBF  equ     0FBD8H
+CLIKFL  equ     0FBD9H
+OLDKEY  equ     0FBDAH
+NEWKEY  equ     0FBE5H
+KEYBUF  equ     0FBF0H
+LINWRK  equ     0FC18H
+PATWRK  equ     0FC40H
+TRPTBL  equ     0FC4CH
+INTFLG  equ     0FC9BH
+PADY    equ     0FC9CH
+PADX    equ     0FC9DH
+JIFFY   equ     0FC9EH
+INTVAL  equ     0FCA0H
+INTCNT  equ     0FCA2H
+GRPHED  equ     0FCA6H
+ESCCNT  equ     0FCA7H
+CSRSR   equ     0FCA9H
+CSTYLE  equ     0FCAAH
+CAPST   equ     0FCABH
+KANAST  equ     0FCACH
+KANAMD  EQU     0FCADH
+SCRMOD  equ     0FCAFH
+OLDSCR  equ     0FCB0H
+EXPTBL  equ     0FCC1H
+SLTTBL  equ     0FCC5H
+
+H.KEYI  equ     0FD9AH
+H.TIMI  equ     0FD9FH
+H.CHPU  equ     0FDA4H
+H.DSPC  equ     0FDA9H
+H.ERAC  equ     0FDAEH
+H.DSPF  equ     0FDB3H
+H.ERAF  equ     0FDB8H
+H.TOTE  equ     0FDBDH
+H.CHGE  equ     0FDC2H
+H.INIP  equ     0FDC7H
+H.KEYC  equ     0FDCCH
+H.KEYA  equ     0FDD1H
+H.NMI   equ     0FDD6H
+H.ISFL  equ     0FEDFH
+H.PHYD  equ     0FFA7H
+H.FORM  equ     0FFACH
+H.LPTO  equ     0FFB6H
+H.LPTS  equ     0FFBBH
+D.FFFF  equ     0FFFFH
+
+
+        PUBLIC  CHKRAM
+        PUBLIC  ISCNTC
+        PUBLIC  KILBUF
+        PUBLIC  BREAKX
+        PUBLIC  INITIO
+        PUBLIC  GICINI
+        PUBLIC  INITXT
+        PUBLIC  INIT32
+        PUBLIC  INIGRP
+        PUBLIC  INIMLT
+        PUBLIC  SETTXT
+        PUBLIC  SETT32
+        PUBLIC  SETGRP
+        PUBLIC  SETMLT
+        PUBLIC  CLRSPR
+        PUBLIC  CALPAT
+        PUBLIC  CALATR
+        PUBLIC  GSPSIZ
+        PUBLIC  LDIRMV
+        PUBLIC  LDIRVM
+        PUBLIC  DISSCR
+        PUBLIC  ENASCR
+        PUBLIC  WRTVDP
+        PUBLIC  WRTVRM
+        PUBLIC  RDVRM
+        PUBLIC  SETWRT
+        PUBLIC  SETRD
+        PUBLIC  CHGCLR
+        PUBLIC  FILVRM
+        PUBLIC  TOTEXT
+        PUBLIC  CLS
+        PUBLIC  CHGMOD
+        PUBLIC  LPTOUT
+        PUBLIC  LPTSTT
+        PUBLIC  POSIT
+        PUBLIC  CNVCHR
+        PUBLIC  CHPUT
+        PUBLIC  ERAFNK
+        PUBLIC  FNKSB
+        PUBLIC  DSPFNK
+        PUBLIC  KEYINT
+        PUBLIC  CHSNS
+        PUBLIC  CHGCAP
+        PUBLIC  CHGSND
+        PUBLIC  CHGET
+        PUBLIC  CKCNTC
+        PUBLIC  WRTPSG
+        PUBLIC  RDPSG
+        PUBLIC  BEEP
+        PUBLIC  STRTMS
+        PUBLIC  GTSTCK
+        PUBLIC  GTTRIG
+        PUBLIC  GTPDL
+        PUBLIC  GTPAD
+        PUBLIC  STMOTR
+        PUBLIC  NMI
+        PUBLIC  INIFNK
+        PUBLIC  RDVDP
+        PUBLIC  RSLREG
+        PUBLIC  WSLREG
+        PUBLIC  SNSMAT
+        PUBLIC  ISFLIO
+        PUBLIC  DCOMPR
+        PUBLIC  GETVCP
+        PUBLIC  GETVC2
+        PUBLIC  PHYDIO
+        PUBLIC  FORMAT
+        PUBLIC  GETPAT
+        PUBLIC  POPALL
+        PUBLIC  TERMIN
+        PUBLIC  UNTERM
+        PUBLIC  CKERCS
+        PUBLIC  CKDPCS
+        PUBLIC  GETTRM
+        PUBLIC  GETVRM
+        PUBLIC  CKSTTP
+        PUBLIC  PUTVRM
+        PUBLIC  GETLEN
+        PUBLIC  INSLN0
+        PUBLIC  DELLN0
+        PUBLIC  EOL
+        PUBLIC  ADVCUR
+        PUBLIC  BS
+        PUBLIC  INDJMP
+
+        EXTRN   INIENT
+        EXTRN   RDSLT
+        EXTRN   CALBAS
+        EXTRN   ENASLT
+        EXTRN   GETQ
+        EXTRN   INITQ
+        EXTRN   STOP
+	EXTRN	READYR
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL  MSXIO
+
+        SUBTTL  MSXIO
+
+CHKRAM:
+A02D7:  ld      a,082H
+        RST     28h
+        defb    0abh ; out     (0ABH),a                ; initialize PPI (active, group A mode 0, group A output, upper port C output, group B mode 0, group B input, lower port C output)
+        xor     a
+        RST     28h
+        defb    0a8h ; out     (0A8H),a                ; select primairy slot 0 on all pages
+        ld      a,050H
+        RST     28h
+        defb    0aah ; out     (0AAH),a                ; CAPS off, motor off, keyboard row 0
+        ;
+        ld      bc,0C49H
+        ld      de,VARWRK+1
+        ld      hl,VARWRK
+        ld      (hl),0
+        ldir                                           ; clear system variable area
+        ; SLTTBL and EXPTBL are now all zeros indicating no extended slots
+        ;
+        ; assume 4k EZ80 built-in memory moved to upper 4k of page 3
+        ; assume only primary slots no secundary slots
+        ; assume that 0000-3FFF is in slot 00 - ROM => BIOS
+        ; assume that 4000-7FFF is in slot 00 - ROM => BASIC / DISKROM / CARTRIDGE
+        ; assume that 8000-BFFF is in slot 01 - RAM => RAM
+        ; assume that C000-FFFF is in slot 01 - RAM => RAM + 4k built-in RAM
+        ld a, 054h ; 0b01010100 ; 050h ; 0b01010000
+        ld ix, 0004h ; eos_msx_machine_slotregister
+        scf ; set carry = write
+        DEFB 05bh ; .LIL
+        rst 38h
+        ;
+        ; set vsync address
+        ld ix, 000eh ; eos_msx_machine_setvblankaddress
+        ld hl, 0066h ; NMI routine replaced by KEYINT ; go directly to KEYINT
+        DEFB 05bh ; .LIL
+        rst 38h
+        ;
+        jp      INIENT                                 ; start BASIC interpreter
+
+        DEFS    03FBH-$,0                              ; unused space
+
+;       Subroutine      ISCNTC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ISCNTC:
+A03FB:  ld      a,(BASROM)
+        and     a                       ; executing basicrom ?
+        ret     nz                      ; yep, quit
+        push    hl
+        ld      hl,INTFLG
+        di                              ; INTFLG can not change
+        ld      a,(hl)
+        ld      (hl),0                  ; reset
+        pop     hl
+        ei
+        and     a                       ; STOP or CTRL/STOP ?
+        ret     z                       ; nop, quit
+        cp      003H
+        jr      z,A042C                 ; it is CTRL/STOP
+        push    hl
+        push    de
+        push    bc
+        call    A09DA                   ; cursor on
+        ld      hl,INTFLG
+A0419:  di                              ; INTFLG can not change
+        ld      a,(hl)
+        ld      (hl),0                  ; reset
+        ei
+        and     a                       ; STOP or CTRL/STOP ?
+        jr      z,A0419                 ; nop, try again
+        push    af
+        call    A0A27                   ; cursor off
+        pop     af
+        pop     bc
+        pop     de
+        pop     hl
+        cp      003H                    ; CTRL/STOP ?
+        ret     nz                      ; nop, just quit
+A042C:  push    hl
+        call    KILBUF                  ; KILBUF (clear keyboard buffer)
+        call    A0454
+        jr      nc,A043F
+        ld      hl,TRPTBL+10*3
+        di
+        call    C0EF1                   ; raise CTRL-STOP trap
+        ei
+        pop     hl
+        ret
+;
+A043F:  call    TOTEXT                  ; TOTEXT (force text screenmode)
+        ld      a,(EXPTBL+0)
+        ld      h,040H
+        call    ENASLT                  ; ENASLT (enable BASIC ROM in page 1)
+        pop     hl
+        xor     a                       ; end of statement
+        ld      sp,(SAVSTK)
+        push    bc
+        jp      STOP
+;
+CKSTTP:
+A0454:  ld      a,(TRPTBL+10*3+0)
+        rrca                            ; CTRL-STOP trap enabled ?
+        ret     nc                      ; nope, quit
+        ld      hl,(TRPTBL+10*3+1)
+        ld      a,h
+        or      l                       ; CTRL-STOP trap handler definied ?
+        ret     z                       ; nope, quit
+        ld      hl,(CURLIN)
+        inc     hl
+        ld      a,h
+        or      l                       ; in direct mode ?
+        ret     z                       ; yep, quit
+        scf
+        ret
+
+;       Subroutine      KILBUF
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+KILBUF:
+A0468:  ld      hl,(PUTPNT)
+        ld      (GETPNT),hl
+        ret
+
+;       Subroutine      BREAKX
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BREAKX:
+A046F:  ;RST     038h 
+        ;defb    0aah ; in      a,(0AAH)
+        ;and     0F0H
+        ;or      007H
+        ld      a, 7
+        call    SNSMAT
+        ;RST     28h
+        ;defb    0aah ; out     (0AAH),a
+        ;RST     038h 
+        ;defb    0a9h ; in      a,(0A9H)
+        and     010H
+        ret     nz
+        ;RST     038h 
+        ;defb    0aah ; in      a,(0AAH)
+        dec     a
+        call    SNSMAT
+        ;RST     28h
+        ;defb    0aah ; out     (0AAH),a
+        ;RST     038h 
+        ;defb    0a9h ; in      a,(0A9H)
+        and     002H
+        ret     nz
+        push    hl
+        ld      hl,(PUTPNT)
+        ld      (GETPNT),hl
+        pop     hl
+        ld      a,(OLDKEY+7)
+        and     0EFH
+        ld      (OLDKEY+7),a
+        LD      A,13
+        ld      (REPCNT),a
+        scf
+        ret
+
+;       Subroutine      INITIO
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INITIO:
+A049D:  ld      a,7
+        ld      e,080H
+        call    WRTPSG                  ; WRTPSG
+        ld      a,15
+        ld      e,0CFH
+        call    WRTPSG                  ; WRTPSG
+        ld      a,11
+        ld      e,a
+        call    WRTPSG                  ; WRTPSG
+        call    A110C
+        and     040H
+        ld      (KANAMD),a
+        ld      a,0FFH
+        RST     28h
+        defb    090h ; out     (090H),a
+
+;       Subroutine      GICINI
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GICINI:
+A04BD:  push    hl
+        push    de
+        push    bc
+        push    af
+        ld      hl,MUSICF
+        ld      b,1+1+3*37
+        xor     a
+A04C7:  ld      (hl),a
+        inc     hl
+        djnz    A04C7			; clear MUSICF, PLYCNT, VCBA, VCBB and VCBC
+        ld      de,VOICAQ
+        ld      b,07FH
+        ld      hl,128
+A04D3:  push    hl
+        push    de
+        push    bc
+        push    af
+        call    INITQ
+        pop     af
+        add     a,8
+        ld      e,0
+        call    WRTPSG                  ; WRTPSG
+        sub     008H
+        push    af
+        ld      l,00FH
+        call    A1477
+        ex      de,hl
+        ld      hl,T0508
+        ld      bc,6
+        ldir
+        pop     af
+        pop     bc
+        pop     hl
+        pop     de
+        add     hl,de
+        ex      de,hl
+        inc     a
+        cp      003H
+        jr      c,A04D3
+        ld      a,7
+        ld      e,0B8H
+        call    WRTPSG                  ; WRTPSG
+        jp      A08DA
+;
+T0508:  defb    4
+        defb    4
+        defb    120
+        defb    8+128
+        defw    255
+
+;       Subroutine      INITXT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INITXT:
+A050E:  call    DISSCR                  ; DISSCR
+        xor     a
+        ld      (SCRMOD),a
+        ld      (OLDSCR),a
+        ld      a,(LINL40)
+        ld      (LINLEN),a
+        ld      hl,(TXTNAM)
+        ld      (NAMBAS),hl
+        ld      hl,(TXTCGP)
+        ld      (CGPBAS),hl
+        call    CHGCLR                  ; CHGCLR
+        call    A077E                   ; clear text screen
+        call    A071E
+        call    SETTXT                  ; SETTXT
+        jr      ENASCR                  ; ENASCR
+
+;       Subroutine      INIT32
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INIT32:
+A0538:  call    DISSCR                  ; DISSCR
+        ld      a,1
+        ld      (SCRMOD),a
+        ld      (OLDSCR),a
+        ld      a,(LINL32)
+        ld      (LINLEN),a
+        ld      hl,(T32NAM)
+        ld      (NAMBAS),hl
+        ld      hl,(T32CGP)
+        ld      (CGPBAS),hl
+        ld      hl,(T32PAT)
+        ld      (PATBAS),hl
+        ld      hl,(T32ATR)
+        ld      (ATRBAS),hl
+        call    CHGCLR                  ; CHGCLR
+        call    A077E                   ; clear text screen
+        call    A071E
+        call    A06BB
+        call    SETT32                  ; SETT32
+
+;       Subroutine      ENASCR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ENASCR:
+A0570:  ld      a,(RG1SAV)
+        or      040H
+        jr      A057C
+
+;       Subroutine      DISSCR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DISSCR:
+A0577:  ld      a,(RG1SAV)
+        and     0BFH
+A057C:  ld      b,a
+        ld      c,1
+
+;       Subroutine      WRTVDP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+WRTVDP:
+A057F:  ld      a,b
+        di
+        RST     28h
+        defb    099h ; out     (099H),a
+        ld      a,c
+        or      080H
+        RST     28h
+        defb    099h ; out     (099H),a
+        ei
+        push    hl
+        ld      a,b
+        ld      b,0
+        ld      hl,RG0SAV
+        add     hl,bc
+        ld      (hl),a
+        pop     hl
+        ret
+
+;       Subroutine      SETTXT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETTXT:
+A0594:  ld      a,(RG0SAV)
+        and     001H
+        ld      b,a
+        ld      c,0
+        call    WRTVDP                  ; WRTVDP
+        ld      a,(RG1SAV)
+        and     0E7H
+        or      010H
+        ld      b,a
+        inc     c
+        call    WRTVDP                  ; WRTVDP
+        ld      hl,TXTNAM
+        ld      de,00000H
+        jp      A0677
+
+;       Subroutine      SETT32
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETT32:
+A05B4:  ld      a,(RG0SAV)
+        and     001H
+        ld      b,a
+        ld      c,0
+        call    WRTVDP                  ; WRTVDP
+        ld      a,(RG1SAV)
+        and     0E7H
+        ld      b,a
+        inc     c
+        call    WRTVDP                  ; WRTVDP
+        ld      hl,T32NAM
+        ld      de,00000H
+        jp      A0677
+
+;       Subroutine      INIGRP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INIGRP:
+A05D2:  call    DISSCR                  ; DISSCR
+        ld      a,2
+        ld      (SCRMOD),a
+        ld      hl,(GRPPAT)
+        ld      (PATBAS),hl
+        ld      hl,(GRPATR)
+        ld      (ATRBAS),hl
+        ld      hl,(GRPNAM)
+        call    SETWRT                  ; SETWRT
+        xor     a
+        ld      b,3
+A05EF:  RST     28h
+        defb    098h ; out     (098H),a
+        inc     a
+        jr      nz,A05EF
+        djnz    A05EF
+        call    A07A1
+        call    A06BB
+        call    SETGRP                  ; SETGRP
+        jp      ENASCR                  ; ENASCR
+
+;       Subroutine      SETGRP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETGRP:
+A0602:  ld      a,(RG0SAV)
+        or      002H
+        ld      b,a
+        ld      c,0
+        call    WRTVDP                  ; WRTVDP
+        ld      a,(RG1SAV)
+        and     0E7H
+        ld      b,a
+        inc     c
+        call    WRTVDP                  ; WRTVDP
+        ld      hl,GRPNAM
+        ld      de,07F03H
+        jr      A0677
+
+;       Subroutine      INIMLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INIMLT:
+A061F:  call    DISSCR                  ; DISSCR
+        ld      a,3
+        ld      (SCRMOD),a
+        ld      hl,(MLTPAT)
+        ld      (PATBAS),hl
+        ld      hl,(MLTATR)
+        ld      (ATRBAS),hl
+        ld      hl,(MLTNAM)
+        call    SETWRT                  ; SETWRT
+        ld      de,6
+A063C:  ld      c,4
+A063E:  ld      a,d
+        ld      b,32
+A0641:  RST     28h
+        defb    098h ; out     (098H),a
+        inc     a
+        djnz    A0641
+        dec     c
+        jr      nz,A063E
+        ld      d,a
+        dec     e
+        jr      nz,A063C
+        call    A07B9
+        call    A06BB
+        call    SETMLT                  ; SETMLT
+        jp      ENASCR                  ; ENASCR
+
+;       Subroutine      SETMLT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETMLT:
+A0659:  ld      a,(RG0SAV)
+        and     001H
+        ld      b,a
+        ld      c,0
+        call    WRTVDP                  ; WRTVDP
+        ld      a,(RG1SAV)
+        and     0E7H
+        or      008H
+        ld      b,a
+        ld      c,1
+        call    WRTVDP                  ; WRTVDP
+        ld      hl,MLTNAM
+        ld      de,00000H
+
+A0677:  ld      bc,6*256+2
+        call    A0690
+        ld      b,10
+        ld      a,d
+        call    A0691
+        ld      b,5
+        ld      a,e
+        call    A0691
+        ld      b,9
+        call    A0690
+        ld      b,5
+
+A0690:  xor     a
+
+A0691:  push    hl
+        push    af
+        ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a
+        xor     a
+A0698:  add     hl,hl
+        adc     a,a
+        djnz    A0698
+        ld      l,a
+        pop     af
+        or      l
+        ld      b,a
+        call    WRTVDP                  ; WRTVDP
+        pop     hl
+        inc     hl
+        inc     hl
+        inc     c
+        ret
+
+;       Subroutine      CLRSPR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CLRSPR:
+A06A8:  ld      a,(RG1SAV)
+        ld      b,a
+        ld      c,1
+        call    WRTVDP                  ; WRTVDP
+        ld      hl,(PATBAS)
+        ld      bc,8*256
+        xor     a
+        call    FILVRM                  ; FILVRM
+A06BB:  ld      a,(FORCLR)
+        ld      e,a
+        ld      hl,(ATRBAS)
+        ld      bc,32*256+0
+A06C5:  ld      a,0D1H
+        call    WRTVRM
+        inc     hl
+        inc     hl
+        ld      a,c
+        call    WRTVRM
+        inc     hl
+        inc     c
+        ld      a,(RG1SAV)
+        rrca
+        rrca
+        jr      nc,A06DC
+        inc     c
+        inc     c
+        inc     c
+A06DC:  ld      a,e
+        call    WRTVRM
+        inc     hl
+        djnz    A06C5
+        ret
+
+;       Subroutine      CALPAT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CALPAT:
+A06E4:  ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        call    GSPSIZ                  ; GSPSIZ
+        cp      008H
+        jr      z,A06F3
+        add     hl,hl
+        add     hl,hl
+A06F3:  ex      de,hl
+        ld      hl,(PATBAS)
+        add     hl,de
+        ret
+
+;       Subroutine      CALATR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CALATR:
+A06F9:  ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        ex      de,hl
+        ld      hl,(ATRBAS)
+        add     hl,de
+        ret
+
+;       Subroutine      GSPSIZ
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GSPSIZ:
+A0704:  ld      a,(RG1SAV)
+        rrca
+        rrca
+        ld      a,8
+        ret     nc
+        ld      a,32
+        ret
+
+;       Subroutine      LDIRMV
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LDIRMV:
+        push ix
+        ld ix, 0016h ; ldirmv
+        DEFB 05bh ; .LIL
+        rst 38h
+        pop ix
+        ret
+
+;A070F:  call    SETRD                   ; SETRD
+;        ex      (sp),hl
+;        ex      (sp),hl
+;A0714:  RST     038h 
+;        defb    098h ; in      a,(098H)
+;        ld      (de),a
+;        inc     de
+;        dec     bc
+;        ld      a,c
+;        or      b
+;        jr      nz,A0714
+;        ret
+;
+A071E:  call    H.INIP
+        ld      hl,(CGPBAS)
+        call    SETWRT                  ; SETWRT
+        ld      a,(CGPNT+0)
+        ld      hl,(CGPNT+1)
+        ld      bc,8*256
+        push    af
+A0731:  pop     af
+        push    af
+        push    bc
+        di
+        call    RDSLT                   ; RDSLT
+        ei
+        pop     bc
+        RST     28h
+        defb    098h ; out     (098H),a
+        inc     hl
+        dec     bc
+        ld      a,c
+        or      b
+        jr      nz,A0731
+        pop     af
+        ret
+
+;       Subroutine      LDIRVM
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LDIRVM:
+        push ix
+        ld ix, 0014h ; ldirvm
+        DEFB 05bh ; .LIL
+        rst 38h
+        pop ix
+        ret
+
+;A0744:  ex      de,hl
+;        call    SETWRT                  ; SETWRT
+;A0748:  ld      a,(de)
+;        RST     28h
+;        defb    098h ; out     (098H),a
+;        inc     de
+;        dec     bc
+;        ld      a,c
+;        or      b
+;        jr      nz,A0748
+;        ret
+
+;
+GETPAT:
+A0752:  ld      h,0
+        ld      l,a
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ex      de,hl
+        ld      hl,(CGPNT+1)
+        add     hl,de
+        ld      de,PATWRK
+        ld      b,8
+        ld      a,(CGPNT+0)
+A0765:  push    af
+        push    hl
+        push    de
+        push    bc
+        call    RDSLT                   ; RDSLT
+        ei
+        pop     bc
+        pop     de
+        pop     hl
+        ld      (de),a
+        inc     de
+        inc     hl
+        pop     af
+        djnz    A0765
+        ret
+;
+A0777:  call    A0B9F                   ; grafic mode ?
+        jr      z,A07A1                 ; yep, screen 2
+        jr      nc,A07B9                ; yep, screen 3
+
+A077E:  ld      a,(SCRMOD)
+        and     a
+        ld      hl,(NAMBAS)
+        ld      bc,24*40
+        jr      z,A078D
+        ld      bc,24*32
+A078D:  ld      a,020H
+        call    FILVRM                  ; FILVRM
+        call    A0A7F                   ; cursor home
+        ld      hl,LINTTB
+        ld      b,018H
+A079A:  ld      (hl),b
+        inc     hl
+        djnz    A079A
+        jp      FNKSB                   ; FNKSB
+;
+A07A1:  call    A0832
+        ld      bc,256/8*192
+        push    bc
+        ld      hl,(GRPCOL)
+        ld      a,(BAKCLR)
+        call    FILVRM                  ; FILVRM
+        ld      hl,(GRPCGP)
+        pop     bc
+        xor     a
+A07B6:  jp      FILVRM                  ; FILVRM
+;
+A07B9:  call    A0832
+        ld      hl,BAKCLR
+        ld      a,(hl)
+        add     a,a
+        add     a,a
+        add     a,a
+        add     a,a
+        or      (hl)
+        ld      hl,(MLTCGP)
+        ld      bc,00600H
+        jr      A07B6                   ; FILVRM
+
+;       Subroutine      WRTVRM
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+WRTVRM:
+A07CD:  push    af
+        call    SETWRT                  ; SETWRT
+        ex      (sp),hl
+        ex      (sp),hl
+        pop     af
+        RST     28h
+        defb    098h ; out     (098H),a
+        ret
+
+;       Subroutine      RDVRM
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RDVRM:
+A07D7:  call    SETRD                   ; SETRD
+        ex      (sp),hl
+        ex      (sp),hl
+        RST     038h 
+        defb    098h ; in      a,(098H)
+        ret
+
+;       Subroutine      SETWRT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETWRT:
+A07DF:  ld      a,l
+        di
+        RST     28h
+        defb    099h ; out     (099H),a
+        ld      a,h
+        and     03FH
+        or      040H
+        RST     28h
+        defb    099h ; out     (099H),a
+        ei
+        ret
+
+;       Subroutine      SETRD
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETRD:
+A07EC:  ld      a,l
+        di
+        RST     28h
+        defb    099h ; out     (099H),a
+        ld      a,h
+        and     03FH
+        RST     28h
+        defb    099h ; out     (099H),a
+        ei
+        ret
+
+;       Subroutine      CHGCLR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHGCLR:
+A07F7:  ld      a,(SCRMOD)
+        dec     a
+        jp      m,A0824
+        push    af
+        call    A0832
+        pop     af
+        ret     nz
+        ld      a,(FORCLR)
+        add     a,a
+        add     a,a
+        add     a,a
+        add     a,a
+        ld      hl,BAKCLR
+        or      (hl)
+        ld      hl,(T32COL)
+        ld      bc,32
+
+;       Subroutine      FILVRM
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FILVRM:
+        push ix 
+        ld ix, 0018h ; fillvrm
+        DEFB 05bh ; .LIL
+        rst 38h
+        pop ix
+        ret
+        
+;A0815:  push    af
+;        call    SETWRT                  ; SETWRT
+;A0819:  pop     af
+;        RST     28h
+;        defb    098h ; out     (098H),a
+;        push    af
+;        dec     bc
+;        ld      a,c
+;        or      b
+;        jr      nz,A0819
+;        pop     af
+;        ret
+;
+A0824:  ld      a,(FORCLR)
+        add     a,a
+        add     a,a
+        add     a,a
+        add     a,a
+        ld      hl,BAKCLR
+        or      (hl)
+        ld      b,a
+        jr      A0835
+;
+A0832:  ld      a,(BDRCLR)
+A0835:  ld      b,a
+        ld      c,7
+        jp      WRTVDP                  ; WRTVDP
+
+;       Subroutine      TOTEXT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TOTEXT:
+A083B:  call    A0B9F                   ; grafic mode ?
+        ret     c                       ; nop, quit
+        ld      a,(OLDSCR)
+        call    H.TOTE
+        jp      CHGMOD                  ; CHGMOD
+
+;       Subroutine      CLS
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CLS:
+A0848:  ret     nz
+        push    hl
+        call    A0777
+        pop     hl
+        ret
+
+;       Subroutine      CHGMOD
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHGMOD:
+A084F:  dec     a
+        jp      m,INITXT                ; INITXT
+        jp      z,INIT32                ; INIT32
+        dec     a
+        jp      z,INIGRP                ; INIGRP
+        jp      INIMLT                  ; INIMLT
+
+;       Subroutine      LPTOUT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LPTOUT:
+A085D:  call    H.LPTO
+        push    af
+A0861:  call    A046F                   ; BREAKX
+        jr      c,A0878
+        call    LPTSTT                  ; LPTSTT
+        jr      z,A0861
+        pop     af
+A086C:  push    af
+        RST     28h
+        defb    091h ; out     (091H),a
+        xor     a
+        RST     28h
+        defb    090h ; out     (090H),a
+        dec     a
+        RST     28h
+        defb    090h ; out     (090H),a
+        pop     af
+        and     a
+        ret
+;
+A0878:  xor     a
+        ld      (LPTPOS),a
+        ld      a,00DH
+        call    A086C
+        pop     af
+        scf
+        ret
+
+;       Subroutine      LPTSTT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LPTSTT:
+A0884:  call    H.LPTS
+        RST     038h 
+        defb    090h ; in      a,(090H)
+        rrca
+        rrca
+        ccf
+        sbc     a,a
+        ret
+
+;       Subroutine      POSIT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+POSIT:
+A088E:  ld      a,01BH
+        _RST    OUTDO                   ; OUTDO
+        ld      a,059H
+        _RST    OUTDO                   ; OUTDO
+        ld      a,l
+        add     a,01FH
+        _RST    OUTDO                   ; OUTDO
+        ld      a,h
+        add     a,01FH
+        _RST    OUTDO                   ; OUTDO
+        ret
+
+;       Subroutine      CNVCHR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CNVCHR:
+A089D:  push    hl
+        push    af
+        ld      hl,GRPHED
+        xor     a
+        cp      (hl)
+        ld      (hl),a
+        jr      z,A08B4
+        pop     af
+        sub     040H
+        cp      020H
+        jr      c,A08B2
+        add     a,040H
+A08B0:  cp      a
+        scf
+A08B2:  pop     hl
+        ret
+;
+A08B4:  pop     af
+        cp      001H
+        jr      nz,A08B0
+        ld      (hl),a
+        pop     hl
+        ret
+
+;       Subroutine      CHPUT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHPUT:
+A08BC:  push    hl
+        push    de
+        push    bc
+        push    af
+        call    H.CHPU
+        call    A0B9F                   ; grafic mode ?
+        jr      nc,A08DA                ; yep, quit
+        call    A0A2E                   ; cursor off
+        pop     af
+        push    af
+        call    A08DF                   ; decode char
+        call    A09E1                   ; cursor on
+        ld      a,(CSRX)
+        dec     a
+        ld      (TTYPOS),a              ; set TTYPOS
+POPALL:
+A08DA:  pop     af
+A08DB:  pop     bc
+        pop     de
+        pop     hl
+        ret
+;
+A08DF:  call    CNVCHR                  ; CNVCHR (is grafic header ?)
+        ret     nc                      ; yep, quit
+        ld      c,a
+        jr      nz,A08F3                ; grafic char
+        ld      hl,ESCCNT
+        ld      a,(hl)
+        and     a                       ; in ESC sequence ?
+        jp      nz,A098F                ; yep, handle
+        ld      a,c
+        cp      020H                    ; control char ?
+        jr      c,A0914                 ; yep, handle
+A08F3:  ld      hl,(CSRY)               ; cursor position
+        cp      07FH
+        jp      z,A0AE3                 ; DEL, handle
+        call    A0BE6                   ; 'print' char
+        call    A0A44                   ; cursor right if possible
+        ret     nz                      ; not at end, quit
+        xor     a
+        call    A0C2B                   ; expand logical line
+        ld      h,1                     ; at begin of line
+
+A0908:  call    A0A61                   ; cursor down if possible
+        ret     nz                      ; no scroll needed, quit
+        call    A0A69                   ; update cursor position
+        ld      l,1
+        jp      A0A88                   ; clear line
+;
+A0914:  ld      hl,T092F-2
+        ld      c,12
+INDJMP:
+A0919:  inc     hl
+        inc     hl
+        and     a
+        dec     c
+        ret     m
+        cp      (hl)
+        inc     hl
+        jr      nz,A0919
+        ld      c,(hl)
+        inc     hl
+        ld      b,(hl)
+        ld      hl,(CSRY)               ; cursor position
+        call    A092D                   ; execute function
+        xor     a
+        ret
+;
+A092D:  push    bc
+        ret
+;
+T092F:  defb    007H
+        defw    BEEP                    ; BEEP
+        defb    008H
+        defw    A0A4C                   ; BS, cursor left with warp
+        defb    009H
+        defw    A0A71                   ; TAB,
+        defb    00AH
+        defw    A0908                   ; LF,
+        defb    00BH
+        defw    A0A7F                   ; HOME, cursor home
+        defb    00CH
+        defw    A077E                   ; CLS, clear text screen
+        defb    00DH
+        defw    A0A81                   ; CR, cursor to start of line
+        defb    01BH
+        defw    A0989                   ; ESC, start ESC sequence
+        defb    01CH
+        defw    A0A5B                   ; CURSOR RIGHT, cursor right
+        defb    01DH
+        defw    A0A4C                   ; CURSOR LEFT, cursor left with warp
+        defb    01EH
+        defw    A0A57                   ; CURSOR UP, cursor up if possible
+        defb    01FH
+        defw    A0A61                   ; CURSOR DOWN, cursor down if possible
+
+T0953:  defb    'j'
+        defw    A077E                   ; clear text screen
+        defb    'E'
+        defw    A077E                   ; clear text screen
+        defb    'K'
+        defw    A0AEE                   ; clear to end of line
+        defb    'J'
+        defw    A0B05                   ; clear to end of screen
+        defb    'l'
+        defw    A0AEC                   ; clear line
+        defb    'L'
+        defw    A0AB4                   ; insert line
+        defb    'M'
+        defw    A0A85                   ; delete line
+        defb    'Y'
+        defw    A0986                   ; locate cursor
+        defb    'A'
+        defw    A0A57                   ; cursor up if possible
+        defb    'B'
+        defw    A0A61                   ; cursor down if possible
+        defb    'C'
+        defw    A0A44                   ; cursor right if possible
+        defb    'D'
+        defw    A0A55                   ; cursor left if possible
+        defb    'H'
+        defw    A0A7F                   ; cursor home
+        defb    'x'
+        defw    A0980
+        defb    'y'
+        defw    A0983
+
+; ESC x sequence
+
+A0980:  ld      a,1
+        defb    001H                    ; LD BC,xxxx (trick to skip the next instruction)
+
+; ESC y sequence
+
+A0983:  ld      a,2
+        defb    001H                    ; LD BC,xxxx (trick to skip the next instruction)
+
+; ESC Y sequence
+
+A0986:  ld      a,4
+        defb    001H                    ; LD BC,xxxx (trick to skip the next instruction)
+
+; start of ESC sequence
+
+A0989:  ld      a,0FFH
+        ld      (ESCCNT),a
+        ret
+
+; in ESC sequence
+
+A098F:  jp      p,A099D                 ; handle long ESC sequences
+        ld      (hl),0                  ; next is no ESC anymore
+        ld      a,c
+        ld      hl,T0953-2
+        ld      c,15
+        jp      A0919                   ; handle function
+;
+A099D:  dec     a
+        jr      z,A09BE                 ; ESC "x"
+        dec     a
+        jr      z,A09C8                 ; ESC "y"
+        dec     a
+        ld      (hl),a                  ; ESC "Y" ends ?
+        ld      a,(LINLEN)              ; max kol
+        ld      de,CSRX
+        jr      z,A09B3
+        ld      (hl),3
+        call    A0C32                   ; get max. linenumber
+        dec     de
+A09B3:  ld      b,a
+        ld      a,c
+        sub     32
+        cp      b
+        inc     a
+        ld      (de),a
+        ret     c
+        ld      a,b
+        ld      (de),a
+        ret
+;
+A09BE:  ld      (hl),a
+        ld      a,c
+        sub     '4'
+        jr      z,A09CF                 ; ESC "x4", block cursor
+        dec     a
+        jr      z,A09D6                 ; ESC "x5", cursor invisable
+        ret
+;
+A09C8:  ld      (hl),a
+        ld      a,c
+        sub     '4'
+        jr      nz,A09D3
+        inc     a                       ; ESC "y4", stripe cursor
+A09CF:  ld      (CSTYLE),a
+        ret
+;
+A09D3:  dec     a
+        ret     nz
+        inc     a                       ; ESC "y5", cursor visable
+A09D6:  ld      (CSRSR),a
+        ret
+;
+A09DA:  ld      a,(CSRSR)
+        and     a                       ; cursor visable ?
+        ret     nz                      ; yep, quit
+        jr      A09E6
+;
+;
+; Display cursor if enabled
+;
+CKDPCS:
+A09E1:  ld      a,(CSRSR)
+        and     a                       ; cursor visable ?
+        ret     z                       ; nop, quit
+;
+; Display a cursor
+;        
+DSPCSR:
+A09E6:  call    H.DSPC
+        call    A0B9F                   ; grafic mode ?
+        ret     nc                      ; yep, quit
+        ld      hl,(CSRY)
+        push    hl
+        call    A0BD8                   ; get char at cursorposition
+        ld      (CURSAV),a              ; save
+        ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ex      de,hl
+        ld      hl,(CGPBAS)
+        push    hl
+        add     hl,de
+        call    A0BA5                   ; copy char patern to LINWRK
+        ld      hl,LINWRK+7
+        ld      b,8
+        ld      a,(CSTYLE)
+        and     a                       ; block cursor ?
+        jr      z,A0A13                 ; yep,
+        ld      b,3
+A0A13:  ld      a,(hl)
+        cpl
+        ld      (hl),a
+        dec     hl
+        djnz    A0A13
+        pop     hl
+        ld      bc,255*8
+        add     hl,bc                   ; vramadres cursor patern
+        call    A0BBE                   ; copy LINWRK to vram
+        pop     hl
+        ld      c,0FFH
+        jp      A0BE6                   ; put cursor on screen
+;
+A0A27:  ld      a,(CSRSR)
+        and     a                       ; cursor visable ?
+        ret     nz                      ; yep, quit
+        jr      A0A33
+;
+CKERCS:
+A0A2E:  ld      a,(CSRSR)
+        and     a                       ; cursor visable ?
+        ret     z                       ; nop, quit
+A0A33:  call    H.ERAC
+        call    A0B9F                   ; grafic mode ?
+        ret     nc                      ; yep, quit
+        ld      hl,(CSRY)
+        ld      a,(CURSAV)
+        ld      c,a
+        jp      A0BE6                   ; put orginal char on screen
+
+; cursor right if possible
+
+A0A44:  ld      a,(LINLEN)
+        cp      h
+        ret     z
+        inc     h
+        jr      A0A69                   ; update cursor position and quit
+
+; cursor left with warp
+
+BS:
+A0A4C:  call    A0A55                   ; cursor left if possible
+        ret     nz
+        ld      a,(LINLEN)
+        ld      h,a
+        defb    011H                    ; LD DE,xx: a trick to skip the next 2 lines
+A0A55:  dec     h
+        defb    03EH                    ; LD A,xx: a trick to skip the next line
+
+; cursor up if possible
+
+A0A57:  dec     l
+        ret     z
+        jr      A0A69                   ; update cursor position and quit
+
+; cursor right
+
+ADVCUR:
+A0A5B:  call    A0A44                   ; cursor right if possible
+        ret     nz
+        ld      h,1
+
+; cursor down if possible
+
+A0A61:  call    A0C32                   ; get max. linenumber
+        cp      l                       ; at last linenumber ?
+        ret     z                       ; yep, quit
+        jr      c,A0A6D
+        inc     l
+A0A69:  ld      (CSRY),hl
+        ret
+;
+A0A6D:  dec     l
+        xor     a
+        jr      A0A69                   ; update cursor position and quit
+;
+A0A71:  ld      a,' '
+        call    A08DF
+        ld      a,(CSRX)
+        dec     a
+        and     007H
+        jr      nz,A0A71
+        ret
+;
+A0A7F:  ld      l,1
+A0A81:  ld      h,1
+        jr      A0A69                   ; update cursor position and quit
+
+; delete line
+
+A0A85:  call    A0A81                   ; cursor to start of line
+
+DELLN0:
+A0A88:  call    A0C32                   ; get max. linenumber
+        sub     l
+        ret     c
+        jp      z,A0AEC                 ; clear line
+        push    hl
+        push    af
+        ld      c,a
+        ld      b,0
+        call    A0C1D
+        ld      l,e
+        ld      h,d
+        inc     hl
+        ldir
+        ld      hl,FSTPOS
+        dec     (hl)
+        pop     af
+        pop     hl
+A0AA3:  push    af
+        inc     l
+        call    A0BAA
+        dec     l
+        call    A0BC3
+        inc     l
+        pop     af
+        dec     a
+        jr      nz,A0AA3
+        jp      A0AEC                   ; clear line
+
+; insert line
+
+A0AB4:  call    A0A81                   ; cursor to start of line
+
+INSLN0:
+A0AB7:  call    A0C32                   ; get max. linenumber
+        ld      h,a
+        sub     l
+        ret     c
+        jp      z,A0AEC                 ; clear line
+        ld      l,h
+        push    hl
+        push    af
+        ld      c,a
+        ld      b,0
+        call    A0C1D
+        ld      l,e
+        ld      h,d
+        push    hl
+        dec     hl
+        lddr
+        pop     hl
+        ld      (hl),h
+        pop     af
+        pop     hl
+A0AD3:  push    af
+        dec     l
+        call    A0BAA
+        inc     l
+        call    A0BC3
+        dec     l
+        pop     af
+        dec     a
+        jr      nz,A0AD3
+        jr      A0AEC                   ; clear line
+;
+A0AE3:  call    A0A4C                   ; cursor left with warp
+        ret     z
+        ld      c,020H
+        jp      A0BE6
+
+; clear line
+
+A0AEC:  ld      h,1
+
+; clear to end of line
+
+EOL:
+A0AEE:  call    A0C29
+        push    hl
+        call    A0BF2
+        call    SETWRT                  ; SETWRT
+        pop     hl
+A0AF9:  ld      a,020H
+        RST     28h
+        defb    098h ; out     (098H),a
+        inc     h
+        ld      a,(LINLEN)
+        cp      h
+        jr      nc,A0AF9
+        ret
+
+; clear to end of screen
+
+A0B05:  push    hl
+        call    A0AEE                   ; clear to end of line
+        pop     hl
+        call    A0C32                   ; get max. linenumber
+        cp      l
+        ret     c
+        ret     z
+        ld      h,1
+        inc     l
+        jr      A0B05
+
+;       Subroutine      ERAFNK
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ERAFNK:
+A0B15:  call    H.ERAF
+        xor     a
+        call    A0B9C
+        ret     nc
+        push    hl
+        ld      hl,(CRTCNT)
+        call    A0AEC                   ; clear line
+        pop     hl
+        ret
+
+;       Subroutine      FNKSB
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FNKSB:
+A0B26:  ld      a,(CNSDFG)
+        and     a
+        ret     z
+
+;       Subroutine      DSPFNK
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DSPFNK:
+A0B2B:  call    H.DSPF
+        ld      a,0FFH
+        call    A0B9C
+        ret     nc
+        push    hl
+        ld      a,(CSRY)
+        ld      hl,CRTCNT
+        cp      (hl)
+        ld      a,00AH
+        jr      nz,A0B41
+        _RST    OUTDO                   ; OUTDO
+A0B41:  ld      a,(NEWKEY+6)
+        rrca
+        ld      hl,FNKSTR+0*16
+        ld      a,1
+        jr      c,A0B50
+        ld      hl,FNKSTR+5*16
+        xor     a
+A0B50:  ld      (FNKSWI),a
+        ld      de,LINWRK
+        push    de
+        ld      b,028H
+        ld      a,020H
+A0B5B:  ld      (de),a
+        inc     de
+        djnz    A0B5B
+        pop     de
+        ld      c,005H
+        ld      a,(LINLEN)
+        sub     004H
+        jr      c,A0B94
+        ld      b,0FFH
+A0B6B:  inc     b
+        sub     005H
+        jr      nc,A0B6B
+        ld      a,b
+        and     a
+        jr      z,A0B94
+        defb    03EH                    ; LD A,xx: a trick to skip the next line
+A0B75:  inc     de
+        push    bc
+        ld      c,0
+A0B79:  ld      a,(hl)
+        inc     hl
+        inc     c
+        call    CNVCHR                  ; CNVCHR (is grafic header ?)
+        jr      nc,A0B79
+        jr      nz,A0B87
+        cp      020H
+        jr      c,A0B88
+A0B87:  ld      (de),a
+A0B88:  inc     de
+        djnz    A0B79
+        ld      a,010H
+        sub     c
+        ld      c,a
+        add     hl,bc
+        pop     bc
+        dec     c
+        jr      nz,A0B75
+A0B94:  ld      hl,(CRTCNT)
+        call    A0BC3
+        pop     hl
+        ret
+;
+A0B9C:  ld      (CNSDFG),a
+A0B9F:  ld      a,(SCRMOD)
+        cp      002H
+        ret
+;
+A0BA5:  push    hl
+        ld      c,008H
+        jr      A0BB4
+;
+A0BAA:  push    hl
+        ld      h,1
+        call    A0BF2
+        ld      a,(LINLEN)
+        ld      c,a
+A0BB4:  ld      b,0
+        ld      de,LINWRK
+        call    LDIRMV                  ; LDIRMV
+        pop     hl
+        ret
+;
+A0BBE:  push    hl
+        ld      c,008H
+        jr      A0BCD
+;
+A0BC3:  push    hl
+        ld      h,1
+        call    A0BF2
+        ld      a,(LINLEN)
+        ld      c,a
+A0BCD:  ld      b,0
+        ex      de,hl
+        ld      hl,LINWRK
+        call    LDIRVM                  ; LDIRVM
+        pop     hl
+        ret
+;
+GETVRM:
+A0BD8:  push    hl
+        call    A0BF2
+        call    SETRD                   ; SETRD
+        ex      (sp),hl
+        ex      (sp),hl
+        RST     038h 
+        defb    098h ; in      a,(098H)
+        ld      c,a
+        pop     hl
+        ret
+;
+PUTVRM:
+A0BE6:  push    hl
+        call    A0BF2
+        call    SETWRT                  ; SETWRT
+        ld      a,c
+        RST     28h
+        defb    098h ; out     (098H),a
+        pop     hl
+        ret
+;
+A0BF2:  push    bc
+        ld      e,h
+        ld      h,0
+        ld      d,h
+        dec     l
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ld      c,l
+        ld      b,h
+        add     hl,hl
+        add     hl,hl
+        add     hl,de
+        ld      a,(SCRMOD)
+        and     a
+        ld      a,(LINLEN)
+        jr      z,A0C0D
+        sub     022H
+        jr      A0C10
+;
+A0C0D:  add     hl,bc
+        sub     02AH
+A0C10:  cpl
+        and     a
+        rra
+        ld      e,a
+        add     hl,de
+        ex      de,hl
+        ld      hl,(NAMBAS)
+        add     hl,de
+        dec     hl
+        pop     bc
+        ret
+;
+GETTRM:
+A0C1D:  push    hl
+        ld      de,LINTTB-1
+        ld      h,0
+        add     hl,de
+        ld      a,(hl)
+        ex      de,hl
+        pop     hl
+        and     a
+        ret
+;
+TERMIN:
+A0C29:  defb    03EH                    ; LD A,xx: a trick to skip the next line
+UNTERM:
+A0C2A:  xor     a
+A0C2B:  push    af
+        call    A0C1D
+        pop     af
+        ld      (de),a
+        ret
+
+;       Subroutine      get max. linenumber
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GETLEN:
+A0C32:  ld      a,(CNSDFG)
+        push    hl
+        ld      hl,CRTCNT
+        add     a,(hl)
+        pop     hl
+        ret
+
+;       Subroutine      KEYINT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+KEYINT:
+A0C3C:  push    hl
+        push    de
+        push    bc
+        push    af
+        exx
+        ex      af,af'
+        push    hl
+        push    de
+        push    bc
+        push    af
+        push    iy
+        push    ix
+        call    H.KEYI
+        ;RST     038h 
+        ;defb    099h ; in      a,(099H)
+        call    RDVDP
+        and     a                       ; vdp interrupt ?
+        jp      p,A0D02                 ; nop, quit KEYINT
+        call    H.TIMI
+        ei
+        ld      (STATFL),a              ; save statusregister
+        and     020H                    ; sprite collisionflag set ?
+        ld      hl,TRPTBL+11*3
+        call    nz,C0EF1                ; yep, raise SPRITE trap
+        ld      hl,(INTCNT)
+        dec     hl
+        ld      a,h
+        or      l                       ; intervaltime passed ?
+        jr      nz,A0C73                ; nop, skip
+        ld      hl,TRPTBL+17*3
+        call    C0EF1                   ; raise INTERVAL trap
+        ld      hl,(INTVAL)             ; reload INTCNT
+A0C73:  ld      (INTCNT),hl
+        ld      hl,(JIFFY)
+        inc     hl
+        ld      (JIFFY),hl              ; timecounter
+        ld      a,(MUSICF)
+        ld      c,a
+        xor     a                       ; playchannel
+A0C82:  rr      c                       ; handle this channel ?
+        push    af
+        push    bc
+        call    c,A113B                 ; yep, do it
+        pop     bc
+        pop     af
+        inc     a
+        cp      3
+        jr      c,A0C82                 ; all 3 channels
+        ld      hl,SCNCNT
+        dec     (hl)                    ; do i have to scan ?
+        jr      nz,A0D02                ; nop, quit KEYINT
+
+        IF      KEYBFIX EQ 1
+        ld      (hl),1                  ; next scan after 1 ints
+        ELSE
+        ld      (hl),3                  ; next scan after 3 ints
+        ENDIF
+
+        xor     a
+        call    A120C                   ; read joystick 0
+        and     030H                    ; only firebuttons
+        push    af
+        ld      a,1
+        call    A120C                   ; read joystick 1
+        and     030H                    ; only firebuttons
+        rlca
+        rlca
+        pop     bc
+        or      b
+        push    af
+        call    A1226                   ; read keyboard row 8
+        and     001H                    ; only spacebar
+        pop     bc
+        or      b
+        ld      c,a
+        ld      hl,TRGFLG
+        xor     (hl)
+        and     (hl)
+        ld      (hl),c                  ; save triggerflag
+        ld      c,a
+        rrca                            ; spacebar being pressed ?
+        ld      hl,TRPTBL+12*3
+        call    c,C0EF1                 ; yep, raise STRIG0 trap
+        rl      c                       ; firebutton 2 B being pressed ?
+        ld      hl,TRPTBL+16*3
+        call    c,C0EF1                 ; yep, raise STRIG4 trap
+        rl      c
+        ld      hl,TRPTBL+14*3
+        call    c,C0EF1                 ; yep, raise STRIG2 trap
+        rl      c
+        ld      hl,TRPTBL+15*3
+        call    c,C0EF1                 ; yep, raise STRIG3 trap
+        rl      c
+        ld      hl,TRPTBL+13*3
+        call    c,C0EF1                 ; yep, raise STRIG1 trap
+        xor     a
+        ld      (CLIKFL),a
+        call    A0D12                   ; scan keyboard
+        jr      nz,A0D02                ; buffer not empty, quit KEYINT
+        ld      hl,REPCNT
+        dec     (hl)
+        jr      nz,A0D02
+
+        IF      KEYBFIX EQ 1
+        ld      (hl),3
+        ELSE
+        ld      (hl),1
+        ENDIF
+
+        ld      hl,OLDKEY
+        ld      de,OLDKEY+1
+        ld      bc,11-1
+        ld      (hl),0FFH
+        ldir                            ; create a being pressed
+        call    A0D4E
+A0D02:  pop     ix
+        pop     iy
+        pop     af
+        pop     bc
+        pop     de
+        pop     hl
+        ex      af,af'
+        exx
+        pop     af
+        pop     bc
+        pop     de
+        pop     hl
+        ei
+        ret
+;
+A0D12:  ;RST     038h 
+        ;defb    0aah ; in      a,(0AAH)
+        ;and     0F0H
+        ;ld      c,a
+        ld      c,0
+        ld      b,11
+        ld      hl,NEWKEY
+A0D1C:  ld      a,c
+        call    SNSMAT
+        ;RST     28h
+        ;defb    0aah ; out     (0AAH),a
+        ;RST     038h 
+        ;defb    0a9h ; in      a,(0A9H)
+        ld      (hl),a
+        inc     c
+        inc     hl
+        djnz    A0D1C                   ; scan keyboard & put in NEWKEY
+        ld      a,(ENSTOP)
+        and     a                       ; Hot break possible ?
+        jr      z,A0D3A                 ; nop, quit
+        ld      a,(NEWKEY+6)
+        cp      11101000b               ; CODE+GRAPH+CTRL+SHIFT pressed ?
+        jr      nz,A0D3A                ; nop, quit
+        ld      ix,READYR               ; start headloop
+        jp      CALBAS                  ; CALBAS
+;
+A0D3A:  ld      de,OLDKEY+11
+        ld      b,11
+A0D3F:  dec     de
+        dec     hl
+        ld      a,(de)
+        cp      (hl)                    ; changed ?
+        jr      nz,A0D49                ; yep, reload REPCNT
+        djnz    A0D3F
+        jr      A0D4E
+;
+A0D49:
+        IF      KEYBFIX EQ 1
+        ld      a,39
+        ELSE
+        ld      a,13
+        ENDIF
+
+        ld      (REPCNT),a
+A0D4E:  ld      b,11
+        ld      hl,OLDKEY
+        ld      de,NEWKEY
+A0D56:  ld      a,(de)
+        ld      c,a
+        xor     (hl)
+        and     (hl)                    ; key being pressed ?
+        ld      (hl),c                  ; OLDKEY renewed
+        call    nz,A0D89                ; yep, handle
+        inc     de
+        inc     hl
+        djnz    A0D56                   ; next row
+A0D62:  ld      hl,(GETPNT)
+        ld      a,(PUTPNT)
+        sub     l                       ; flag buffer empty
+        ret
+
+;       Subroutine      CHSNS
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHSNS:
+A0D6A:  ei
+        push    hl
+        push    de
+        push    bc
+        call    A0B9F                   ; graphic mode ?
+        jr      nc,A0D82                ; yep, skip functionkeys
+        ld      a,(FNKSWI)
+        ld      hl,NEWKEY+6
+        xor     (hl)                    ; SHIFT changed ?
+        ld      hl,CNSDFG
+        and     (hl)                    ; display functionkeys ?
+        rrca
+        call    c,DSPFNK                ; yep, DSPFNK
+A0D82:  call    A0D62                   ; flag KEYBUF is empty
+        pop     bc
+        pop     de
+        pop     hl
+        ret
+;
+A0D89:  push    hl
+        push    de
+        push    bc
+        push    af
+        ld      a,11
+        sub     b                       ; row
+        add     a,a
+        add     a,a
+        add     a,a                     ; *8
+        ld      c,a
+        ld      b,8
+        pop     af
+A0D97:  rra                             ; this key being pressed ?
+        push    bc
+        push    af
+        call    c,KEYCOD                ; yep, handle key
+        pop     af
+        pop     bc
+        inc     c
+        djnz    A0D97                   ; next key in row
+        jp      A08DB                   ; quit
+
+        ; align to this place for part 2
+        DEFS    0DA5H-$,0              ; unused space
+
+        IF      KEYTYP EQ 0
+
+        INCLUDE KEYJAP.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 1
+
+        INCLUDE KEYINT.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 2
+
+        INCLUDE KEYFR.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 3
+
+        INCLUDE KEYUK.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 4
+
+        INCLUDE KEYGER.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 5
+
+        INCLUDE KEYRUS.MAC
+
+        ENDIF
+
+
+        IF      KEYTYP EQ 6
+
+        INCLUDE KEYSPA.MAC
+
+        ENDIF
+
+
+        ORG     00EF1H
+
+;       Subroutine      raise trap
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Remark          code identical among keyboard layout versions
+
+C0EF1:  LD      A,(HL)
+        AND     01H                     ; trap enabled ?
+        RET     Z                       ; nope, quit
+        LD      A,(HL)
+        OR      04H
+        CP      (HL)                    ; trap already raised ?
+        RET     Z                       ; yep, quit
+        LD      (HL),A                  ; raise trap
+        XOR     05H                     ; trap paused ?
+        RET     NZ                      ; yep, quit
+        LD      A,(ONGSBF)
+        INC     A
+        LD      (ONGSBF),A              ; increase trap counter
+        RET
+
+
+        ORG     00F3DH
+
+;       Subroutine      CHGCAP
+;       Inputs          ________________________
+;       Outputs         ________________________
+;       Remark          code identical among keyboard layout versions
+
+CHGCAP:
+J0F3D:  AND     A
+        LD      A,0CH
+        JR      Z,J0F43
+        INC     A
+J0F43:  RST     28h
+        defb    0abh ; OUT     (0ABH),A
+        RET     
+
+
+        ORG     00F64H
+
+;       Subroutine      make keyclick
+;       Inputs          -
+;       Outputs         ________________________
+;       Remark          code identical among keyboard layout versions
+
+J0F64:  LD      A,(CLIKSW)
+        AND     A                       ; keyclicks enabled ?
+        RET     Z                       ; nope, quit
+        LD      A,(CLIKFL)
+        AND     A                       ; keyclick already done (only one click for multiple keys) ?
+        RET     NZ                      ; yep, quit
+        LD      A,0FH
+        LD      (CLIKFL),A              ; no keyclick until the next scan
+        RST     28h
+        defb    0abh ; OUT     (0ABH),A                ; set click bit
+        LD      A,10
+J0F77:  DEC     A
+        JR      NZ,J0F77                ; wait
+                                        ; reset click bit
+
+;       Subroutine      CHGSND (change click bit)
+;       Inputs          A = 0, A <> 0
+;       Outputs         ________________________
+;       Remark          code identical among keyboard layout versions
+
+CHGSND:
+J0F7A:  AND     A
+        LD      A,0EH
+        JR      Z,J0F80
+        INC     A
+J0F80:  RST     28h
+        defb    0abh ; OUT     (0ABH),A
+        RET     
+
+
+        ORG     010C2H
+
+C10C2:  inc     hl
+        ld      a,l
+        cp      LOW (KEYBUF+40)
+        ret     nz
+        ld      hl,KEYBUF
+        ret
+
+;       Subroutine      CHGET
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHGET:
+A10CB:  push    hl
+        push    de
+        push    bc
+        call    H.CHGE
+        call    CHSNS                   ; CHSNS
+        jr      nz,A10E1
+        call    A09DA
+A10D9:  call    CHSNS                   ; CHSNS
+        jr      z,A10D9
+        call    A0A27
+A10E1:  ld      hl,INTFLG
+        ld      a,(hl)
+        cp      004H
+        jr      nz,A10EB
+        ld      (hl),0
+A10EB:  ld      hl,(GETPNT)
+        ld      c,(hl)
+        call    C10C2
+        ld      (GETPNT),hl
+        ld      a,c
+        jp      A08DB
+
+;       Subroutine      CKCNTC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CKCNTC:
+A10F9:  push    hl
+        ld      hl,0
+        call    A03FB                   ; ISCNTC
+        pop     hl
+        ret
+
+;       Subroutine      WRTPSG
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+WRTPSG:
+A1102:  di
+        RST     28h
+        defb    0a0h ; out     (0A0H),a
+        push    af
+        ld      a,e
+        RST     28h
+        defb    0a1h ; out     (0A1H),a
+        ei
+        pop     af
+        ret
+;
+A110C:  ld      a,14
+
+;       Subroutine      RDPSG
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RDPSG:
+A110E:  cp 0Eh ; joystick port
+        jp z, RDJOYSTICK
+        RST     28h
+        defb    0a0h ; out     (0A0H),a
+        RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        ret
+
+
+;       Subroutine      BEEP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BEEP:
+A1113:  xor     a
+        ld      e,055H
+        call    WRTPSG                  ; WRTPSG
+        ld      e,a
+        inc     a
+        call    WRTPSG                  ; WRTPSG
+        ld      e,0BEH
+        ld      a,7
+        call    WRTPSG                  ; WRTPSG
+        ld      e,a
+        inc     a
+        call    WRTPSG                  ; WRTPSG
+        ld      bc,2000
+        call    A1133
+        jp      A04BD                   ; GICINI
+;
+A1133:  dec     bc
+        ex      (sp),hl
+        ex      (sp),hl
+        ld      a,b
+        or      c
+        jr      nz,A1133
+        ret
+;
+A113B:  ld      b,a                     ; channel
+        call    GETVCP                  ; GETVCP (get voice pointer)
+        dec     hl
+        ld      d,(hl)
+        dec     hl
+        ld      e,(hl)
+        dec     de
+        ld      (hl),e
+        inc     hl
+        ld      (hl),d                  ; decrease voice counter
+        ld      a,d
+        or      e                       ; counter expires ?
+        ret     nz                      ; nop, quit
+        ld      a,b
+        ld      (QUEUEN),a
+        call    A11E2                   ; get byte
+        cp      0FFH
+        jr      z,A11B0                 ; end byte,
+        ld      d,a
+        and     0E0H
+        rlca
+        rlca
+        rlca
+        ld      c,a                     ; length of packet
+        ld      a,d
+        and     01FH
+        ld      (hl),a                  ; MSB of counter
+        call    A11E2                   ; get byte
+        dec     hl
+        ld      (hl),a                  ; LSB of counter
+        inc     c
+A1166:  dec     c                       ; packet ends ?
+        ret     z                       ; yep, quit
+        call    A11E2                   ; get byte
+        ld      d,a
+        and     0C0H
+        jr      nz,A1181                ; not a freqency packet
+        call    A11E2                   ; get byte
+        ld      e,a
+        ld      a,b
+        rlca                            ; freqency register
+        call    WRTPSG                  ; WRTPSG
+        inc     a
+        ld      e,d
+        call    WRTPSG                  ; WRTPSG
+        dec     c
+        jr      A1166                   ; next
+;
+A1181:  ld      h,a
+        and     080H
+        jr      z,A1195                 ; not a amplitude packet
+        ld      e,d
+        ld      a,b
+        add     a,8                     ; amplitude register
+        call    WRTPSG                  ; WRTPSG
+        ld      a,e
+        and     010H                    ; modulate ?
+        ld      a,13
+        call    nz,WRTPSG               ; yep, WRTPSG
+A1195:  ld      a,h
+        and     040H
+        jr      z,A1166                 ; there is no envelope packet, next
+        call    A11E2                   ; get byte
+        ld      d,a
+        call    A11E2                   ; get byte
+        ld      e,a
+        ld      a,11
+        call    WRTPSG                  ; WRTPSG
+        inc     a
+        ld      e,d
+        call    WRTPSG                  ; WRTPSG
+        dec     c
+        dec     c
+        jr      A1166                   ; next
+;
+A11B0:  ld      a,b
+        add     a,8                     ; amplitude register
+        ld      e,0
+        call    WRTPSG                  ; WRTPSG
+        inc     b
+        ld      hl,MUSICF
+        xor     a
+        scf
+A11BE:  rla
+        djnz    A11BE
+        and     (hl)
+        xor     (hl)
+        ld      (hl),a                  ; channel not active
+
+;       Subroutine      STRTMS
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRTMS:
+A11C4:  ld      a,(MUSICF)
+        or      a                       ; no channel active ?
+        ret     nz                      ; nop, quit
+        ld      hl,PLYCNT
+        ld      a,(hl)
+        or      a                       ; strings left ?
+        ret     z                       ; nop, quit
+        dec     (hl)
+        ld      hl,1
+        ld      (VCBA+0),hl
+        ld      (VCBB+0),hl
+        ld      (VCBC+0),hl
+        ld      a,111B
+        ld      (MUSICF),a
+        ret
+;
+A11E2:  ld      a,(QUEUEN)
+        push    hl
+        push    de
+        push    bc
+        call    GETQ
+        jp      A08DB
+
+;       Subroutine      GTSTCK
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GTSTCK:
+A11EE:  dec     a
+        jp      m,A1200
+        call    A120C
+        ld      hl,T1233
+A11F8:  and     00FH
+        ld      e,a
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        ret
+; cursor keys
+A1200:  call    A1226
+        rrca
+        rrca
+        rrca
+        rrca
+        ld      hl,T1243
+        jr      A11F8
+; joystick 1 or 2 - read all bits
+A120C:  
+; AGON
+; PC1: Up
+; PC3: Down
+; PC5: Left
+; PC7: Right
+; PD5: Button 1
+; PD7: Button 2
+; MSX
+; Bit 0 = Pin 1 state of the selected general port (Up if joystick)
+; Bit 1 = Pin 2 state of the selected general port (Down if joystick)
+; Bit 2 = Pin 3 state of the selected general port (Left if joystick)
+; Bit 3 = Pin 4 state of the selected general port (Right if joystick)
+; Bit 4 = Pin 6 state of the selected general port (Trigger 1 if joystick)
+; Bit 5 = Pin 7 state of the selected general port (Trigger 2 if joystick)    
+PC_DR EQU 09Eh
+PD_DR EQU 0A2h
+RDJOYSTICK:
+    push bc
+    ld b, 03fh
+    ;IN0_A PC_DR
+    DEFB 0EDh
+    DEFB 038h
+    DEFB PC_DR
+_RD_JOYSTICK_UP:
+    bit 1,a
+    jr nz, _RD_JOYSTICK_DOWN
+    res 0,b
+_RD_JOYSTICK_DOWN:
+    bit 3,a
+    jr nz, _RD_JOYSTICK_LEFT
+    res 1,b
+_RD_JOYSTICK_LEFT:
+    bit 5,a
+    jr nz, _RD_JOYSTICK_RIGHT
+    res 2,b
+_RD_JOYSTICK_RIGHT:
+    bit 7,a
+    jr nz, _RD_JOYBTN1
+    res 3,b
+_RD_JOYBTN1:
+    ;IN0_A PD_DR
+    DEFB 0EDh
+    DEFB 038h
+    DEFB PD_DR
+    bit 5,a
+    jr nz, _RD_JOYBTN2
+    res 4,b
+_RD_JOYBTN2:
+    bit 7,a
+    jr nz, _RD_JOYSTICK_END
+    res 5,b
+_RD_JOYSTICK_END:
+    ld a, b
+    pop bc
+    ret
+;        ld      b,a
+;        ld      a,15
+;        di
+;        call    RDPSG                   ; RDPSG
+;        djnz    A121B           ; reg B - 1 = joystick 2, 0=joystick 1
+;        and     0DFH
+;        or      04CH
+;        jr      A121F
+;
+;A121B:  and     0AFH
+;        or      003H
+;A121F:  RST     28h
+;        defb    0a1h ; out     (0A1H),a
+;        call    A110C
+;        ei
+;        ret
+;
+A1226:  ld a, 008H
+        call SNSMAT
+        ; di
+        ;RST     038h 
+        ;defb    0aah ; in      a,(0AAH)
+        ;and     0F0H
+        ;add     a,008H
+        ;RST     28h
+        ;defb    0aah ; out     (0AAH),a
+        ;RST     038h 
+        ;defb    0a9h ; in      a,(0A9H)
+        ;ei
+        ret
+;
+T1233:  defb    0,5,1,0,3,4,2,3,7,6,8,7,0,5,1,0
+
+T1243:  defb    0,3,5,4,1,2,0,3,7,0,6,5,8,1,7,0
+
+;       Subroutine      GTTRIG
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GTTRIG:
+A1253:  dec     a
+        jp      m,A126C
+        push    af
+        and     001H
+        call    A120C
+        pop     bc
+        dec     b
+        dec     b
+        ld      b,010H
+        jp      m,A1267
+        ld      b,020H
+A1267:  and     b
+A1268:  sub     001H
+        sbc     a,a
+        ret
+;
+A126C:  call    A1226
+        and     001H
+        jr      A1268
+
+;       Subroutine      GTPDL
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GTPDL:
+A1273:  inc     a
+        and     a
+        rra
+        push    af
+        ld      b,a
+        xor     a
+        scf
+A127A:  rla
+        djnz    A127A
+        ld      b,a
+        pop     af
+        ld      c,010H
+        ld      de,003AFH
+        jr      nc,A128B
+        ld      c,020H
+        ld      de,04C9FH
+A128B:  ld      a,15
+        di
+        call    RDPSG                   ; RDPSG
+        and     e
+        or      d
+        or      c
+        RST     28h
+        defb    0a1h ; out     (0A1H),a
+        xor     c
+        RST     28h
+        defb    0a1h ; out     (0A1H),a
+        ld      a,00EH
+        RST     28h
+        defb    0a0h ; out     (0A0H),a
+        ld      c,0
+A129F:  RST     038h 
+        defb    0a2h ; in      a,(0A2H)
+        and     b
+        jr      z,A12A9
+        inc     c
+        jp      nz,A129F
+        dec     c
+A12A9:  ei
+        ld      a,c
+        ret
+
+;       Subroutine      GTPAD
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GTPAD:  XOR A ; removed touchpad support
+        RET
+;A12AC:  cp      004H
+;        ld      de,00CECH
+;        jr      c,A12B8
+;        ld      de,003D3H
+;        sub     004H
+;A12B8:  dec     a
+;        jp      m,A12C5
+;        dec     a
+;        ld      a,(PADX)
+;        ret     m
+;        ld      a,(PADY)
+;        ret     z
+;A12C5:  push    af
+;        ex      de,hl
+;        ld      (FILNAM+0),hl
+;        sbc     a,a
+;        cpl
+;        and     040H
+;        ld      c,a
+;        ld      a,15
+;        di
+;        call    RDPSG                   ; RDPSG
+;        and     0BFH
+;        or      c
+;        RST     28h
+;        defb    0a1h ; out     (0A1H),a
+;        pop     af
+;        jp      m,A12E8
+;        call    A110C
+;        ei
+;        and     008H
+;        sub     001H
+;        sbc     a,a
+;        ret
+;
+;A12E8:  ld      c,0
+;        call    A1332
+;        call    A1332
+;        jr      c,A131A
+;        call    A1320
+;        jr      c,A131A
+;        push    de
+;        call    A1320
+;        pop     bc
+;        jr      c,A131A
+;        ld      a,b
+;        sub     d
+;        jr      nc,A1304
+;        cpl
+;        inc     a
+;A1304:  cp      005H
+;        jr      nc,A12E8
+;        ld      a,c
+;        sub     e
+;        jr      nc,A130E
+;        cpl
+;        inc     a
+;A130E:  cp      005H
+;        jr      nc,A12E8
+;        ld      a,d
+;        ld      (PADX),a
+;        ld      a,e
+;        ld      (PADY),a
+;A131A:  ei
+;        ld      a,h
+;        sub     001H
+;        sbc     a,a
+;        ret
+;
+;A1320:  ld      c,00AH
+;        call    A1332
+;        ret     c
+;        ld      d,l
+;        push    de
+;        ld      c,0
+;        call    A1332
+;        pop     de
+;        ld      e,l
+;        xor     a
+;        ld      h,a
+;        ret
+;
+;A1332:  call    A135B
+;        ld      b,008H
+;        ld      d,c
+;A1338:  res     0,d
+;        res     2,d
+;        call    A136D
+;        call    A110C
+;        ld      h,a
+;        rra
+;        rra
+;        rra
+;        rl      l
+;        set     0,d
+;        set     2,d
+;        call    A136D
+;        djnz    A1338
+;        set     4,d
+;        set     5,d
+;        call    A136D
+;        ld      a,h
+;        rra
+;        ret
+;
+;A135B:  ld      a,035H
+;        or      c
+;        ld      d,a
+;        call    A136D
+;A1362:  call    A110C
+;        and     002H
+;        jr      z,A1362
+;        res     4,d
+;        res     5,d
+;A136D:  push    hl
+;        push    de
+;        ld      hl,(FILNAM+0)
+;        ld      a,l
+;        cpl
+;        and     d
+;        ld      d,a
+;        ld      a,00FH
+;        RST     28h
+;        defb    0a0h ; out     (0A0H),a
+;        RST     038h 
+;        defb    0a2h ; in      a,(0A2H)
+;        and     l
+;        or      d
+;        or      h
+;        RST     28h
+;        defb    0a1h ; out     (0A1H),a
+;        pop     de
+;        pop     hl
+;        ret
+
+;       Subroutine      STMOTR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STMOTR:
+A1384:  and     a
+        jp      m,A1392
+A1388:  jr      nz,A138D
+        ld      a,009H
+        defb    0C2H                    ; LD JP NZ,xx: a trick to skip the next line
+A138D:  ld      a,008H
+        RST     28h
+        defb    0abh ; out     (0ABH),a
+        ret
+;
+A1392:  RST     038h 
+        defb    0aah ; in      a,(0AAH)
+        and     010H
+        jr      A1388
+
+;       Subroutine      NMI
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NMI:
+A1398:  call    H.NMI
+        retn
+
+;       Subroutine      INIFNK
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INIFNK:
+A139D:  ld      bc,10*16
+        ld      de,FNKSTR
+        ld      hl,T13A9
+        ldir
+        ret
+;
+T13A9:  defb    "color ",0
+        defs    16-7,0
+        defb    "auto ",0
+        defs    16-6,0
+        defb    "goto ",0
+        defs    16-6,0
+        defb    "list ",0
+        defs    16-6,0
+        defb    "run",13,0
+        defs    16-5,0
+
+        IF BASVER EQ 0
+        defb    'color 15,4,7',13,0
+        defs    16-14,0
+        ELSE
+        defb    'color 15,4,4',13,0
+        defs    16-14,0
+        ENDIF
+        defb    'cload"',0
+        defs    16-7,0
+        defb    "cont",13,0
+        defs    16-6,0
+        defb    "list.",13,30,30,0
+        defs    16-9,0
+        defb    12,"run",13,0
+        defs    16-6,0
+
+;       Subroutine      RDVDP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RDVDP:
+A1449:  ; in      a,(099H)
+        push ix
+        ld ix, 0010h
+        DEFB 05bh ; .LIL
+        rst 038h
+        pop ix
+        ret
+
+;       Subroutine      RSLREG
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RSLREG:
+A144C:  RST     038h 
+        defb    0a8h ; in      a,(0A8H)
+        ret
+
+;       Subroutine      WSLREG
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+WSLREG:
+A144F:  RST     28h
+        defb    0a8h ; out     (0A8H),a
+        ret
+
+;       Subroutine      SNSMAT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+;Address  : #0141
+;Function : Returns the value of the specified line from the keyboard matrix
+;Input    : A  - For the specified line
+;Output   : A  - For data (the bit corresponding to the pressed key will be 0)
+;Registers: AF
+SNSMAT:
+        PUSH IX
+        LD IX, 0012h ; eos_msx_machine_getscanline
+        DEFB 05bh ; .LIL
+        RST 038h
+        POP IX
+        RET
+
+;A1452:  ;ld      c,a
+;        di
+;        ;get PortC
+;        ;the following gets the status of PortC
+;        ;masks of the lower 4 bits
+;        ;replaces with the row number
+;        ;RST     038h 
+;        ;defb    0aah ; in      a,(0AAH)
+;        ;and     0F0H
+;        ;add     a,c
+;        ;set PortC with row number
+;        RST     28h
+;        defb    0aah ; out     (0AAH),a
+;        ;get bits
+;        RST     038h 
+;        defb    0a9h ; in      a,(0A9H)
+;        ei
+;        ret
+
+;       Subroutine      ISFLIO
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ISFLIO:
+A145F:  call    H.ISFL
+        push    hl
+        ld      hl,(PTRFIL)
+        ld      a,l
+        or      h
+        pop     hl
+        ret
+
+;       Subroutine      DCOMPR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DCOMPR:
+A146A:  ld      a,h
+        sub     d
+        ret     nz
+        ld      a,l
+        sub     e
+        ret
+
+;       Subroutine      GETVCP
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GETVCP:
+A1470:  ld      l,2
+        jr      A1477
+
+;       Subroutine      GETVC2
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GETVC2:
+A1474:  ld      a,(VOICEN)
+A1477:  push    de
+        ld      de,VCBA
+        ld      h,0
+        add     hl,de
+        or      a
+        jr      z,A1488
+        ld      de,37
+A1484:  add     hl,de
+        dec     a
+        jr      nz,A1484
+A1488:  pop     de
+        ret
+
+;       Subroutine      PHYDIO
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PHYDIO:
+A148A:  call    H.PHYD
+        ret
+
+;       Subroutine      FORMAT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FORMAT:
+A148E:  call    H.FORM
+        ret
+
+; END   SUBTTL  MSXIO
+
+        end

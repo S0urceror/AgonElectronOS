@@ -1,0 +1,1963 @@
+; MSXSTS.MAC
+
+; MSX BASIC statements, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     073F7h ; 73B7H
+
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  EQU     0008H
+CHRGTR  EQU     0010H
+OUTDO   EQU     0018H
+DCOMPR  EQU     0020H
+WRTVDP  EQU     0047H
+WRTVRM  EQU     004DH
+RDVRM   EQU     004AH
+FILVRM  EQU     0056H
+LDIRMV  EQU     0059H
+LDIRVM  EQU     005CH
+CHGMOD  EQU     005FH
+CHGCLR  EQU     0062H
+CLRSPR  EQU     0069H
+SETTXT  EQU     0078H
+SETGRP  EQU     007EH
+SETMLT  EQU     0081H
+CALPAT  EQU     0084H
+CALATR  EQU     0087H
+GSPSIZ  EQU     008AH
+GICINI  EQU     0090H
+WRTPSG  EQU     0093H
+STRTMS  EQU     0099H
+CNVCHR  EQU     00ABH
+POSIT   EQU     00C6H
+FNKSB   EQU     00C9H
+ERAFNK  EQU     00CCH
+DSPFNK  EQU     00CFH
+GTSTCK  EQU     00D5H
+GTTRIG  EQU     00D8H
+GTPAD   EQU     00DBH
+GTPDL   EQU     00DEH
+STMOTR  EQU     00F3H
+LFTQ    EQU     00F6H
+PUTQ    EQU     00F9H
+GETVCP  EQU     0150H
+GETVC2  EQU     0153H
+
+LINLEN  EQU     0F3B0H
+TXTNAM  EQU     0F3B3H
+CLIKSW  EQU     0F3DBH
+CSRY    EQU     0F3DCH
+RG0SAV  EQU     0F3DFH
+RG1SAV  EQU     0F3E0H
+FORCLR  EQU     0F3E9H
+BAKCLR  EQU     0F3EAH
+BDRCLR  EQU     0F3EBH
+ATRBYT  EQU     0F3F2H
+CS1200  EQU     0F3FCh
+LOW.    EQU     0F406h
+NTMSXP  EQU     0F417H
+DSCTMP  EQU     0F698H
+FNKSTR  EQU     0F87FH
+MCLTAB  EQU     0F956H
+MCLFLG  EQU     0F958H
+PRSCNT  EQU     0FB35H
+SAVSP   EQU     0FB36H
+VOICEN  EQU     0FB38H
+SAVVOL  EQU     0FB39H
+MCLLEN  EQU     0FB3BH
+MCLPTR  EQU     0FB3CH
+MUSICF  EQU     0FB3FH
+PLYCNT  EQU     0FB40H
+FNKFLG  EQU     0FBCEH
+TRPTBL  EQU     0FC4CH
+INTFLG  EQU     0FC9BH
+JIFFY   EQU     0FC9EH
+INTVAL  EQU     0FCA0H
+INTCNT  EQU     0FCA2H
+SCRMOD  EQU     0FCAFH
+
+H.ONGO  EQU     0FDEAH
+H.DSKO  EQU     0FDEFH
+H.SETS  EQU     0FDF4H
+H.NAME  EQU     0FDF9H
+H.KILL  EQU     0FDFEH
+H.IPL   EQU     0FE03H
+H.COPY  EQU     0FE08H
+H.CMD   EQU     0FE0DH
+H.DSKF  EQU     0FE12H
+H.DSKI  EQU     0FE17H
+H.ATTR  EQU     0FE1CH
+H.LSET  EQU     0FE21H
+H.RSET  EQU     0FE26H
+H.FIEL  EQU     0FE2BH
+H.MKI$  EQU     0FE30H
+H.MKS$  EQU     0FE35H
+H.MKD$  EQU     0FE3AH
+H.CVI   EQU     0FE3FH
+H.CVS   EQU     0FE44H
+H.CVD   EQU     0FE49H
+H.SCRE  EQU     0FFC0H
+H.PLAY  EQU     0FFC5H
+
+
+        PUBLIC  TRPHDL
+        PUBLIC  PLYHDL
+        PUBLIC  GETCSP
+        PUBLIC  CSRLIN
+        PUBLIC  PLAY
+        PUBLIC  PLAY$
+        PUBLIC  TIME
+        PUBLIC  TIME$
+        PUBLIC  SPRITE
+        PUBLIC  SPRIT$
+        PUBLIC  VDP
+        PUBLIC  VDP$
+        PUBLIC  BASE
+        PUBLIC  BASE$
+        PUBLIC  DSKO$
+        PUBLIC  SETS
+        PUBLIC  NAME
+        PUBLIC  KILL
+        PUBLIC  IPL
+        PUBLIC  COPY
+        PUBLIC  CMD
+        PUBLIC  DSKF
+        PUBLIC  DSKI$
+        PUBLIC  ATTR$
+        PUBLIC  LSET
+        PUBLIC  RSET
+        PUBLIC  FIELD
+        PUBLIC  MKI$
+        PUBLIC  MKS$
+        PUBLIC  MKD$
+        PUBLIC  CVI
+        PUBLIC  CVS
+        PUBLIC  CVD
+        PUBLIC  MOTOR
+        PUBLIC  SOUND
+        PUBLIC  PUTS
+        PUBLIC  GETS
+        PUBLIC  LOCATE
+        PUBLIC  STOPT
+        PUBLIC  INTS
+        PUBLIC  STRIGS
+        PUBLIC  ONGOT
+        PUBLIC  KEYS
+        PUBLIC  STICK
+        PUBLIC  TRIG
+        PUBLIC  PDL
+        PUBLIC  PAD
+        PUBLIC  COLOR
+        PUBLIC  SCREEN
+        PUBLIC  VPOKE
+        PUBLIC  VPEEK
+
+        EXTRN   DECDIV
+        EXTRN   MOVFM
+        EXTRN   MOVRM
+        EXTRN   VMOVAF
+        EXTRN   FRCINT
+        EXTRN   UMULT
+        EXTRN   FCERR
+        EXTRN   SNERR
+        EXTRN   FRMEVL
+        EXTRN   GETBYT
+        EXTRN   GETUIN
+        EXTRN   FRMEQL
+        EXTRN   CONINT
+        EXTRN   FRESTR
+        EXTRN   BLTUC
+        EXTRN   STRINI
+        EXTRN   TRPENA
+        EXTRN   TRPDIS
+        EXTRN   TRPSTP
+        EXTRN   SNGFLT
+        EXTRN   PUTNEW
+        EXTRN   CRDO
+        EXTRN   MCLSCN
+        EXTRN   FETCHR
+        EXTRN   DECFET
+        EXTRN   VALSC2
+        EXTRN   MCLXEQ
+        EXTRN   CONIA
+        EXTRN   CONSUI
+        EXTRN   MORCP2
+        EXTRN   CONSIH
+        EXTRN   GETPUT
+        EXTRN   NEWSTN
+        EXTRN   SCAN1
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL  MSXSTS
+
+        SUBTTL  MSXSTS
+
+;       Subroutine      MOTOR statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MOTOR:
+C73B7:  ld      e,0FFH
+        jr      z,A73C6                 ; end of statement, toggle
+        sub     0EBH
+        ld      e,a                     ; OFF token ?
+        jr      z,A73C5                 ; yep, off
+        _RST    SYNCHR
+        db      095H                    ; check for ON token
+        ld      e,1                     ; on
+        db      03EH
+A73C5:  _RST    CHRGTR
+A73C6:  ld      a,e
+        jp      STMOTR
+
+;       Subroutine      SOUND statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SOUND:
+C73CA:  CALL    GETBYT                  ; evaluate byte operand
+        CP      14                      ; register 0-13 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        PUSH    AF
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETBYT                  ; evaluate byte operand
+        POP     AF
+        CP      7                       ; register 7 ?
+        JR      NZ,J73E1                ; nope, write PSG register
+        RES     6,E
+        SET     7,E                     ; make sure PSG I/O port definition is not changed
+J73E1:  JP      WRTPSG                  ; write PSG register
+
+I73E4:  DEFB    " "
+
+;       Subroutine      PLAY statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PLAY:
+C73E5:  CALL    H.PLAY
+        PUSH    HL
+        LD      HL,I752E
+        LD      (MCLTAB),HL
+        LD      A,0
+        LD      (PRSCNT),A
+        LD      HL,-10
+        ADD     HL,SP
+        LD      (SAVSP),HL
+        POP     HL
+        PUSH    AF
+J73FD:  CALL    FRMEVL                  ; evaluate expression
+        EX      (SP),HL
+        PUSH    HL
+        CALL    FRESTR                  ; free temporary string with type check
+        CALL    MOVRM                   ; load from HL
+        LD      A,E
+        OR      A                       ; stringsize zero ?
+        JR      NZ,J7413                ; nope,
+        LD      E,1
+        LD      BC,I73E4
+        LD      D,C
+        LD      C,B
+J7413:  POP     AF
+        PUSH    AF
+        CALL    GETVCP
+        LD      (HL),E                  ; stringsize
+        INC     HL
+        LD      (HL),D
+        INC     HL
+        LD      (HL),C                  ; pointer
+        INC     HL
+        LD      D,H
+        LD      E,L
+        LD      BC,001CH
+        ADD     HL,BC
+        EX      DE,HL
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        POP     BC
+        POP     HL
+        INC     B
+        LD      A,B
+        CP      03H
+        JR      NC,J7446
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JR      Z,J7439			; yep,
+        PUSH    BC
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        JR      J73FD
+
+J7439:  LD      A,B
+        LD      (VOICEN),A
+        CALL    C7507
+        INC     B
+        LD      A,B
+        CP      03H
+        JR      C,J7439
+J7446:  DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JP      NZ,SNERR                ; nope, syntax error
+        PUSH    HL
+J744C:  XOR     A
+J744D:  PUSH    AF
+        LD      (VOICEN),A
+        LD      B,A
+        CALL    C7521
+        JP      C,J74D6
+        LD      A,B
+        CALL    GETVCP
+        LD      A,(HL)
+        OR      A
+        JP      Z,J74D6
+        LD      (MCLLEN),A
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        LD      (MCLPTR),DE
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        PUSH    HL
+        LD      L,24H
+        CALL    GETVC2
+        PUSH    HL
+        LD      HL,(SAVSP)
+        DEC     HL
+        POP     BC
+        DI
+        CALL    BLTUC                   ; move data
+        POP     DE
+        LD      H,B
+        LD      L,C
+        LD      SP,HL
+        EI
+        LD      A,0FFH
+        LD      (MCLFLG),A              ; music MCL
+        JP      MCLSCN
+
+J748E:  LD      A,(MCLLEN)
+        OR      A
+        JR      NZ,J7497
+PLYHDL:
+J7494:  CALL    C7507
+J7497:  LD      A,(VOICEN)
+        CALL    GETVCP
+        LD      A,(MCLLEN)
+        LD      (HL),A
+        INC     HL
+        LD      DE,(MCLPTR)
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        LD      HL,0
+        ADD     HL,SP
+        EX      DE,HL
+        LD      HL,(SAVSP)
+        DI
+        LD      SP,HL
+        POP     BC
+        POP     BC
+        POP     BC
+        PUSH    HL
+        OR      A
+        SBC     HL,DE
+        JR      Z,J74D4
+        LD      A,0F0H
+        AND     L
+        OR      H
+        JP      NZ,FCERR                ; illegal function call
+        LD      L,24H
+        CALL    GETVC2
+        POP     BC
+        DEC     BC
+        CALL    BLTUC                   ; move data
+        POP     HL
+        DEC     HL
+        LD      (HL),B
+        DEC     HL
+        LD      (HL),C
+        JR      J74D6
+
+J74D4:  POP     BC
+        POP     BC
+J74D6:  EI
+        POP     AF
+        INC     A
+        CP      03H
+        JP      C,J744D
+        DI
+        LD      A,(INTFLG)
+        CP      03H
+        JR      Z,J7502
+        LD      A,(PRSCNT)
+        RLCA
+        JR      C,J74F3
+        LD      HL,PLYCNT
+        INC     (HL)
+        CALL    STRTMS
+J74F3:  EI
+        LD      HL,PRSCNT
+        LD      A,(HL)
+        OR      80H
+        LD      (HL),A
+        CP      83H
+        JP      NZ,J744C
+J7500:  POP     HL
+        RET
+
+J7502:  CALL    GICINI
+        JR      J7500
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C7507:  LD      A,(PRSCNT)
+        INC     A
+        LD      (PRSCNT),A
+        LD      E,0FFH
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C7510:  PUSH    HL
+        PUSH    BC
+J7512:  PUSH    DE
+        LD      A,(VOICEN)
+        DI
+        CALL    PUTQ
+        EI
+        POP     DE
+        JR      Z,J7512
+        POP     BC
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C7521:  LD      A,(VOICEN)
+        PUSH    BC
+        DI
+        CALL    LFTQ
+        EI
+        POP     BC
+        CP      8
+        RET
+
+I752E:  DEFB    "A"
+        DEFW    C763E
+        DEFB    "B"
+        DEFW    C763E
+        DEFB    "C"
+        DEFW    C763E
+        DEFB    "D"
+        DEFW    C763E
+        DEFB    "E"
+        DEFW    C763E
+        DEFB    "F"
+        DEFW    C763E
+        DEFB    "G"
+        DEFW    C763E
+        DEFB    "M"+128
+        DEFW    C759E
+        DEFB    "V"+128
+        DEFW    C7586
+        DEFB    "S"+128
+        DEFW    C75BE
+        DEFB    "N"+128
+        DEFW    C7621
+        DEFB    "O"+128
+        DEFW    C75EF
+        DEFB    "R"+128
+        DEFW    C75FC
+        DEFB    "T"+128
+        DEFW    C75E2
+        DEFB    "L"+128
+        DEFW    C75C8
+        DEFB    "X"
+        DEFW    MCLXEQ
+        DEFB    0
+
+I755F:  DEFB    010H,012H,014H,016H,000H,000H,002H,004H
+        DEFB    006H,008H,00AH,00AH,00CH,00EH,010H
+
+I756E:  DEFW    00D5DH
+        DEFW    00C9CH
+        DEFW    00BE7H
+        DEFW    00B3CH
+        DEFW    00A9BH
+        DEFW    00A02H
+        DEFW    00973H
+        DEFW    008EBH
+        DEFW    0086BH
+        DEFW    007F2H
+        DEFW    00780H
+        DEFW    00714H
+
+C7586:  JR      C,J758A
+        LD      E,08H
+J758A:  LD      A,0FH
+        CP      E
+        JR      C,J75DF
+J758F:  XOR     A
+        OR      D
+        JR      NZ,J75DF
+        LD      L,12H
+        CALL    GETVC2
+        LD      A,40H
+        AND     (HL)
+        OR      E
+        LD      (HL),A
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C759E:  LD      A,E
+        JR      C,J75A4
+        CPL
+        INC     A
+        LD      E,A
+J75A4:  OR      D
+        JR      Z,J75DF
+        LD      L,13H
+        CALL    GETVC2
+        PUSH    HL
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A
+        _RST    DCOMPR
+        POP     HL
+        RET     Z
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        DEC     HL
+        DEC     HL
+        LD      A,40H
+        OR      (HL)
+        LD      (HL),A
+        RET
+
+C75BE:  LD      A,E
+        CP      10H
+        JR      NC,J75DF
+        OR      10H
+        LD      E,A
+        JR      J758F
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C75C8:  JR      C,J75CC
+        LD      E,4
+J75CC:  LD      A,E
+        CP      64+1
+        JR      NC,J75DF
+        LD      L,10H
+J75D3:  CALL    GETVC2
+        XOR     A
+        OR      D
+        JR      NZ,J75DF
+        OR      E
+        JR      Z,J75DF
+        LD      (HL),A
+        RET
+
+J75DF:  CALL    FCERR                   ; illegal function call
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C75E2:  JR      C,J75E6
+        LD      E,120
+J75E6:  LD      A,E
+        CP      32
+        JR      C,J75DF
+        LD      L,11H
+        JR      J75D3
+
+C75EF:  JR      C,J75F3
+        LD      E,4
+J75F3:  LD      A,E
+        CP      8+1
+        JR      NC,J75DF
+        LD      L,0FH
+        JR      J75D3
+
+C75FC:  JR      C,J7600
+        LD      E,4
+J7600:  XOR     A
+        OR      D
+        JR      NZ,J75DF
+        OR      E
+        JR      Z,J75DF
+        CP      64+1
+        JR      NC,J75DF
+J760B:  LD      HL,0
+        PUSH    HL
+        LD      L,10H
+        CALL    GETVC2
+        PUSH    HL
+        INC     HL
+        INC     HL
+        LD      A,(HL)
+        LD      (SAVVOL),A
+        LD      (HL),80H
+        DEC     HL
+        DEC     HL
+        JR      J769C
+
+C7621:  JR      NC,J75DF
+        XOR     A
+        OR      D
+        JR      NZ,J75DF
+        OR      E
+        JR      Z,J760B
+        CP      96+1
+        JR      NC,J75DF
+        LD      A,E
+        LD      B,00H
+        LD      E,B
+J7632:  SUB     12
+        INC     E
+        JR      NC,J7632
+        ADD     A,12
+        ADD     A,A
+        LD      C,A
+        JP      J7673
+
+C763E:  LD      B,C
+        LD      A,C
+        SUB     40H
+        ADD     A,A
+        LD      C,A
+        CALL    FETCHR
+        JR      Z,J7665
+        CP      "#"
+        JR      Z,J7666
+        CP      "+"
+        JR      Z,J7666
+        CP      "-"
+        JR      Z,J765A
+        CALL    DECFET
+        JR      J7665
+
+J765A:  DEC     C
+        LD      A,B
+        CP      "C"
+        JR      Z,J7664
+        CP      "F"
+        JR      NZ,J7665
+J7664:  DEC     C
+J7665:  DEC     C
+J7666:  LD      L,0FH
+        CALL    GETVC2
+        LD      E,(HL)
+        LD      B,00H
+        LD      HL,I755F
+        ADD     HL,BC
+        LD      C,(HL)
+J7673:  LD      HL,I756E
+        ADD     HL,BC
+        LD      A,E
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+J767B:  DEC     A
+        JR      Z,J7687
+        SRL     D
+        RR      E
+        JR      J767B
+
+J7684:  CALL    FCERR                   ; illegal function call
+J7687:  ADC     A,E
+        LD      E,A
+        ADC     A,D
+        SUB     E
+        LD      D,A
+        PUSH    DE
+        LD      L,10H
+        CALL    GETVC2
+        LD      C,(HL)
+        PUSH    HL
+        CALL    FETCHR
+        JR      Z,J76A9
+        CALL    VALSC2
+J769C:  LD      A,40H
+        CP      E
+        JR      C,J7684
+        XOR     A
+        OR      D
+        JR      NZ,J7684
+        OR      E
+        JR      Z,J76A9
+        LD      C,E
+J76A9:  POP     HL
+        LD      D,00H
+        LD      B,D
+        INC     HL
+        LD      E,(HL)
+        PUSH    HL
+        CALL    UMULT                   ; unsigned integer multiply
+        EX      DE,HL
+        CALL    CONSIH                  ; convert to single precision real
+        CALL    VMOVAF                  ; ARG = DAC
+        LD      HL,I7754
+        CALL    MOVFM                   ; DAC = (single)
+        CALL    DECDIV                  ; DAC / ARG
+        CALL    FRCINT                  ; convert DAC to integer
+        LD      D,H
+        LD      E,L
+J76C8:  CALL    FETCHR
+        JR      Z,J76E3
+        CP      "."
+        JR      NZ,J76E0
+        SRL     D
+        RR      E
+        ADC     HL,DE
+        LD      A,0E0H
+        AND     H
+        JR      Z,J76C8
+        XOR     H
+        LD      H,A
+        JR      J76E3
+
+J76E0:  CALL    DECFET
+J76E3:  LD      DE,5
+        _RST    DCOMPR
+        JR      C,J76EA
+        EX      DE,HL
+J76EA:  LD      BC,-9
+        POP     HL
+        PUSH    HL
+        ADD     HL,BC
+        LD      (HL),D
+        INC     HL
+        LD      (HL),E
+        INC     HL
+        LD      C,02H
+        EX      (SP),HL
+        INC     HL
+        LD      E,(HL)
+        LD      A,E
+        AND     0BFH
+        LD      (HL),A
+        EX      (SP),HL
+        LD      A,80H
+        OR      E
+        LD      (HL),A
+        INC     HL
+        INC     C
+        EX      (SP),HL
+        LD      A,E
+        AND     40H
+        JR      Z,J7716
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        POP     HL
+        LD      (HL),D
+        INC     HL
+        LD      (HL),E
+        INC     HL
+        INC     C
+        INC     C
+        DEFB    0FEH                    ; CP xx, trick to skip next instruction
+J7716:  POP     HL
+        POP     DE
+        LD      A,D
+        OR      E
+        JR      Z,J7721
+        LD      (HL),D
+        INC     HL
+        LD      (HL),E
+        INC     C
+        INC     C
+J7721:  LD      L,07H
+        CALL    GETVC2
+        LD      (HL),C
+        LD      A,C
+        SUB     02H
+        RRCA
+        RRCA
+        RRCA
+        INC     HL
+        OR      (HL)
+        LD      (HL),A
+        DEC     HL
+        LD      A,D
+        OR      E
+        JR      NZ,J7741
+        PUSH    HL
+        LD      A,(SAVVOL)
+        OR      80H
+        LD      BC,11
+        ADD     HL,BC
+        LD      (HL),A
+        POP     HL
+J7741:  POP     DE
+        LD      B,(HL)
+        INC     HL
+J7744:  LD      E,(HL)
+        INC     HL
+        CALL    C7510
+        DJNZ    J7744
+        CALL    C7521
+        JP      C,J748E
+        JP      MCLSCN
+
+
+        IF INTHZ EQ 60
+
+I7754:  DEFB    040H,000H,045H,014H             ; 14400
+
+        ELSE
+
+I7754:  DEFB    000H,000H,045H,012H             ; 12000
+
+        ENDIF
+
+
+;       Subroutine      PUT statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PUTS:
+C7758:  LD      B,80H                   ; PUT flag
+        DEFB    011H                    ; LD DE,xxxx, trick to skip next instruction
+
+;       Subroutine      GET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GETS:
+C775B:  LD      B,0
+        CP      0C7H                    ; SPRITE token follows ?
+        JP      Z,J7AAF
+J7762:  LD      A,B
+        JP      GETPUT                  ; do random input/output
+
+;       Subroutine      LOCATE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LOCATE:
+C7766:  LD      DE,(CSRY)
+        PUSH    DE                      ; use current coordinates as default
+        CP      ","                     ; x coordinate not specified ?
+        JR      Z,J777A                 ; yep, use current
+        CALL    GETBYT                  ; evaluate byte operand
+        INC     A                       ; x coordinate (1 based)
+        POP     DE
+        LD      D,A
+        PUSH    DE
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JR      Z,J779F                 ; yep, set cursor position and quit
+J777A:  _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CP      ","                     ; y coordinate not specified ?
+        JR      Z,J778B                 ; yep, use current
+        CALL    GETBYT                  ; evaluate byte operand
+        INC     A                       ; y coordinate (1 based)
+        POP     DE
+        LD      E,A
+        PUSH    DE                      ; save coordinates
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JR      Z,J779F                 ; yep, set cursor position and quit
+J778B:  _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETBYT                  ; evaluate byte operand
+        AND     A
+        LD      A,"y"
+        JR      NZ,J7796                ; <>0, cursor on (ESC y 5)
+        DEC     A                       ; =0, cursor off (ESC x 5)
+J7796:  PUSH    AF
+        LD      A,1BH
+        _RST    OUTDO                   ; ESC to interpreter output
+        POP     AF
+        _RST    OUTDO                   ; "x" or "y" to interpreter output
+        LD      A,"5"
+        _RST    OUTDO                   ; "5" to interpreter output
+J779F:  EX      (SP),HL
+        CALL    POSIT                   ; set cursor position
+        POP     HL
+        RET
+
+;       Subroutine      STOP statement (trap)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STOPT:
+J77A5:  PUSH    HL
+        LD      HL,TRPTBL+10*3
+        JR      J77CF
+
+;       Subroutine      SPRITE statement (trap)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SPRITT:
+J77AB:  PUSH    HL
+        LD      HL,TRPTBL+11*3
+        JR      J77CF
+
+;       Subroutine      INTERVAL statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INTS:
+J77B1:  _RST    SYNCHR
+        DEFB    "E"
+        _RST    SYNCHR
+        DEFB    "R"
+        _RST    SYNCHR
+        DEFB    0FFH
+        _RST    SYNCHR
+        DEFB    094H                    ; check for ERVAL
+        PUSH    HL
+        LD      HL,TRPTBL+17*3
+        JR      J77CF
+
+;       Subroutine      STRIG statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRIGS:
+J77BF:  LD      A,4                     ; max is 4 
+        CALL    C7C08                   ; evaluate parenthesized byte operand with a maximum
+        DEC     HL
+        _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        LD      D,00H
+        LD      HL,TRPTBL+12*3
+        ADD     HL,DE
+        ADD     HL,DE
+        ADD     HL,DE
+J77CF:  CALL    C77FE                   ; check for trap tokens and act upon
+        JR      J77E2                   ; new statement without CTRL-STOP and trap check
+
+;       Subroutine      KEY statement (trap)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+KEYT:
+J77D4:  CALL    GETBYT                  ; evaluate byte operand
+        DEC     A
+        CP      10                      ; functionkeynumber 1-10 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        LD      A,(HL)                  ; ?? function key number already in A ??
+        PUSH    HL
+        CALL    C77E8                   ; set trapentry of functionkey
+J77E2:  POP     HL
+        POP     AF
+        _RST    CHRGTR                  ; get next BASIC character
+        JP      NEWSTN                  ; new statement without CTRL-STOP and trap check
+
+;       Subroutine      set trapentry of functionkey
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C77E8:  LD      D,0
+        LD      HL,FNKFLG-1
+        ADD     HL,DE
+        PUSH    HL
+        LD      HL,TRPTBL+0*3-(1*3)
+        ADD     HL,DE
+        ADD     HL,DE
+        ADD     HL,DE
+        CALL    C77FE                   ; check for trap tokens and act upon
+        LD      A,(HL)
+        AND     01H                     ; functionkey trap enabled
+        POP     HL
+        LD      (HL),A                  ; set FNKFLG if trap enabled
+        RET
+
+;       Subroutine      check for trap tokens and act upon
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C77FE:  CP      95H                     ; ON token ?
+        JP      Z,TRPENA                ; yep, enable trap
+        CP      0EBH                    ; OFF token ?
+        JP      Z,TRPDIS                ; yep, disable trap
+        CP      90H                     ; STOP token ?
+        JP      Z,TRPSTP                ; yep, pause trap
+        JP      SNERR                   ; syntax error
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ONGOT:
+C7810:  CALL    H.ONGO
+        LD      BC,10
+        CP      0CCH
+        RET     Z
+        LD      BC,0A01H
+        CP      90H
+        RET     Z
+        INC     B
+        CP      0C7H
+        RET     Z
+        CP      0FFH
+        RET     C
+        PUSH    HL
+        _RST    CHRGTR                  ; get next BASIC character
+        CP      0A3H
+        JR      Z,J7833
+        CP      85H
+        JR      Z,J7838
+J7830:  POP     HL
+        SCF
+        RET
+
+J7833:  POP     BC
+        LD      BC,0C05H
+        RET
+
+J7838:  _RST    CHRGTR                  ; get next BASIC character
+        CP      "E"
+        JR      NZ,J7830
+        POP     BC
+        _RST    CHRGTR                  ; get next BASIC character
+        _RST    SYNCHR
+        DEFB    "R"
+        _RST    SYNCHR
+        DEFB    0FFH
+        _RST    SYNCHR
+        DEFB    094H
+        _RST    SYNCHR
+        DEFB    0EFH                    ; check for RVAL=
+        CALL    GETUIN                  ; evaluate address operand
+        LD      A,D
+        OR      E
+        JP      Z,FCERR                 ; illegal function call
+        EX      DE,HL
+        LD      (INTVAL),HL
+        LD      (INTCNT),HL
+        EX      DE,HL
+        LD      BC,1101H
+        DEC     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRPHDL:
+C785C:  PUSH    HL
+        LD      B,A
+        ADD     A,A
+        ADD     A,B
+        LD      L,A
+        LD      H,0			; *3
+        LD      BC,TRPTBL+1
+        ADD     HL,BC
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        POP     HL
+        RET
+
+;       Subroutine      KEY statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+KEYS:
+C786C:  CP      93H                     ; LIST token ?
+        JR      NZ,J78AE                ; nope, other KEY statement variant
+        _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        LD      HL,FNKSTR
+        LD      C,0AH
+J7877:  LD      B,10H
+J7879:  LD      A,(HL)
+        INC     HL
+        CALL    CNVCHR
+        JR      C,J7891
+        DEC     B
+        JR      Z,J789E
+        LD      A,(HL)
+        INC     HL
+        LD      E,A
+        CALL    CNVCHR
+        JR      Z,J7891
+        LD      A,1
+        _RST    OUTDO                   ; MSX to interpreter output
+        LD      A,E
+        JR      J789B
+
+J7891:  CP      7FH
+        JR      Z,J7899
+        CP      20H
+        JR      NC,J789B
+J7899:  LD      A," "
+J789B:  _RST    OUTDO                   ; char to interpreter output
+        DJNZ    J7879
+J789E:  CALL    CRDO                    ; newline to interpreter output
+        DEC     C
+        JR      NZ,J7877
+        POP     HL
+        RET
+
+J78A6:  _RST    CHRGTR                  ; get next BASIC character
+        JP      DSPFNK
+
+J78AA:  _RST    CHRGTR                  ; get next BASIC character
+        JP      ERAFNK
+
+J78AE:  CP      "("
+        JP      Z,KEYT                  ; KEY statement (trap)
+        CP      95H                     ; ON token ?
+        JR      Z,J78A6                 ; yep, enable display functionkeys
+        CP      0EBH                    ; OFF token ?
+        JR      Z,J78AA                 ; yep, disable display functionkeys
+        CALL    GETBYT                  ; evaluate byte operand
+        DEC     A
+        CP      10                      ; functionkeynumber 1-10 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        EX      DE,HL
+        LD      L,A
+        LD      H,0
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL
+        ADD     HL,HL                   ; * 16
+        LD      BC,FNKSTR
+        ADD     HL,BC
+        PUSH    HL
+        EX      DE,HL
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    FRMEVL                  ; evaluate expression
+        PUSH    HL
+        CALL    FRESTR                  ; free temporary string with type check
+        LD      B,(HL)
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        POP     HL
+        EX      (SP),HL
+        LD      C,0FH
+        LD      A,B
+        AND     A
+        JR      Z,J78F5
+J78E8:  LD      A,(DE)
+        AND     A
+        JP      Z,FCERR                 ; illegal function call
+        LD      (HL),A
+        INC     DE
+        INC     HL
+        DEC     C
+        JR      Z,J78FA
+        DJNZ    J78E8
+J78F5:  LD      (HL),B
+        INC     HL
+        DEC     C
+        JR      NZ,J78F5
+J78FA:  LD      (HL),C
+        CALL    FNKSB
+        POP     HL
+        RET
+
+;       Subroutine      TIME function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TIME$:
+J7900:  _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        LD      HL,(JIFFY)
+        CALL    CONSUI                  ; convert unsigned integer to single real
+        POP     HL
+        RET
+
+;       Subroutine      CSRLIN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CSRLIN:
+J790A:  _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        LD      A,(CSRY)
+        JR      J7932
+
+;       Subroutine      TIME statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TIME:
+C7911:  _RST    SYNCHR
+        DEFB    0EFH                    ; check for =
+        CALL    GETUIN                  ; evaluate address operand
+        LD      (JIFFY),DE
+        RET
+
+;       Subroutine      PLAY function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PLAY$:
+J791B:  _RST    CHRGTR                  ; get next BASIC character
+        LD      A,3                     ; max is 3
+        CALL    C7C08                   ; evaluate parenthesized byte operand with a maximum
+        PUSH    HL
+        LD      A,(MUSICF)
+        DEC     E
+        JP      M,J7938
+J7929:  RRCA
+        DEC     E
+        JP      P,J7929
+        LD      A,0
+        JR      NC,J7933
+J7932:  DEC     A
+J7933:  CALL    CONIA
+        POP     HL
+        RET
+
+J7938:  AND     07H
+        JR      Z,J7933
+        LD      A,0FFH
+        JR      J7933
+
+;       Subroutine      STICK function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STICK:
+C7940:  CALL    CONINT                  ; check for byte value
+        CP      03H
+        JR      NC,J7951
+        CALL    GTSTCK
+        JR      J7966
+
+;       Subroutine      TRIG function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TRIG:
+C794C:  CALL    CONINT                  ; check for byte value
+        CP      05H
+J7951:  JP      NC,FCERR                ; illegal function call
+        CALL    GTTRIG
+J7957:  JP      CONIA
+
+;       Subroutine      PDL function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PDL:
+C795A:  CALL    CONINT                  ; check for byte value
+        DEC     A
+        CP      0CH
+        JR      NC,J7951
+        INC     A
+        CALL    GTPDL
+J7966:  JP      SNGFLT                  ; byte to DAC
+
+;       Subroutine      PAD function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PAD:
+C7969:  CALL    CONINT                  ; check for byte value
+        CP      8
+        JR      NC,J7951
+        PUSH    AF
+        CALL    GTPAD
+        LD      B,A
+        POP     AF
+        AND     03H                     ; ignore port bit
+        DEC     A                       ; 0 and 3 are boolean
+        CP      2
+        LD      A,B
+        JR      C,J7966
+        JR      J7957           ; 0 or -1
+
+;       Subroutine      COLOR statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+COLOR:
+C7980:  ld      bc,FCERR
+        push    bc
+        ld      de,(FORCLR)
+        push    de
+        cp      02CH
+        jr      z,A799A
+        call    GETBYT
+        pop     de
+        cp      010H
+        ret     nc
+        ld      e,a
+        push    de
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        jr      z,A79BC			; yep,
+A799A:  _RST    SYNCHR
+        db      ','
+        jr      z,A79BC
+        cp      02CH
+        jr      z,A79AF
+        call    GETBYT
+        pop     de
+        cp      010H
+        ret     nc
+        ld      d,a
+        push    de
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        jr      z,A79BC			; yep,
+A79AF:  _RST    SYNCHR
+        db      ','
+        call    GETBYT
+        pop     de
+        cp      010H
+        ret     nc
+        ld      (BDRCLR),a
+        push    de
+A79BC:  pop     de
+        pop     af
+        push    hl
+        ex      de,hl
+        ld      (FORCLR),hl
+        ld      a,l
+        ld      (ATRBYT),a
+        call    CHGCLR
+        pop     hl
+        ret
+
+;       Subroutine      SCREEN statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCREEN:
+C79CC:  call    H.SCRE
+        cp      02CH
+        jr      z,A79EA
+        call    GETBYT
+        cp      004H
+        jp      nc,FCERR
+        push    hl
+        call    CHGMOD
+        ld      a,(LINLEN)
+        ld      e,a
+        call    MORCP2
+        pop     hl
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        ret     z			; yep, quit
+A79EA:  _RST    SYNCHR
+        db      ','
+        cp      02CH
+        jr      z,A7A09
+        call    GETBYT
+        cp      004H
+        jp      nc,FCERR
+        ld      a,(RG1SAV)
+        and     0FCH
+        or      e
+        ld      (RG1SAV),a
+        push    hl
+        call    CLRSPR
+        pop     hl
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        ret     z			; yep, quit
+A7A09:  _RST    SYNCHR
+        db      ','
+        cp      02CH
+        jr      z,A7A18
+        call    GETBYT
+        ld      (CLIKSW),a
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        ret     z			; yep, quit
+A7A18:  _RST    SYNCHR
+        db      ','
+        cp      02CH
+        jr      z,A7A24
+        call    GETCSP
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        ret     z			; yep, quit
+A7A24:  _RST    SYNCHR
+        db      ','
+        call    GETBYT
+        ld      (NTMSXP),a
+        ret
+
+GETCSP:
+A7A2D:  call    GETBYT
+        dec     a
+        cp      002H
+        jp      nc,FCERR
+        push    hl
+        ld      bc,5
+        and     a
+        ld      hl,CS1200
+        jr      z,A7A41
+        add     hl,bc
+A7A41:  ld      de,LOW.
+        ldir
+        pop     hl
+        ret
+
+;       Subroutine      SPRITE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SPRITE:
+C7A48:  CP      "$"
+        JP      NZ,SPRITT
+        LD      A,(SCRMOD)
+        AND     A
+        JP      Z,FCERR                 ; illegal function call
+        CALL    C7AA0
+        PUSH    DE
+        CALL    FRMEQL                  ; evaluate = expression
+        EX      (SP),HL
+        PUSH    HL
+        CALL    FRESTR                  ; free temporary string with type check
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        CALL    GSPSIZ
+        LD      C,A
+        LD      B,00H
+        DEC     HL
+        DEC     HL
+        DEC     A
+        CP      (HL)
+        LD      A,(HL)
+        JR      C,J7A7D
+        POP     HL
+        PUSH    HL
+        PUSH    AF
+        XOR     A
+        CALL    FILVRM
+        POP     AF
+        AND     A
+        LD      C,A
+        LD      B,00H
+J7A7D:  EX      DE,HL
+        POP     DE
+        CALL    NZ,LDIRVM
+        POP     HL
+        RET
+
+;       Subroutine      SPRITE function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SPRIT$:
+J7A84:  CALL    C7A9F
+        PUSH    HL
+        PUSH    DE
+        CALL    GSPSIZ
+        LD      C,A
+        LD      B,00H
+        PUSH    BC
+        CALL    STRINI                  ; allocate temporary string
+        LD      HL,(DSCTMP+1)
+        EX      DE,HL
+        POP     BC
+        POP     HL
+        CALL    LDIRMV
+        JP      PUTNEW                  ; push temporary descriptor to temporary desciptor heap and quit
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C7A9F:  _RST    CHRGTR                  ; get next BASIC character
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C7AA0:  _RST    SYNCHR
+        DEFB    "$"                     ; check for $
+        LD      A,255                   ; max is 255
+        CALL    C7C08                   ; evaluate parenthesized byte operand with a maximum
+        PUSH    HL
+        LD      A,E
+        CALL    CALPAT
+        EX      DE,HL
+        POP     HL
+        RET
+
+;       Subroutine      PUT/GET SPRITE
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J7AAF:  DEC     B                       ; PUT ?
+        JP      M,FCERR                 ; nope, illegal function call
+        ld      a,(scrmod)
+        and     a
+        JP      Z,FCERR                 ; illegal function call
+        _RST    CHRGTR                  ; get next BASIC character
+        CALL    GETBYT                  ; evaluate byte operand
+        CP      32                      ; planenumber 0-31 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        PUSH    HL
+        CALL    CALATR
+        EX      (SP),HL
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CP      ","
+        JR      Z,J7AF9
+        CALL    SCAN1                   ; evaluate complex graphic coordinatepair
+        EX      (SP),HL
+        LD      A,E
+        CALL    WRTVRM
+        LD      A,B
+        ADD     A,A
+        LD      A,C
+        LD      B,00H
+        JR      NC,J7AE1
+        ADD     A,20H
+        LD      B,80H
+J7AE1:  INC     HL
+        CALL    WRTVRM
+        INC     HL
+        INC     HL
+        CALL    RDVRM
+        AND     0FH
+        OR      B
+        CALL    WRTVRM
+        DEC     HL
+        DEC     HL
+        DEC     HL
+        EX      (SP),HL
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        POP     BC
+        RET     Z			; yep, quit
+        PUSH    BC
+J7AF9:  _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CP      ","
+        JR      Z,J7B1D
+        CALL    GETBYT                  ; evaluate byte operand
+        CP      16                      ; colornumber 0-15 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        EX      (SP),HL
+        INC     HL
+        INC     HL
+        INC     HL
+        CALL    RDVRM
+        AND     80H
+        OR      E
+        CALL    WRTVRM
+        DEC     HL
+        DEC     HL
+        DEC     HL
+        EX      (SP),HL
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        POP     BC
+        RET     Z			; yep, quit
+        PUSH    BC
+J7B1D:  _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETBYT                  ; evaluate byte operand
+        CALL    GSPSIZ
+        LD      A,E
+        JR      NC,J7B2F                ; 8x8 sprite, spritenumber ok
+        CP      64                      ; 16x16 sprite, sprite number 0-63 ?
+        JP      NC,FCERR                ; nope, illegal function call
+        ADD     A,A
+        ADD     A,A                     ; *4 = spritenumber used by the VDP
+J7B2F:  EX      (SP),HL
+        INC     HL
+        INC     HL
+        CALL    WRTVRM
+        POP     HL
+        RET
+
+;       Subroutine      VDP statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VDP:
+C7B37:  ld      a,7
+        call    C7C08
+        push    de
+        _RST    SYNCHR
+        db      0EFH			; check for =
+        call    GETBYT
+        pop     bc
+        ld      b,a
+        jp      WRTVDP
+
+;       Subroutine      VDP function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VDP$:
+J7B47:  _RST    CHRGTR
+        ld      a,8
+        call    C7C08
+        push    hl
+        ld      d,000H
+        ld      hl,RG0SAV
+        add     hl,de
+        ld      a,(hl)
+        call    SNGFLT
+        pop     hl
+        ret
+
+;       Subroutine      BASE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BASE:
+C7B5A:  ld      a,19
+        call    C7C08
+        ld      d,000H
+        push    de
+        _RST    SYNCHR
+        db      0EFH			; check for =
+        call    FRMEVL                  ; eval expression
+        ex      (sp),hl
+        push    hl
+        call    A7BFE
+        ld      c,l
+        ld      b,h
+        pop     hl
+        ld      a,l
+        push    af
+        add     hl,hl
+        ex      de,hl
+        ld      hl,T7BA3
+        add     hl,de
+        ld      a,c
+        and     (hl)
+        jr      nz,A7B7E
+        inc     hl
+        ld      a,b
+        and     (hl)
+A7B7E:  jp      nz,FCERR
+        ld      hl,TXTNAM
+        add     hl,de
+        ld      (hl),c
+        inc     hl
+        ld      (hl),b
+        pop     af
+        ld      e,0FFH
+A7B8B:  inc     e
+        sub     005H
+        jr      nc,A7B8B
+        ld      a,(SCRMOD)
+        cp      e
+        call    z,A7B99
+        pop     hl
+        ret
+
+A7B99:  dec     a
+        jp      m,SETTXT
+        jp      z,SETGRP
+        jp      SETMLT
+
+T7BA3:  dw      003FFH
+        dw      0003FH
+        dw      007FFH
+        dw      0007FH
+        dw      007FFH
+        dw      003FFH
+        dw      0003FH
+        dw      007FFH
+        dw      0007FH
+        dw      007FFH
+        dw      003FFH
+        dw      01FFFH
+        dw      01FFFH
+        dw      0007FH
+        dw      007FFH
+        dw      003FFH
+        dw      0003FH
+        dw      007FFH
+        dw      0007FH
+        dw      007FFH
+
+;       Subroutine      BASE function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BASE$:
+J7BCB:  _RST    CHRGTR
+        ld      a,19
+        call    C7C08
+        push    hl
+        ld      d,000H
+        ld      hl,TXTNAM
+        add     hl,de
+        add     hl,de
+A7BD9:  ld      a,(hl)
+        inc     hl
+        ld      h,(hl)
+        ld      l,a
+        call    CONSUI
+        pop     hl
+        ret
+
+;       Subroutine      VPOKE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VPOKE:
+C7BE2:  call    FRMEVL                  ; eval expression
+        push    hl
+        call    A7BFE
+        ex      (sp),hl
+        _RST    SYNCHR
+        db      ','			; check for ,
+        call    GETBYT
+        ex      (sp),hl
+        call    WRTVRM
+        pop     hl
+        ret
+
+;       Subroutine      VPEEK function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VPEEK:
+C7BF5:  call    A7BFE
+        call    RDVRM
+        jp      SNGFLT
+
+A7BFE:  call    FRCINT
+        ld      de,04000H
+        _RST    DCOMPR
+        ret     c
+        jr      J7C73
+
+;       Subroutine      evaluate parenthesized byte operand with a maximum
+;       Inputs          A = maximum
+;       Outputs         A = value, E = value
+
+C7C08:  PUSH    AF
+        _RST    SYNCHR
+        DEFB    "("                     ; check for (
+        CALL    GETBYT                  ; evaluate byte operand
+        POP     AF
+        CP      E
+        JR      C,J7C73
+        _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+        LD      A,E
+        RET
+
+;       Subroutine      DSKO$ statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DSKO$:
+C7C16:  CALL    H.DSKO
+        JR      J7C73
+
+;       Subroutine      SET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETS:
+C7C1B:  CALL    H.SETS
+        JR      J7C73
+
+;       Subroutine      NAME statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NAME:
+C7C20:  CALL    H.NAME
+        JR      J7C73
+
+;       Subroutine      KILL statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+KILL:
+C7C25:  CALL    H.KILL
+        JR      J7C73
+
+;       Subroutine      IPL statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+IPL:
+C7C2A:  CALL    H.IPL
+        JR      J7C73
+
+;       Subroutine      COPY statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+COPY:
+C7C2F:  CALL    H.COPY
+        JR      J7C73
+
+;       Subroutine      CMD statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CMD:
+C7C34:  CALL    H.CMD
+        JR      J7C73
+
+;       Subroutine      DSKF function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DSKF:
+C7C39:  CALL    H.DSKF
+        JR      J7C73
+
+;       Subroutine      DSKI$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DSKI$:
+J7C3E:  CALL    H.DSKI
+        JR      J7C73
+
+;       Subroutine      ATTR$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ATTR$:
+J7C43:  CALL    H.ATTR
+        JR      J7C73
+
+;       Subroutine      LSET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LSET:
+C7C48:  CALL    H.LSET
+        JR      J7C73
+
+;       Subroutine      RSET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RSET:
+C7C4D:  CALL    H.RSET
+        JR      J7C73
+
+;       Subroutine      FIELD statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FIELD:
+C7C52:  CALL    H.FIEL
+        JR      J7C73
+
+;       Subroutine      MKI$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MKI$:
+C7C57:  CALL    H.MKI$
+        JR      J7C73
+
+;       Subroutine      MKS$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MKS$:
+C7C5C:  CALL    H.MKS$
+        JR      J7C73
+
+;       Subroutine      MKD$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MKD$:
+C7C61:  CALL    H.MKD$
+        JR      J7C73
+
+;       Subroutine      CVI function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CVI:
+C7C66:  CALL    H.CVI
+        JR      J7C73
+
+;       Subroutine      CVS function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CVS:
+C7C6B:  CALL    H.CVS
+        JR      J7C73
+
+;       Subroutine      CVD function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CVD:
+C7C70:  CALL    H.CVD
+J7C73:  JP      FCERR                   ; illegal function call
+
+; END   SUBTTL  MSXSTS
+
+        END
+

@@ -1,0 +1,526 @@
+; GENGRP.MAC
+
+; BASIC generic graphic statements, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     057CAh;579CH
+
+        INCLUDE MSX.INC
+
+RIGHTC  EQU     00FCH
+LEFTC   EQU     00FFH
+DOWNC	EQU     0108H
+SCALXY  EQU     010EH
+MAPXYC  EQU     0111H
+FETCHC  EQU     0114H
+STOREC  EQU     0117H
+SETATR  EQU     011AH
+READC   EQU     011DH
+SETC    EQU     0120H
+NSETCX  EQU     0123H
+
+FORCLR  EQU     0F3E9H
+BAKCLR  EQU     0F3EAH
+MAXUPD  EQU     0F3ECH
+MINUPD  EQU     0F3EFH
+MINDEL  EQU     0F92DH
+MAXDEL  EQU     0F92FH
+SCRMOD  EQU     0FCAFH
+GXPOS   EQU     0FCB3H
+GYPOS   EQU     0FCB5H
+GRPACX  EQU     0FCB7H
+GRPACY  EQU     0FCB9H
+
+H.DOGR  EQU     0FEF3H
+
+
+        PUBLIC  POINT
+        PUBLIC  PSET
+        PUBLIC  PRESET
+        PUBLIC  SCAN1
+        PUBLIC  SCAND
+        PUBLIC  GLINE
+	PUBLIC	ATRSCN
+	PUBLIC	NEGHL
+	PUBLIC	DOGRPH
+	PUBLIC	HLFDE
+
+        EXTRN   CHRGTR
+        EXTRN   CHRGT2
+        EXTRN   GETBYT
+        EXTRN   GETIN2
+        EXTRN   MAKINT
+        EXTRN   FCERR
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	GENGRP
+
+;       Subroutine      evaluate complex graphic coordinatepair
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCAN1:
+C579C:  LD      A,(HL)
+        CP      "@"
+        CALL    Z,CHRGTR                ; yep, get next BASIC character
+        LD      BC,0                    ; assume X = 0
+        LD      D,B
+        LD      E,C                     ; assume Y = 0
+        CP      0F2H                    ; - token ?
+        JR      Z,J57C1                 ; yep,
+
+;       Subroutine      evaluate simple graphic coordinatepair
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCAND:
+C57AB:  LD      A,(HL)
+        CP      0DCH                    ; STEP token ?
+        PUSH    AF                      ; store STEP flag
+        CALL    Z,CHRGTR                ; yep, get next BASIC character
+        _RST    SYNCHR
+        DEFB    "("                     ; check for (
+        CALL    GETIN2                  ; evaluate integer operand
+        PUSH    DE                      ; store X
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETIN2                  ; evaluate integer operand
+        _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+        POP     BC                      ; restore X
+        POP     AF                      ; restore STEP flag
+J57C1:  PUSH    HL                      ; store BASIC pointer
+        LD      HL,(GRPACX)
+        JR      Z,J57CA                 ; STEP, relative from current X
+        LD      HL,0                    ; absolut X
+J57CA:  ADD     HL,BC
+        LD      (GRPACX),HL             ; update current X
+        LD      (GXPOS),HL
+        LD      B,H
+        LD      C,L                     ; BC = X
+        LD      HL,(GRPACY)
+        JR      Z,J57DB                 ; STEP, relative from current Y
+        LD      HL,0                    ; absolut Y
+J57DB:  ADD     HL,DE
+        LD      (GRPACY),HL
+        LD      (GYPOS),HL
+        EX      DE,HL                   ; DE = Y
+        POP     HL                      ; restore BASIC pointer
+        RET
+
+;       Subroutine      PRESET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PRESET:
+C57E5:  LD      A,(BAKCLR)
+        JR      J57ED
+
+;       Subroutine      PSET statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PSET:
+C57EA:  LD      A,(FORCLR)
+J57ED:  PUSH    AF
+        CALL    SCAND                   ; evaluate simple graphic coordinatepair
+J57F1:  POP     AF
+        CALL    ATRENT
+        PUSH    HL
+        CALL    SCALXY
+        JR      NC,J5801
+        CALL    MAPXYC
+        CALL    SETC
+J5801:  POP     HL
+        RET
+
+;       Subroutine      POINT function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+POINT:
+J5803:  _RST    CHRGTR                  ; get next BASIC character
+        PUSH    HL
+        CALL    FETCHC
+        POP     DE
+        PUSH    HL
+        PUSH    AF
+        LD      HL,(GYPOS)
+        PUSH    HL
+        LD      HL,(GXPOS)
+        PUSH    HL
+        LD      HL,(GRPACY)
+        PUSH    HL
+        LD      HL,(GRPACX)
+        PUSH    HL
+        EX      DE,HL
+        CALL    SCAND                   ; evaluate simple graphic coordinatepair
+        PUSH    HL
+        CALL    SCALXY
+        LD      HL,0FFFFH
+        JR      NC,J5831
+        CALL    MAPXYC
+        CALL    READC
+        LD      L,A
+        LD      H,0
+J5831:  CALL    MAKINT                  ; put HL in DAC
+        POP     DE
+        POP     HL
+        LD      (GRPACX),HL
+        POP     HL
+        LD      (GRPACY),HL
+        POP     HL
+        LD      (GXPOS),HL
+        POP     HL
+        LD      (GYPOS),HL
+        POP     AF
+        POP     HL
+        PUSH    DE
+        CALL    STOREC
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ATRSCN:
+C584D:  LD      A,(FORCLR)
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ATRENT:
+C5850:  PUSH    BC
+        PUSH    DE
+        LD      E,A
+        CALL    C59BC
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        JR      Z,J5863			; yep,
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CP      ","
+        JR      Z,J5863
+        CALL    GETBYT                  ; evaluate byte operand
+J5863:  LD      A,E
+        PUSH    HL
+        CALL    SETATR
+        JP      C,FCERR                 ; illegal function call
+        POP     HL
+        POP     DE
+        POP     BC
+        JP      CHRGT2                  ; get BASIC character
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+XDELT:
+C5871:  LD      HL,(GXPOS)
+        LD      A,L
+        SUB     C
+        LD      L,A
+        LD      A,H
+        SBC     A,B
+        LD      H,A
+J587A:  RET     NC
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NEGHL:
+C587B:  XOR     A
+        SUB     L
+        LD      L,A
+        SBC     A,H
+        SUB     L
+        LD      H,A
+        SCF
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+YDELT:
+C5883:  LD      HL,(GYPOS)
+        LD      A,L
+        SUB     E
+        LD      L,A
+        LD      A,H
+        SBC     A,D
+        LD      H,A
+        JR      J587A
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+XCHGY:
+C588E:  PUSH    HL
+        LD      HL,(GYPOS)
+        EX      DE,HL
+        LD      (GYPOS),HL
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+XCHGAC:
+C5898:  CALL    C588E
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+XCHGX:
+C589B:  PUSH    HL
+        PUSH    BC
+        LD      HL,(GXPOS)
+        EX      (SP),HL
+        LD      (GXPOS),HL
+        POP     BC
+        POP     HL
+        RET
+
+;       Subroutine      LINE statement (graphical)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GLINE:
+J58A7:  CALL    SCAN1                   ; evaluate complex graphic coordinatepair
+J58AA:  PUSH    BC
+        PUSH    DE
+        _RST    SYNCHR
+        DEFB    0F2H                    ; check for -
+        CALL    SCAND                   ; evaluate simple graphic coordinatepair
+        CALL    ATRSCN
+        POP     DE
+        POP     BC
+        JR      Z,C58FC
+        _RST    SYNCHR
+        DEFB    ","
+        _RST    SYNCHR
+        DEFB    "B"                     ; check for ,B
+        JP      Z,J5912                 ; box option
+
+; line box fill option (,BF)
+
+        _RST    SYNCHR
+        DEFB    "F"                     ; check for F
+
+DOBOXF: PUSH    HL
+        CALL    SCALXY
+        CALL    C5898
+        CALL    SCALXY
+        CALL    C5883
+        CALL    C,C588E
+        INC     HL
+        PUSH    HL
+        CALL    C5871
+        CALL    C,C589B
+        INC     HL
+        PUSH    HL
+        CALL    MAPXYC
+        POP     DE
+        POP     BC
+J58E0:  PUSH    DE
+        PUSH    BC
+J58E2:  CALL    FETCHC
+        PUSH    AF
+        PUSH    HL
+        EX      DE,HL
+        CALL    NSETCX
+        POP     HL
+        POP     AF
+        CALL    STOREC
+        CALL    DOWNC
+        POP     BC
+        POP     DE
+        DEC     BC
+        LD      A,B
+        OR      C
+        JR      NZ,J58E0
+        POP     HL
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DOLINE:
+C58FC:  PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        CALL    DOGRPH
+        LD      HL,(GRPACX)
+        LD      (GXPOS),HL
+        LD      HL,(GRPACY)
+        LD      (GYPOS),HL
+        POP     HL
+        POP     DE
+        POP     BC
+        RET
+
+BOXLIN:
+J5912:  PUSH    HL
+        LD      HL,(GYPOS)
+        PUSH    HL
+        PUSH    DE
+        EX      DE,HL
+        CALL    C58FC
+        POP     HL
+        LD      (GYPOS),HL
+        EX      DE,HL
+        CALL    C58FC
+        POP     HL
+        LD      (GYPOS),HL
+        LD      HL,(GXPOS)
+        PUSH    BC
+        LD      B,H
+        LD      C,L
+        CALL    C58FC
+        POP     HL
+        LD      (GXPOS),HL
+        LD      B,H
+        LD      C,L
+        CALL    C58FC
+        POP     HL
+        RET
+
+;       Subroutine      draw line
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DOGRPH:
+C593C:  CALL    H.DOGR
+        CALL    SCALXY
+J5942:  CALL    C5898
+        CALL    SCALXY
+        CALL    C5883
+        CALL    C,C5898
+        PUSH    DE
+        PUSH    HL
+        CALL    C5871
+        EX      DE,HL
+        LD      HL,RIGHTC
+        JR      NC,J595C
+        LD      HL,LEFTC
+J595C:  EX      (SP),HL
+        _RST    DCOMPR
+        JR      NC,J5970
+        LD      (MINDEL),HL
+        POP     HL
+        LD      (MAXUPD+1),HL
+        LD      HL,DOWNC
+        LD      (MINUPD+1),HL
+        EX      DE,HL
+        JR      J597F
+
+J5970:  EX      (SP),HL
+        LD      (MINUPD+1),HL
+        LD      HL,DOWNC
+        LD      (MAXUPD+1),HL
+        EX      DE,HL
+        LD      (MINDEL),HL
+        POP     HL
+J597F:  POP     DE
+        PUSH    HL
+        CALL    NEGHL
+        LD      (MAXDEL),HL
+        CALL    MAPXYC
+        POP     DE
+        PUSH    DE
+        CALL    HLFDE
+        POP     BC
+        INC     BC
+        JR      J599A
+
+J5993:  POP     HL
+        LD      A,B
+        OR      C
+        RET     Z
+J5997:  CALL    MAXUPD
+J599A:  CALL    SETC
+        DEC     BC
+        PUSH    HL
+        LD      HL,(MINDEL)
+        ADD     HL,DE
+        EX      DE,HL
+        LD      HL,(MAXDEL)
+        ADD     HL,DE
+        JR      NC,J5993
+        EX      DE,HL
+        POP     HL
+        LD      A,B
+        OR      C
+        RET     Z
+        CALL    MINUPD
+        JR      J5997
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+HLFDE:
+C59B4:  LD      A,D
+        OR      A
+        RRA
+        LD      D,A
+        LD      A,E
+        RRA
+        LD      E,A
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C59BC:  LD      A,(SCRMOD)
+        CP      2
+        RET     P
+        JP      FCERR                   ; illegal function call
+
+
+; END	SUBTTL	GENGRP
+
+        END
+

@@ -47,5 +47,11 @@ void machine_set_vsync (BOOL vsync);
 void machine_vblank_handler ();
 BOOL machine_set_personality (UINT8 personality);
 void machine_set_vsync_address (UINT16 vsync_address);
+char machine_fopen (UINT8 channel,char* filename,UINT8 openmode);
+char machine_fclose (UINT8 channel);
+char machine_fgetc (UINT8 channel,char* character);
+char machine_fputc (UINT8 channel,UINT8 character);
+void machine_print (char* szBuf);
+void machine_putc (char ch);
 
 #endif

@@ -11,6 +11,8 @@
 INT8 *ram;
 INT8  mbase;
 FIL disks[8]; // A-H
+FIL channels[7]; // #1 to #8
+UINT8 channel_state;
 char szWarmBootImage[255];
 UINT8 wb_bank;
 int _secsize;
@@ -96,6 +98,9 @@ BOOL machine_init ()
 	machine_vsync_register=0;
 	machine_vsync_running=0;
 	want_vsync = FALSE;
+	memset (disks,0,sizeof (disks));
+	memset (channels,0,sizeof (channels));
+	channel_state = 0; // 0b00000000;
 
 	// // set port C bit 0 to output, L=GND, H=Vcc
 	// // leave rest set to input mode
@@ -128,7 +133,6 @@ void machine_warm_boot ()
 
 UINT16 machine_read_write_disk (UINT16 mbase,UINT16 af, UINT16 bc, UINT16 de, UINT16 hl)
 {
-	const char drive_letter[] = "ABCDEFGH";
 	UINT bytes_read,bytes_written;
 	INT8* sectorbuffer;
 	UINT8 mb = (mbase>>8)-SLOT_0_64K_SEGMENT;
@@ -137,6 +141,7 @@ UINT16 machine_read_write_disk (UINT16 mbase,UINT16 af, UINT16 bc, UINT16 de, UI
 	BOOL carry = af & 1;
 
 	/*
+	const char drive_letter[] = "ABCDEFGH";
 	printf ("%04x %04x %04x %04x\r\n",af,bc,de,hl);
 	printf ("%s %d bytes from location %d into memory location %04X from disk %c\r\n",
 		carry?"Written":"Read",
@@ -210,4 +215,122 @@ BOOL machine_set_personality (UINT8 personality)
 void machine_set_vsync_address (UINT16 address)
 {
 	machine_vsync_address = address;	
+}
+
+void machine_print (char* szBuf)
+{
+	char* p=szBuf;
+	while (*p!='\0')
+	{
+		machine_putc (*p);
+		p++;
+	}
+}
+
+char machine_fopen (UINT8 channel,char* filename,UINT8 openmode)
+{
+	FRESULT f;
+	BYTE mode=FA_READ;
+	char szBuf[40];
+
+	// zero-based channel number
+	channel--;
+	
+	// invalid openmode
+	if (openmode==0)
+		return 0;
+
+	// convert machine openmode into FATFS openmode
+	switch (openmode)
+	{
+		case 1: mode=FA_READ;
+				break;
+		case 2: mode=FA_CREATE_ALWAYS|FA_WRITE;
+				break;
+		case 4: mode=FA_READ | FA_WRITE;
+				break;
+		case 8: mode=FA_OPEN_APPEND | FA_WRITE;
+				break;
+	}
+	// sprintf (szBuf,"mode: %x\r\n",mode);
+	// machine_print (szBuf);
+
+	if (channel_state & (1<<channel) > 0)
+		return 0; // cannot reopen
+	
+	f = f_open (&channels[channel],filename,mode);
+	if (f==FR_OK)
+	{
+		// sprintf (szBuf,"fpos: %d-%d\r\n",channels[channel].fptr,channels[channel].obj.objsize);
+		// machine_print (szBuf);
+		channel_state = channel_state | (1<<channel);
+		return 1;
+	}
+
+	return 0;
+}
+
+char machine_fclose (UINT8 channel)
+{
+	FRESULT f;
+
+	// zero-based channel number
+	channel--;
+
+	// check file open state
+	if (channel_state & (1<<channel) == 0)
+		return 0; // cannot close something that is not open
+
+	f = f_close (&channels[channel]);
+
+	if (f==FR_OK)
+	{
+		// clear file channel entry
+		channel_state = channel_state & (~(1<<channel));
+		return 1;
+	}
+	return 0;
+}
+
+char machine_fgetc (UINT8 channel, char* character)
+{
+	FRESULT f;
+	UINT br;
+
+	// zero-based channel number
+	channel--;
+
+	// check file open state
+	if (channel_state & (1<<channel) == 0)
+		return 0; // cannot get characters from closed file
+
+	f = f_read (&channels[channel],character,1,&br);
+
+	if (f==FR_OK && br==1)
+		return 1;
+	return 0;
+}
+
+char machine_fputc (UINT8 channel,UINT8 character)
+{
+	// zero-based channel number
+	channel--;
+
+	// check file open state
+	if (channel_state & (1<<channel) == 0)
+		return 0; // cannot put characters to closed file
+
+	if (f_putc (character,&channels[channel])>0)
+		return 1;
+	else
+		return 0;
+}
+
+char machine_feof (UINT8 channel)
+{
+	channel--;
+	if (channel_state & (1<<channel) == 0)
+		return 1; // cannot get eof status from closed file
+
+	return f_eof (&channels[channel]);
 }

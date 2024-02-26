@@ -4389,7 +4389,7 @@ A57CD:  ld      (hl),a
 A57D6:  ld      (hl),0C9H
         inc     hl
         djnz    A57D6                   ; init disksystem hooks
-        ld      a,0FFH                  ; MSM: was: 0DBH, replaced IN by RST38h
+        ld      a,0FFH                  ; MSM: was: 0DBH, replaced IN by RST38h (FFh in machine-code)
         ld      hl,0C9A8H
         ld      (XF365+0),a
         ld      (XF365+1),hl            ; read primairy slotregister entry

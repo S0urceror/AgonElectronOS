@@ -1,0 +1,1151 @@
+; BISTRS.MAC
+
+; BASIC STRING functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     065FEh ; 65C8H
+
+
+        INCLUDE MSX.INC
+
+
+VLZADR  EQU     0F419H
+VLZDAT  EQU     0F41BH
+VALTYP  EQU     0F663H
+MEMSIZ  EQU     0F672H
+STKTOP  EQU     0F674H
+TXTTAB  EQU     0F676H
+TEMPPT  EQU     0F678H
+TEMPST  EQU     0F67AH
+DSCTMP  EQU     0F698H
+FRETOP  EQU     0F69BH
+TEMP8   EQU     0F69FH
+VARTAB  EQU     0F6C2H
+ARYTAB  EQU     0F6C4H
+STREND  EQU     0F6C6H
+PRMPRV  EQU     0F74CH
+ARYTA2  EQU     0F7B5H
+TEMP9   EQU     0F7B8H
+DAC     EQU     0F7F6H
+
+H.FRET  EQU     0FF9DH
+
+
+        PUBLIC  FRESTR
+        PUBLIC  FREDAC
+        PUBLIC  STROUI
+        PUBLIC  STROUT
+        PUBLIC  GETSPA
+        PUBLIC  STRINI
+        PUBLIC  STRIN1
+        PUBLIC  SETSTR
+        PUBLIC  PUTNEW
+        PUBLIC  PUTTMP
+        PUBLIC  STRLIT
+        PUBLIC  STRLTI
+        PUBLIC  STRLT2
+        PUBLIC  STRLT3
+        PUBLIC  ASC2
+        PUBLIC  STRCPY
+        PUBLIC  FRETMS
+        PUBLIC  STRPRT
+        PUBLIC  FRETMP
+        PUBLIC  FRETM2
+        PUBLIC  LEFTUS
+        PUBLIC  CAT
+        PUBLIC  STRCMP
+        PUBLIC  PPSWRT
+        PUBLIC  INSTR
+        PUBLIC  STRNG$
+        PUBLIC  CHR$
+        PUBLIC  SPACE$
+        PUBLIC  LEFT$
+        PUBLIC  RIGHT$
+        PUBLIC  MID$
+        PUBLIC  MIDS
+        PUBLIC  VAL
+        PUBLIC  LEN
+        PUBLIC  STR$
+        PUBLIC  ASC
+        PUBLIC  FRE
+        PUBLIC  OCT$
+        PUBLIC  HEX$
+        PUBLIC  BIN$
+        
+        EXTRN   MOVRM
+        EXTRN   VMOVE
+        EXTRN   FIN
+        EXTRN   FOUT
+        EXTRN   FOUTB
+        EXTRN   FOUTO
+        EXTRN   FOUTH
+        EXTRN   FCERR
+        EXTRN   FRMEVL
+        EXTRN   FRMPRN
+        EXTRN   FRMEQL
+        EXTRN   GETBYT
+        EXTRN   CONINT
+        EXTRN   CHKSTR
+        EXTRN   BLTUC
+        EXTRN   ERROR
+        EXTRN   SNGFLT
+        EXTRN   PTRGET
+        EXTRN   POPHRT
+        EXTRN   GIVDBL
+        EXTRN   TSTOP
+        EXTRN   EVAL
+        EXTRN   SIGNS
+        EXTRN   GETBCD
+        EXTRN   CRFIN
+        EXTRN   SYNCHR
+        EXTRN   CHRGTR
+        EXTRN   OUTDO
+        EXTRN   DCOMPR
+        EXTRN   GETYPR
+        EXTRN   CALLF
+        EXTRN   GETENT
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT; RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	BISTRS
+
+	SUBTTL	BISTRS
+
+STRCMP:
+C65C8:  CALL    FRESTR                  ; free temporary string with type check
+        LD      A,(HL)                  ; size of string
+        INC     HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)                  ; pointer to string
+        POP     DE
+        PUSH    BC
+        PUSH    AF
+        CALL    FRETMP                  ; free temporary string (descriptor in DE)
+        POP     AF
+        LD      D,A
+        LD      E,(HL)                  ; size of string
+        INC     HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)                  ; pointer to string
+        POP     HL
+J65DE:  LD      A,E
+        OR      D                       ; end of both strings ?
+        RET     Z                       ; yep, quit (A=0, equal)
+        LD      A,D
+        SUB     1                       ; end of first string ?
+        RET     C                       ; yep, quit (A=FF, less)
+        XOR     A
+        CP      E                       ; end of second string ?
+        INC     A
+        RET     NC                      ; yep, quit (A=1, bigger)
+        DEC     D
+        DEC     E                       ; adjust counter
+        LD      A,(BC)
+        INC     BC
+        CP      (HL)                    ; equal ?
+        INC     HL
+        JR      Z,J65DE                 ; yep, next
+        CCF
+        JP      SIGNS                   ; set compare value
+
+;       Subroutine      OCT$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+OCT$:
+C65F5:  CALL    FOUTO                   ; convert integer to octal text
+        JR      J6607
+
+;       Subroutine      HEX$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+HEX$:
+C65FA:  CALL    FOUTH                   ; convert integer to hexadecimal text
+        JR      J6607
+
+;       Subroutine      BIN$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+BIN$:
+C65FF:  CALL    FOUTB                   ; convert integer to binary text
+        JR      J6607
+
+;       Subroutine      STR$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STR$:
+C6604:  CALL    FOUT                    ; convert DAC to text, unformatted
+J6607:  CALL    STRLIT                  ; analyse string and create temporary stringdescriptor
+        CALL    FREDAC                  ; free temporary string in DAC
+        LD      BC,J6825
+        PUSH    BC                      ; copy string to new temporary string, temporary stringdescriptor to heap and quit
+
+;       Subroutine      copy string to new temporary string
+;       Inputs          HL = source string descriptor
+;       Outputs         ________________________
+
+STRCPY:
+C6611:  LD      A,(HL)                  ; size of string
+        INC     HL
+        PUSH    HL
+        CALL    GETSPA                  ; allocate stringspace
+        POP     HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)                  ; pointer to string
+        CALL    C662A                   ; make temporary stringdescriptor
+        PUSH    HL
+        LD      L,A                     ; size of string
+        CALL    C67C7                   ; copy string
+        POP     DE
+        RET
+
+;       Subroutine      allocate temporary string of 1 char
+;       Inputs          ________________________
+;       Outputs         DE = pointer to string, HL = descriptor
+
+STRIN1:
+C6625:  LD      A,1
+
+;       Subroutine      allocate temporary string
+;       Inputs          A = stringsize
+;       Outputs         DE = pointer to string, HL = descriptor
+
+STRINI:
+C6627:  CALL    GETSPA                  ; allocate stringspace
+
+;       Subroutine      make temporary stringdescriptor
+;       Inputs          A = stringsize, DE = pointer to string
+;       Outputs         HL = pointer to temporary stringdescriptor
+
+STRAD2:
+C662A:  LD      HL,DSCTMP
+        PUSH    HL
+        LD      (HL),A
+        INC     HL
+        LD      (HL),E
+        INC     HL
+        LD      (HL),D
+        POP     HL
+        RET
+
+;       Subroutine      analyse string and create temporary stringdescriptor
+;       Inputs          HL = pointer to string to be analysed
+;       Outputs         ________________________
+
+
+STRLIT:
+C6635:  DEC     HL
+
+;       Subroutine      analyze string with " as endmarker (1st char is skipped) and create temporary stringdescriptor
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRLTI:
+C6636:  LD      B,'"'
+
+;       Subroutine      analyze string with specified endmaker (1st char is skipped) and create temporary stringdescriptor
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRLT3:
+C6638:  LD      D,B
+
+;       Subroutine      analyse string with specified endmarkers (1st char is skipped) and create temporary stringdescriptor
+;       Inputs          HL = pointer to string to be analysed, B = end character 1, D = end character 2
+;       Outputs         ________________________
+
+STRLT2:
+C6639:  PUSH    HL
+        LD      C,-1
+J663C:  INC     HL
+        LD      A,(HL)
+        INC     C
+        OR      A                       ; end of BASIC line/string ?
+        JR      Z,J6648                 ; yep,
+        CP      D                       ; end character 1 ?
+        JR      Z,J6648                 ; yep,
+        CP      B                       ; end character 2 ?
+        JR      NZ,J663C                ; nope, skip
+J6648:  CP      '"'                     ; string marker ?
+        CALL    Z,CHRGTR                ; yep, get next BASIC character
+        EX      (SP),HL
+        INC     HL
+        EX      DE,HL
+        LD      A,C
+        CALL    C662A                   ; make temporary stringdescriptor
+
+;       Subroutine      push temporary descriptor to temporary desciptor heap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PUTNEW:
+J6654:  LD      DE,DSCTMP
+        DEFB    03EH                    ; LD A,xx, trick to skip next instruction
+
+;       Subroutine      push descriptor to temporary desciptor heap
+;       Inputs          DE = desciptor
+;       Outputs         ________________________
+
+PUTTMP:
+C6658:  PUSH    DE
+        LD      HL,(TEMPPT)
+        LD      (DAC+2),HL
+        LD      A,3
+        LD      (VALTYP),A
+        CALL    VMOVE                   ; HL = DE (valtyp)
+        LD      DE,TEMPST+30+3
+        _RST    DCOMPR                  ; temporary descriptor heap full ?
+        LD      (TEMPPT),HL
+        POP     HL
+        LD      A,(HL)
+        RET     NZ
+        LD      DE,16                   ; ?? LD E,16 should be enough ??
+        JP      ERROR                   ; yep, string formula too complex error
+
+;       Subroutine      skip first character, message to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STROUI:
+C6677:  INC     HL
+
+;       Subroutine      message to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STROUT:
+C6678:  CALL    STRLIT                  ; analyse string and create temporary stringdescriptor
+
+;       Subroutine      free string and string to interpreter output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRPRT:
+C667B:  CALL    FREDAC                  ; free temporary string in DAC
+        CALL    GETBCD                  ; get size and address of string
+        INC     D
+J6682:  DEC     D
+        RET     Z
+        LD      A,(BC)
+        _RST    OUTDO                   ; char to interpreter output
+        CP      0DH                     ; CR ?
+        CALL    Z,CRFIN                 ; yep, interpreter output pos = 0
+        INC     BC
+        JR      J6682
+
+;       Subroutine      allocate stringspace
+;       Inputs          A = size of string
+;       Outputs         DE = pointer to stringspace
+
+GETSPA:
+C668E:  OR      A                       ; because size<>0, Zx is reset (no garbage collect done)
+        DEFB    00EH                    ; LD C,xx, trick to skip next instruction
+C6690:  POP     AF
+        PUSH    AF
+        LD      HL,(STKTOP)
+        EX      DE,HL                   ; lowest stringspace
+        LD      HL,(FRETOP)
+        CPL
+        LD      C,A
+        LD      B,0FFH
+        ADD     HL,BC
+        INC     HL                      ; lower stringspace - stringsize = new lower
+        _RST    DCOMPR                  ; space available at bottom ?
+        JR      C,J66A9                 ; nope, try garbage collect
+        LD      (FRETOP),HL             ; new lower stringspace
+        INC     HL
+        EX      DE,HL
+PPSWRT: POP     AF
+        RET
+
+J66A9:  POP     AF                      ; garbage collect already done ?
+        LD      DE,14                   ; ?? LD E,14 should be enough ??
+        JP      Z,ERROR                 ; yep, out of string space error
+        CP      A                       ; Zx set (garbage collect done)
+        PUSH    AF
+        LD      BC,C6690
+        PUSH    BC                      ; do a garbage collect and try allocate again
+
+;       Subroutine      garbage collect
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C66B6:  LD      HL,(MEMSIZ)             ; stringheap pointer to top of stringspace
+J66B9:  LD      (FRETOP),HL
+        LD      HL,0
+        PUSH    HL                      ; descriptor current top string
+        LD      HL,(STREND)
+        PUSH    HL                      ; current top string (strings in BASIC text or variables is excluded)
+        LD      HL,TEMPST               ; start with the temporary stringdescriptors
+C66C7:  LD      DE,(TEMPPT)
+        _RST    DCOMPR                  ; stringdescriptor heap empty ?
+        LD      BC,C66C7
+        JP      NZ,J6742                ; nope, adjust if new topstring and next descriptor
+        LD      HL,PRMPRV
+        LD      (TEMP9),HL
+        LD      HL,(ARYTAB)
+        LD      (ARYTA2),HL             ; stop searching when the array variables are reached
+        LD      HL,(VARTAB)             ; start searching in the simple variables
+J66E1:  LD      DE,(ARYTA2)
+        _RST    DCOMPR                  ; end of searcharea ?
+        JR      Z,J66FA                 ; yep,
+        LD      A,(HL)                  ; variable type
+        INC     HL
+        INC     HL
+        INC     HL                      ; skip variablename, to variable value
+        CP      3                       ; string ?
+        JR      NZ,J66F4                ; nope, next variable
+        CALL    C6743                   ; adjust if new topstring
+        XOR     A
+J66F4:  LD      E,A
+        LD      D,0
+        ADD     HL,DE
+        JR      J66E1                   ; next variable
+
+J66FA:  LD      HL,(TEMP9)              ; current FN parameter block
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        LD      A,D
+        OR      E                       ; end of FN parameter block list ?
+        LD      HL,(ARYTAB)
+        JR      Z,J671A                 ; yep, continue with the arrayvariables
+        EX      DE,HL
+        LD      (TEMP9),HL              ; update current FN parameter block
+        INC     HL
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        INC     HL
+        EX      DE,HL
+        ADD     HL,DE
+        LD      (ARYTA2),HL
+        EX      DE,HL
+        JR      J66E1                   ; search FN parameter block variables
+
+J6719:  POP     BC
+J671A:  LD      DE,(STREND)
+        _RST    DCOMPR                  ; end of arrayvariables ?
+        JP      Z,J6763                 ; yep, move topstring up when possible
+        LD      A,(HL)                  ; variable type
+        INC     HL
+        CALL    MOVRM                   ; load from HL (arrayoffset and variablename)
+        PUSH    HL
+        ADD     HL,BC                   ; to next variable
+        CP      3                       ; string ?
+        JR      NZ,J6719                ; nope, next variable
+        LD      (TEMP8),HL              ; next variable
+        POP     HL
+        LD      C,(HL)
+        LD      B,0
+        ADD     HL,BC
+        ADD     HL,BC
+        INC     HL                      ; to the first arrayelement
+C6737:  EX      DE,HL
+        LD      HL,(TEMP8)
+        EX      DE,HL
+        _RST    DCOMPR                  ; end of this arrayvariable ?
+        JR      Z,J671A                 ; yep, next arrayvariable
+        LD      BC,C6737                ; adjust if new topstring and next arrayelement
+J6742:  PUSH    BC
+
+;       Subroutine      adjust if new topstring
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C6743:  XOR     A
+        OR      (HL)                    ; empty string ?
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)                  ; pointer to string
+        INC     HL
+        RET     Z                       ; empty string, quit
+        LD      B,H
+        LD      C,L
+        LD      HL,(FRETOP)
+        _RST    DCOMPR                  ; string above current top of heap ?
+        LD      H,B
+        LD      L,C
+        RET     C                       ; yep, quit
+        POP     HL
+        EX      (SP),HL
+        _RST    DCOMPR                  ; string below current top string ?
+        EX      (SP),HL
+        PUSH    HL
+        LD      H,B
+        LD      L,C
+        RET     NC                      ; yep, quit
+        POP     BC                      ; return address
+        POP     AF
+        POP     AF                      ; discharge
+        PUSH    HL                      ; new current descriptor topstring +3
+        PUSH    DE                      ; new current topstring
+        PUSH    BC
+        RET
+
+J6763:  POP     DE
+        POP     HL
+        LD      A,H
+        OR      L                       ; topstring found ?
+        RET     Z                       ; nope, quit with garabage collect
+        DEC     HL
+        LD      B,(HL)
+        DEC     HL
+        LD      C,(HL)                  ; current topstring
+        PUSH    HL
+        DEC     HL
+        LD      L,(HL)                  ; size of string
+        LD      H,0
+        ADD     HL,BC
+        LD      D,B
+        LD      E,C                     ; start of string
+        DEC     HL
+        LD      B,H
+        LD      C,L                     ; end of string
+        LD      HL,(FRETOP)             ; top of stringspace is new end of string
+        CALL    BLTUC                   ; move data
+        POP     HL
+        LD      (HL),C
+        INC     HL
+        LD      (HL),B                  ; new address string
+        LD      H,B
+        LD      L,C
+        DEC     HL
+        JP      J66B9                   ; new stringheap pointer and continue garbage collect
+
+CAT:
+J6787:  PUSH    BC
+        PUSH    HL
+        LD      HL,(DAC+2)
+        EX      (SP),HL
+        CALL    EVAL                    ; evaluate factor
+        EX      (SP),HL
+        CALL    CHKSTR                  ; check if DAC has string
+        LD      A,(HL)                  ; size of 1st string
+        PUSH    HL
+        LD      HL,(DAC+2)
+        PUSH    HL
+        ADD     A,(HL)                  ; + size of 2nd string
+        LD      DE,15                   ; ?? LD E,15 should be enough ??
+        JP      C,ERROR                 ; resulting length >255, string too long error
+        CALL    STRINI                  ; allocate temporary string for result
+        POP     DE
+        CALL    FRETMP                  ; free temporary string (descriptor in DE) -> free 2nd string
+        EX      (SP),HL
+        CALL    FRETM2                  ; free temporary string (descriptor in HL) -> free 1st string
+        PUSH    HL
+        LD      HL,(DSCTMP+1)
+        EX      DE,HL
+        CALL    C67BF                   ; copy string (descriptor on stack) -> copy 1st string
+        CALL    C67BF                   ; copy string (descriptor on stack) -> copy 2nd string
+        LD      HL,TSTOP
+        EX      (SP),HL
+        PUSH    HL
+        JP      PUTNEW                  ; push temporary descriptor to temporary desciptor heap and quit
+
+;       Subroutine      copy string (descriptor on stack)
+;       Inputs          string descriptor on stack, DE = destination string
+;       Outputs         ________________________
+;       Remark          works only if this routine is CALLed
+
+C67BF:  POP     HL
+        EX      (SP),HL                 ; get descriptor from stack
+        LD      A,(HL)
+        INC     HL
+        LD      C,(HL)
+        INC     HL
+        LD      B,(HL)
+        LD      L,A
+
+;       Subroutine      copy string
+;       Inputs          L = size of string, BC = source string, DE = destination string
+;       Outputs         ________________________
+
+C67C7:  INC     L
+J67C8:  DEC     L
+        RET     Z
+        LD      A,(BC)
+        LD      (DE),A
+        INC     BC
+        INC     DE
+        JR      J67C8
+
+;       Subroutine      FRESTR (free temporary string with type check)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FRESTR:
+C67D0:  CALL    CHKSTR                  ; check if string
+
+;       Subroutine      free temporary string in DAC
+;       Inputs          DAC = string descriptor
+;       Outputs         ________________________
+
+FREDAC:
+C67D3:  LD      HL,(DAC+2)              ; descriptor
+
+;       Subroutine      free temporary string
+;       Inputs          HL = string descriptor
+;       Outputs         ________________________
+
+FRETM2:
+C67D6:  EX      DE,HL
+
+;       Subroutine      free temporary string
+;       Inputs          DE = string descriptor
+;       Outputs         HL = string descriptor
+
+FRETMP:
+C67D7:  CALL    FRETMS                  ; free descriptor if temporary and on top of heap
+        EX      DE,HL
+        RET     NZ                      ; no temporary descriptor on top of heap, quit
+        PUSH    DE
+        LD      D,B
+        LD      E,C
+        DEC     DE
+        LD      C,(HL)                  ; size of string
+        LD      HL,(FRETOP)
+        _RST    DCOMPR                  ; on top of string heap ?
+        JR      NZ,J67EC                ; nope, quit
+        LD      B,A
+        ADD     HL,BC
+        LD      (FRETOP),HL             ; release string from heap
+J67EC:  POP     HL
+        RET
+
+;       Subroutine      free descriptor if temporary and on top of heap
+;       Inputs          DE = descriptor
+;       Outputs         ________________________
+
+FRETMS:
+C67EE:  CALL    H.FRET
+        LD      HL,(TEMPPT)
+        DEC     HL
+        LD      B,(HL)
+        DEC     HL
+        LD      C,(HL)                  ; pointer to string
+        DEC     HL
+        _RST    DCOMPR                  ; desciptor on top of the heap ?
+        RET     NZ                      ; nope, quit
+        LD      (TEMPPT),HL             ; release descriptor from heap
+        RET
+
+;       Subroutine      LEN function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LEN:
+C67FF:  LD      BC,SNGFLT
+        PUSH    BC                      ; after this, byte to DAC
+
+;       Subroutine      free temporary string and get size
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C6803:  CALL    FRESTR                  ; free temporary string with type check
+        XOR     A
+        LD      D,A
+        LD      A,(HL)                  ; size of string
+        OR      A                       ; Zx set if empty string
+        RET
+
+;       Subroutine      ASC function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ASC:
+C680B:  LD      BC,SNGFLT               ; after this, byte to DAC
+        PUSH    BC
+
+;       Subroutine      free temporary string and get first character
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+ASC2:
+C680F:  CALL    C6803                   ; free temporary string and get size
+        JP      Z,FCERR                 ; empty string, illegal function call
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)                  ; pointer to string
+        LD      A,(DE)                  ; first character
+        RET
+
+;       Subroutine      CHR$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CHR$:
+C681B:  CALL    STRIN1                  ; allocate temporary string of 1 char
+        CALL    CONINT                  ; check for byte value
+
+;       Subroutine      set first character of temporary string and put on heap
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETSTR:
+C6821:  LD      HL,(DSCTMP+1)
+        LD      (HL),E
+J6825:  POP     BC
+        JP      PUTNEW                  ; push temporary descriptor to temporary desciptor heap and quit
+
+;       Subroutine      STRING$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STRNG$:
+J6829:  _RST    CHRGTR                  ; get next BASIC character
+        _RST    SYNCHR
+        DEFB    "("                     ; check for (
+        CALL    GETBYT                  ; evaluate byte operand
+        PUSH    DE
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    FRMEVL                  ; evaluate expression
+        _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+        EX      (SP),HL
+        PUSH    HL
+        _RST    GETYPR                  ; get DAC type
+        JR      Z,J6841                 ; string,
+        CALL    CONINT                  ; check for byte value
+        JR      J6844
+
+J6841:  CALL    ASC2                    ; free temporary string and get first character
+J6844:  POP     DE                      ; number of characters
+        CALL    C684D                   ; create string with characters and quit
+
+;       Subroutine      SPACE$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SPACE$:
+C6848:  CALL    CONINT                  ; check for byte value
+        LD      A," "
+
+;       Subroutine      create string with characters
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C684D:  PUSH    AF
+        LD      A,E                     ; number of characters
+        CALL    STRINI                  ; allocate temporary string
+        LD      B,A
+        POP     AF
+        INC     B
+        DEC     B                       ; stringsize zero ?
+        JR      Z,J6825                 ; yep, temporary stringdescriptor to heap and quit
+        LD      HL,(DSCTMP+1)           ; pointer to temporary string
+J685B:  LD      (HL),A
+        INC     HL
+        DJNZ    J685B                   ; fill string
+        JR      J6825                   ; temporary stringdescriptor to heap and quit
+
+;       Subroutine      LEFT$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LEFT$:
+C6861:  CALL    C68E3
+        XOR     A
+J6865:  EX      (SP),HL
+        LD      C,A
+        DEFB    03EH                    ; LD A,xx, trick to skip next instruction
+LEFTUS:
+C6868:  PUSH    HL
+C6869:  PUSH    HL
+        LD      A,(HL)
+        CP      B
+        JR      C,J6870
+        LD      A,B
+        DEFB    011H                    ; LD DE,xxxx, trick to skip next instruction
+J6870:  LD      C,0
+        PUSH    BC
+        CALL    GETSPA                  ; allocate stringspace
+        POP     BC
+        POP     HL
+        PUSH    HL
+        INC     HL
+        LD      B,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,B
+        LD      B,00H
+        ADD     HL,BC
+        LD      B,H
+        LD      C,L
+        CALL    C662A                   ; make temporary stringdescriptor
+        LD      L,A
+        CALL    C67C7                   ; copy string
+        POP     DE
+        CALL    FRETMP                  ; free temporary string (descriptor in DE)
+        JP      PUTNEW                  ; push temporary descriptor to temporary desciptor heap and quit
+
+;       Subroutine      RIGHT$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RIGHT$:
+C6891:  CALL    C68E3
+        POP     DE
+        PUSH    DE
+        LD      A,(DE)
+        SUB     B
+        JR      J6865
+
+;       Subroutine      MID$ function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MID$:
+C689A:  EX      DE,HL
+        LD      A,(HL)
+        CALL    C68E6
+        INC     B
+        DEC     B
+        JP      Z,FCERR                 ; illegal function call
+        PUSH    BC
+        CALL    C69E4
+        POP     AF
+        EX      (SP),HL
+        LD      BC,C6869
+        PUSH    BC
+        DEC     A
+        CP      (HL)
+        LD      B,00H
+        RET     NC
+        LD      C,A
+        LD      A,(HL)
+        SUB     C
+        CP      E
+        LD      B,A
+        RET     C
+        LD      B,E
+        RET
+
+;       Subroutine      VAL function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+VAL:
+C68BB:  CALL    C6803                   ; free temporary string and get size
+        JP      Z,SNGFLT                ; empty string, byte (size) to DAC
+        LD      E,A
+        INC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A
+        PUSH    HL
+        ADD     HL,DE
+        LD      B,(HL)
+        LD      (VLZADR),HL
+        LD      A,B
+        LD      (VLZDAT),A
+        LD      (HL),D
+        EX      (SP),HL
+        PUSH    BC
+        DEC     HL
+        _RST    CHRGTR                  ; get next BASIC character
+        CALL    FIN                     ; convert text to number
+        LD      HL,0
+        LD      (VLZADR),HL
+        POP     BC
+        POP     HL
+        LD      (HL),B
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C68E3:  EX      DE,HL
+        _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C68E6:  POP     BC
+        POP     DE
+        PUSH    BC
+        LD      B,E
+        RET
+
+;       Subroutine      INSTR function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INSTR:
+J68EB:  _RST    CHRGTR                  ; get next BASIC character
+        CALL    FRMPRN                  ; evaluate ( expression
+        _RST    GETYPR                  ; get DAC type
+        LD      A,1
+        PUSH    AF
+        JR      Z,J6906                 ; string,
+        POP     AF
+        CALL    CONINT                  ; check for byte value
+        OR      A
+        JP      Z,FCERR                 ; illegal function call
+        PUSH    AF
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    FRMEVL                  ; evaluate expression
+        CALL    CHKSTR                  ; check if string
+J6906:  _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        PUSH    HL
+        LD      HL,(DAC+2)
+        EX      (SP),HL
+        CALL    FRMEVL                  ; evaluate expression
+        _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+        PUSH    HL
+        CALL    FRESTR                  ; free temporary string with type check
+        EX      DE,HL
+        POP     BC
+        POP     HL
+        POP     AF
+        PUSH    BC
+        LD      BC,POPHRT
+        PUSH    BC
+        LD      BC,SNGFLT
+        PUSH    BC                      ; after this, byte to DAC
+        PUSH    AF
+        PUSH    DE
+        CALL    FRETM2                  ; free temporary string (descriptor in HL)
+        POP     DE
+        POP     AF
+        LD      B,A
+        DEC     A
+        LD      C,A
+        CP      (HL)
+        LD      A,0
+        RET     NC
+        LD      A,(DE)
+        OR      A
+        LD      A,B
+        RET     Z
+        LD      A,(HL)
+        INC     HL
+        LD      B,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,B
+        LD      B,0
+        ADD     HL,BC
+J693E:  SUB     C
+        LD      B,A
+        PUSH    BC
+        PUSH    DE
+        EX      (SP),HL
+        LD      C,(HL)
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        POP     HL
+J6949:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+J694C:  LD      A,(DE)
+        CP      (HL)
+        JR      NZ,J6966
+        INC     DE
+        DEC     C
+        JR      Z,J695D
+        INC     HL
+        DJNZ    J694C
+        POP     DE
+        POP     DE
+        POP     BC
+J695A:  POP     DE
+        XOR     A
+        RET
+
+J695D:  POP     HL
+        POP     DE
+        POP     DE
+        POP     BC
+        LD      A,B
+        SUB     H
+        ADD     A,C
+        INC     A
+        RET
+
+J6966:  POP     BC
+        POP     DE
+        POP     HL
+        INC     HL
+        DJNZ    J6949
+        JR      J695A
+
+;       Subroutine      MID$ statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MIDS:
+J696E:  _RST    SYNCHR
+        DEFB    "("                     ; check for (
+        CALL    PTRGET                  ; locate variable
+        CALL    CHKSTR                  ; check if string
+        PUSH    HL
+        PUSH    DE
+        EX      DE,HL
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        LD      HL,(STREND)
+        _RST    DCOMPR
+        JR      C,J6993
+        LD      HL,(TXTTAB)
+        _RST    DCOMPR
+        JR      NC,J6993
+        POP     HL
+        PUSH    HL
+        CALL    STRCPY                  ; copy string to new temporary string
+        POP     HL
+        PUSH    HL
+        CALL    VMOVE                   ; HL = DE (valtyp)
+J6993:  POP     HL
+        EX      (SP),HL
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETBYT                  ; evaluate byte operand
+        OR      A                       ; startpos 0 ?
+        JP      Z,FCERR                 ; yep, illegal function call
+        PUSH    AF
+        LD      A,(HL)
+        CALL    C69E4
+        PUSH    DE
+        CALL    FRMEQL                  ; evaluate = expression
+        PUSH    HL
+        CALL    FRESTR                  ; free temporary string with type check
+        EX      DE,HL
+        POP     HL
+        POP     BC
+        POP     AF
+        LD      B,A
+        EX      (SP),HL
+        PUSH    HL
+        LD      HL,POPHRT
+        EX      (SP),HL
+        LD      A,C
+        OR      A
+        RET     Z
+        LD      A,(HL)
+        SUB     B
+        JP      C,FCERR                 ; illegal function call
+        INC     A
+        CP      C
+        JR      C,J69C3
+        LD      A,C
+J69C3:  LD      C,B
+        DEC     C
+        LD      B,00H
+        PUSH    DE
+        INC     HL
+        LD      E,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,E
+        ADD     HL,BC
+        LD      B,A
+        POP     DE
+        EX      DE,HL
+        LD      C,(HL)
+        INC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A
+        EX      DE,HL
+        LD      A,C
+        OR      A
+        RET     Z
+J69DB:  LD      A,(DE)
+        LD      (HL),A
+        INC     DE
+        INC     HL
+        DEC     C
+        RET     Z
+        DJNZ    J69DB
+        RET
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C69E4:  LD      E,0FFH
+        CP      ")"
+        JR      Z,J69EF
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        CALL    GETBYT                  ; evaluate byte operand
+J69EF:  _RST    SYNCHR
+        DEFB    ")"                     ; check for )
+        RET
+
+;       Subroutine      FRE function
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FRE:
+C69F2:  LD      HL,(STREND)
+        EX      DE,HL
+        LD      HL,0
+        ADD     HL,SP
+        _RST    GETYPR                  ; get DAC type
+        JP      NZ,GIVDBL               ; not a string,
+        CALL    FREDAC                  ; free temporary string in DAC
+        CALL    C66B6                   ; garbage collect
+        LD      DE,(STKTOP)
+        LD      HL,(FRETOP)
+        JP      GIVDBL
+
+; END	SUBTTL	BISTRS
+
+        END
+

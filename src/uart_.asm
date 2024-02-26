@@ -34,7 +34,7 @@
     XREF    _uart0_recv_tail
     XREF    _uart0_recv_buffer
     XREF    _uart0_recv_command_mode
-    XREF    _uart0_recv_command_vk
+    XREF    _uart0_recv_command_row
     XREF    _eos_msx_keyboard_scanline
 
 PORTD_DRVAL_DEF       EQU    0ffh			;The default value for Port D data register (set for Mode 2).
@@ -105,6 +105,8 @@ UART0_INIT:
     ld a, 00000001b  ; receive interrupt enabled, rest disabled
     out0 (UART0_IER),a
 
+    ; not using UART1 anymore to enable joystick support
+    ;
 ; UART1_INIT:
 ;     ; all pins to GPIO mode 2, high impedance input
 ;     ld a, PORTD_DRVAL_DEF
@@ -294,6 +296,8 @@ uart0_recv_fifo_add:
     bit 6,a
     jr z, _uart0_recv_normal
     jr _uart0_recv_command
+    
+; process normal character
 _uart0_recv_normal:
     ; store and increment head ptr
     ld hl, (_uart0_recv_head)
@@ -316,6 +320,9 @@ _uart0_recv_done:
     pop hl
     ret
 
+; process command
+;
+; currently only supports keyboard matrix updates
 _uart0_recv_command:
     ; byte 0
     ld a, 2 ; two bytes following
@@ -324,73 +331,22 @@ _uart0_recv_command:
 _uart0_recv_command_next:
     dec a
     ld (_uart0_recv_command_mode),a
-    and a ; 1 = vk, 0 = up/down
+    and a ; 1 = keyboard matrix row number to update, 0 = keyboard matrix bits
     jr z, _uart0_recv_command_next_updown 
-_uart0_recv_comman_next_vk:
+_uart0_recv_comman_next_row:
     ; byte 1
     pop af
-    ld (_uart0_recv_command_vk),a
+    ld (_uart0_recv_command_row),a
     jr _uart0_recv_done
 _uart0_recv_command_next_updown:
     ; byte 2
-    ld a, (_uart0_recv_command_vk)
-    ld hl, _eos_msx_keyboard_scanline+8
-    cp 1 ; space
-    jr z, _uart0_recv_command_next_space
-    cp 154 ; arrow left
-    jr z, _uart0_recv_command_next_arrowleft
-    cp 156 ; arrow right
-    jr z, _uart0_recv_command_next_arrowright
-    cp 150 ; arrow up
-    jr z, _uart0_recv_command_next_arrowup
-    cp 152 ; arrow down
-    jr z, _uart0_recv_command_next_arrowdown
+    ld de, 0
+    ld a, (_uart0_recv_command_row)
+	ld e, a
+    ld hl, _eos_msx_keyboard_scanline
+    add hl,de
     pop af
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowleft:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowleft_up
-    res 4,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowleft_up:    
-    set 4,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowright:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowright_up
-    res 7,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowright_up:    
-    set 7,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowup:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowup_up
-    res 5,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowup_up:    
-    set 5,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowdown:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_arrowdown_up
-    res 6,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_arrowdown_up:    
-    set 6,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_space:
-    pop af
-    and a
-    jr z, _uart0_recv_command_next_space_up
-    res 0,(hl)
-    jr _uart0_recv_done
-_uart0_recv_command_next_space_up:    
-    set 0,(hl)
+    ld (hl),a
     jr _uart0_recv_done
 
 ; Get a character from the SEND fifo

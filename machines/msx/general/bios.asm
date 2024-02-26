@@ -134,8 +134,8 @@ _ENASLT:                 ; 0024h
     JP ENASLT
 
     DS 0028h - $
-_GETTYPR:                ; RST 28h
-    JP WRITE_PORT_Z80
+_GETYPR:                 ; RST 28h
+    JP WRITE_PORT
 
     DS 002Bh - $
 IDBYT0:
@@ -161,7 +161,7 @@ D0034:  db    0,0
 
     DS 0038h - $
 _KEYINT:                 ; RST 38h
-    JP READ_PORT_Z80
+    JP READ_PORT
 
 ; VDP ROUTINES
 ;     DS 0041h - $
@@ -486,7 +486,7 @@ READ_PORT:
     rst 28h
     ret
 
-WRITE_PORT_EZ80_DIRECT:
+WRITE_PORT:
     POP IY      ; get address of following instruction
     INC IY
     PUSH IY     ; return address is next byte
@@ -495,12 +495,10 @@ WRITE_PORT_EZ80_DIRECT:
     ld iyl,a    ; port in IYl
     pop af      ; restore original A
     ld iyh,a    ; value in IYh
-    push ix
-    ld ix, 014h
+    scf         ; set carry = write
     DB 0x5b ; .LIL
-    rst 38h
-    pop ix
-    RET
+    rst 28h
+    ret
 
 UART0_WAIT_AVAILABLE:
 _uart0_send_wait:
@@ -628,19 +626,7 @@ READ_SLOT_REGISTER:
     ld b, a ; value in B will be returned in A
     jp READ_PORT_DONE
 
-WRITE_PORT_EZ80:
-    POP IY      ; get address of following instruction
-    INC IY
-    PUSH IY     ; return address is next byte
-    push af     ; store A to stack
-    LD A,(IY-1) ; port number we want to write
-    ld iyl,a    ; port in IYl
-    pop af      ; restore original A
-    ld iyh,a    ; value in IYh
-    scf         ; set carry = write
-    DB 0x5b ; .LIL
-    rst 28h
-    ret
+
 
 ;Address  : #000C
 ;Function : Reads the value of an address in another slot

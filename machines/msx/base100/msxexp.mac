@@ -1,0 +1,235 @@
+; MSXEXP.MAC
+
+; BASIC expansion functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     55D5h ;55A7H
+
+
+        INCLUDE MSX.INC
+
+
+CALSLT  EQU     001CH
+
+SLTATR  EQU     0FCC9H
+PROCNM  EQU     0FD89H
+DEVICE  EQU     0FD99H
+
+
+        PUBLIC  CALL$
+        PUBLIC  CALLS
+        PUBLIC  EXTDEV
+        PUBLIC  EXTDFN
+
+        EXTRN   SNERR
+        EXTRN   DERNMF
+        EXTRN   ATRSL2
+        EXTRN   ATRSLI
+        EXTRN   RDWEXP
+        EXTRN   MAKUPL
+        IF	NDEVFIX EQ 1
+        EXTRN   CHKZDN
+        ENDIF
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	MSXEXP
+
+CALL$:
+J55A7:  _RST    CHRGTR                  ; get next BASIC character
+
+;       Subroutine      CALL statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CALLS:
+C55A8:  LD      DE,PROCNM
+        LD      B,15 
+J55AD:  LD      A,(HL)
+        AND     A
+        JR      Z,J55BE                 ; end of line, end of name
+        CP      ":"
+        JR      Z,J55BE                 ; statement seperator, end of name
+        CP      "("
+        JR      Z,J55BE                 ; parameter, end of name
+        LD      (DE),A
+        INC     DE
+        INC     HL
+        DJNZ    J55AD
+J55BE:  LD      A,B
+        CP      15
+        JR      Z,J55D8                 ; no name, syntax error
+J55C3:  XOR     A
+        LD      (DE),A
+        DEC     DE
+        LD      A,(DE)
+        CP      " "
+        JR      Z,J55C3                 ; remove trailing spaces and place endmarker in name
+        LD      B,64
+        LD      DE,SLTATR
+J55D0:  LD      A,(DE)
+J55D1:  AND     20H
+        JR      NZ,J55DB                ; expansion ROM has statement handler, try it
+J55D5:  INC     DE
+        DJNZ    J55D0                   ; next page/slot
+J55D8:  JP      SNERR                   ; syntax error
+
+J55DB:  PUSH    BC
+        PUSH    DE
+        PUSH    HL
+        CALL    ATRSL2                  ; translate SLTATR loopvar to address and slotid
+        PUSH    AF
+        LD      C,A
+        LD      L,4                     ; statement entry offset
+        CALL    RDWEXP                  ; read expansion ROM entry
+        PUSH    DE
+        POP     IX
+        POP     IY
+        POP     HL
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        CALL    CALSLT                  ; call statement handler
+        POP     DE
+        POP     BC
+        JR      C,J55D5                 ; statement not recognized, try next
+        RET                             ; statement recognized, quit
+
+; external device handler
+
+EXTDEV:
+J55F8:  POP     HL
+        LD      A,B
+        CP      16
+        JR      C,J5600
+        LD      B,15                    ; devicename length is max 15
+
+J5600:
+
+        IF	NDEVFIX EQ 0
+;
+; #####################
+; early MSX 1 version code:
+
+        LD      DE,PROCNM
+
+        ELSE
+
+; #####################
+; later MSX versions have a patch for zero length devicename
+
+
+        CALL    CHKZDN                  ; bugfix for zero length devicename
+
+; #####################
+
+        ENDIF
+
+J5603:  CALL    MAKUPL                  ; get char uppercase
+        LD      (DE),A
+        INC     HL
+        INC     DE
+        DJNZ    J5603                   ; copy devicename in PROCNM
+        XOR     A
+        LD      (DE),A                  ; zero terminator
+        LD      B,64
+        LD      DE,SLTATR
+J5612:  LD      A,(DE)
+        AND     40H
+        JR      NZ,J561D                ; has device entry, try it
+J5617:  INC     DE
+        DJNZ    J5612                   ; next page
+J561A:  JP      DERNMF                  ; devicename not recognized, bad filename error
+
+J561D:  PUSH    BC
+        PUSH    DE
+        CALL    ATRSL2                  ; translate SLTATR loopvar to address and slotid
+        PUSH    AF
+        LD      C,A
+        LD      L,6                     ; device entry offset
+        CALL    RDWEXP                  ; read expansion ROM entry
+        PUSH    DE
+        POP     IX
+        POP     IY
+        LD      A,0FFH                  ; check if devicename recognized
+        CALL    CALSLT                  ; call device handler
+        POP     DE
+        POP     BC
+        JR      C,J5617                 ; devicename not recognized, try next
+        LD      C,A                     ; relative devicecode
+        LD      A,40H
+        SUB     B
+        ADD     A,A
+        ADD     A,A
+        OR      C                       ; calculate devicecode
+        CP      9                       ; devicecode in the internal diskdrive devicecode range ?
+        JR      C,J561A                 ; yep, bad filename error
+        CP      0FCH                    ; devicecode in the internal devicecode range ?
+        JR      NC,J561A                ; yep, bad filename error
+        POP     HL
+        POP     DE
+        AND     A                       ; Cx reset
+        RET
+
+;       Subroutine      i/o function dispatcher for expansion ROM
+;       Inputs          A = device number
+;       Outputs         ________________________
+
+EXTDFN:
+J564A:  PUSH    BC
+        PUSH    AF
+        RRA
+        RRA
+        AND     3FH
+        CALL    ATRSLI                  ; translate SLTATR entrynumber to address and slotid
+        PUSH    AF
+        LD      C,A
+        LD      L,6
+        CALL    RDWEXP
+        PUSH    DE
+        POP     IX ; was DE
+        POP     IY ; was AF
+        POP     AF ; device number
+        AND     03H
+        LD      (DEVICE),A
+        POP     BC ; was BC passed in
+        POP     AF ; GENDSP AF
+        POP     DE ; GENDSP DE
+        POP     HL ; GENDSP HL
+        JP      CALSLT
+
+; END	SUBTTL	MSXEXP
+
+        END
+

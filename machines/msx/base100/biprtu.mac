@@ -1,0 +1,379 @@
+; BIPRTU.MAC
+
+; BASIC PRINT USING, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     060E1h ; 60B1H
+
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  EQU     0008H
+CHRGTR  EQU     0010H
+OUTDO   EQU     0018H
+
+FLGINP  EQU     0F6A6H
+DAC     EQU     0F7F6H
+
+
+        PUBLIC  PRINUS
+
+        EXTRN   PUFOUT
+        EXTRN   FCERR
+        EXTRN   FRMEVL
+        EXTRN   CHKSTR
+        EXTRN   STROUT
+        EXTRN   CRDO
+        EXTRN   FINPRT
+        EXTRN   FRETM2
+        EXTRN   LEFTUS
+        EXTRN   STRPRT
+        EXTRN   FRMCHK
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START	SUBTTL	BIPRTU
+
+	SUBTTL	BIPRTU
+
+
+;       Subroutine      PRINT USING statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PRINUS:
+J60B1:  CALL    FRMCHK                  ; skip character and evaluate expression
+        CALL    CHKSTR                  ; check if string
+        _RST    SYNCHR
+        DEFB    ";"                     ; check for ";"
+        EX      DE,HL
+        LD      HL,(DAC+2)              ; formatstring descriptor
+        JR      J60C7
+
+J60BF:  LD      A,(FLGINP)
+        OR      A
+        JR      Z,J60D2
+        POP     DE
+        EX      DE,HL
+J60C7:  PUSH    HL
+        XOR     A
+        LD      (FLGINP),A              ; flag
+        INC     A
+        PUSH    AF
+        PUSH    DE
+        LD      B,(HL)
+        INC     B
+        DEC     B                       ; empty format string ?
+J60D2:  JP      Z,FCERR                 ; yep, illegal function call
+        INC     HL
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A                     ; start of string
+        JR      PRCCHR
+
+; part of string handler
+
+J60DC:  LD      E,B                     ; save length
+        PUSH    HL                      ; save pointer
+        LD      C,2                     ; at least 2 chars
+J60E0:  LD      A,(HL)
+        INC     HL
+        CP      CHRFLN
+        JP      Z,J6210                 ; end marker, print string
+        CP      " "
+        JR      NZ,J60EE                ; not a space between markers, so no part string!
+        INC     C
+        DJNZ    J60E0                   ; next char, non left means no endmarker and no part string!
+J60EE:  POP     HL                      ; restore pointer
+        LD      B,E                     ; restore length
+        LD      A,CHRFLN                ; just print the CHRFLN char
+J60F2:	CALL	PLSPRT
+	_RST	OUTDO
+PRCCHR:
+J60F6:  XOR     A
+        LD      E,A
+        LD      D,A
+J60F9:  CALL    PLSPRT
+        LD      D,A
+        LD      A,(HL)
+        INC     HL
+        CP      "!"
+        JP      Z,J620D                 ; "1 char of string" format char, handle
+        CP      "#"
+        JR      Z,J6144                 ; # numeric format char, handle
+        CP      CHRVLN
+        JP      Z,J6209                 ; "whole string" format char, handle
+        DEC     B                       ; other format chars need at least 1 extra char
+        JP      Z,J61F5                 ; not there, end it
+        CP      "+"
+        LD      A,08H
+        JR      Z,J60F9                 ; +, set sign flag and continue
+        DEC     HL
+        LD      A,(HL)
+        INC     HL
+        CP      "."
+        JR      Z,J615E                 ; may be .# combi, check
+        CP      CHRFLN
+        JR      Z,J60DC                 ; "part of string" format char, handle
+        CP      (HL)
+        JR      NZ,J60F2                ; not two equal chars, just print it
+        CP      CHRCUR
+        JR      Z,J613D                 ; double currency char, handle
+        CP      "*"
+        JR      NZ,J60F2
+
+; ** format
+
+        INC     HL
+        LD      A,B
+        CP      02H
+        JR      C,J6136                 ; none or only 1 char follows,
+        LD      A,(HL)
+        CP      CHRCUR
+J6136:  LD      A," "
+        JR      NZ,J6141
+
+; **cur format
+
+        DEC     B
+        INC     E
+        DEFB    0FEH                    ; CP xx, trick to skip next instruction
+J613D:  XOR     A
+        ADD     A,10H
+        INC     HL
+J6141:  INC     E
+        ADD     A,D
+        LD      D,A
+J6144:  INC     E
+        LD      C,00H
+        DEC     B
+        JR      Z,J6192
+        LD      A,(HL)
+        INC     HL
+        CP      "."
+        JR      Z,J6169
+        CP      "#"
+        JR      Z,J6144
+        CP      ","
+        JR      NZ,J6173
+        LD      A,D
+        OR      40H
+        LD      D,A
+        JR      J6144
+
+J615E:  LD      A,(HL)
+        CP      "#"
+        LD      A,"."
+        JP      NZ,J60F2
+        LD      C,01H
+        INC     HL
+J6169:  INC     C
+        DEC     B
+        JR      Z,J6192
+        LD      A,(HL)
+        INC     HL
+        CP      "#"
+        JR      Z,J6169
+J6173:  PUSH    DE
+        LD      DE,I6190
+        PUSH    DE
+        LD      D,H
+        LD      E,L
+        CP      5EH
+        RET     NZ
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        CP      (HL)
+        RET     NZ
+        INC     HL
+        LD      A,B
+        SUB     04H
+        RET     C
+        POP     DE
+        POP     DE
+        LD      B,A
+        INC     D
+        INC     HL
+        DEFB    0CAH                    ; JP Z,xxxx trick to skip next 2 instructions
+I6190:  EX      DE,HL
+        POP     DE
+J6192:  LD      A,D
+        DEC     HL
+        INC     E
+        AND     08H
+        JR      NZ,J61AE
+        DEC     E
+        LD      A,B
+        OR      A
+        JR      Z,J61AE
+        LD      A,(HL)
+        SUB     "-"
+        JR      Z,J61A9
+        CP      0FEH
+        JR      NZ,J61AE
+        LD      A,08H
+J61A9:  ADD     A,04H
+        ADD     A,D
+        LD      D,A
+        DEC     B
+J61AE:  POP     HL
+        POP     AF
+        JR      Z,J61FE
+        PUSH    BC
+        PUSH    DE
+        CALL    FRMEVL                  ; evaluate expression
+        POP     DE
+        POP     BC
+        PUSH    BC
+        PUSH    HL
+        LD      B,E
+        LD      A,B
+        ADD     A,C
+        CP      19H
+        JP      NC,FCERR                ; illegal function call
+        LD      A,D
+        OR      80H
+        CALL    PUFOUT                  ; convert DAC to text, formatted
+        CALL    STROUT                  ; message to interpreter output
+J61CC:  POP     HL
+        DEC     HL
+        _RST    CHRGTR                  ; end of statement ?
+        SCF
+        JR      Z,J61DD			; yep,
+        LD      (FLGINP),A
+        CP      ";"
+        JR      Z,J61DC
+        _RST    SYNCHR
+        DEFB    ","                     ; check for ,
+        DEFB    006H                    ; LD B,xx, trick to skip next instruction
+J61DC:  _RST    CHRGTR                  ; get next BASIC character
+J61DD:  POP     BC
+        EX      DE,HL
+        POP     HL
+        PUSH    HL
+        PUSH    AF
+        PUSH    DE
+        LD      A,(HL)
+        SUB     B
+        INC     HL
+        LD      D,00H
+        LD      E,A
+        LD      A,(HL)
+        INC     HL
+        LD      H,(HL)
+        LD      L,A
+        ADD     HL,DE
+        LD      A,B
+        OR      A
+        JP      NZ,PRCCHR
+        JR      FINUSI
+
+J61F5:  CALL    PLSPRT
+        _RST    OUTDO                   ; char to interpreter output
+FINUSI:
+J61F9:  POP     HL
+        POP     AF
+        JP      NZ,J60BF
+J61FE:  CALL    C,CRDO                  ; newline to interpreter output
+        EX      (SP),HL
+        CALL    FRETM2                  ; free temporary string (descriptor in HL)
+        POP     HL
+        JP      FINPRT                  ; return interpreter output to screen
+
+; handle char
+
+J6209:  LD      C,00H
+        JR      J6211
+
+; handle ! char
+
+J620D:  LD      C,01H
+        DEFB    03EH                    ; LD A,xx, trick to skip next instruction
+J6210:  POP     AF
+J6211:  DEC     B
+        CALL    PLSPRT
+        POP     HL
+        POP     AF
+        JR      Z,J61FE
+        PUSH    BC
+        CALL    FRMEVL                  ; evaluate expression
+        CALL    CHKSTR                  ; check if string
+        POP     BC
+        PUSH    BC
+        PUSH    HL
+        LD      HL,(DAC+2)
+        LD      B,C
+        LD      C,00H
+        LD      A,B
+        PUSH    AF
+        OR      A
+        CALL    NZ,LEFTUS
+        CALL    STRPRT                  ; free string and string to interpreter output
+        LD      HL,(DAC+2)
+        POP     AF
+        OR      A
+        JP      Z,J61CC
+        SUB     (HL)
+        LD      B,A
+        LD      A," "
+        INC     B
+J623F:  DEC     B
+        JP      Z,J61CC
+        _RST    OUTDO                   ; space to interpreter output
+        JR      J623F
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PLSPRT:
+C6246:  PUSH    AF
+        LD      A,D
+        OR      A
+        LD      A,"+"
+        CALL    NZ,OUTDO                ; yep, "+" to interpreter output
+        POP     AF
+        RET
+
+; END	SUBTTL 	BIPRTU
+
+        END
+

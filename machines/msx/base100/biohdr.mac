@@ -1,0 +1,306 @@
+; BIOHDR.MAC
+
+; BIOS jump table, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     0000H
+
+        INCLUDE MSX.INC
+
+
+        EXTRN   SYNENT
+        EXTRN   RDSLT
+        EXTRN   CHRENT
+        EXTRN   WRSLT
+        EXTRN   OUTDO
+        EXTRN   CALSLT
+        EXTRN   DCOMPR
+        EXTRN   ENASLT
+        EXTRN   GETENT
+        EXTRN   CALLF
+        EXTRN   KEYINT
+        EXTRN   INITIO
+        EXTRN   INIFNK
+        EXTRN   DISSCR
+        EXTRN   ENASCR
+        EXTRN   WRTVDP
+        EXTRN   RDVRM
+        EXTRN   WRTVRM
+        EXTRN   SETRD
+        EXTRN   SETWRT
+        EXTRN   FILVRM
+        EXTRN   LDIRMV
+        EXTRN   LDIRVM
+        EXTRN   CHGMOD
+        EXTRN   CHGCLR
+        EXTRN   NMI
+        EXTRN   CLRSPR
+        EXTRN   INITXT
+        EXTRN   INIT32
+        EXTRN   INIGRP
+        EXTRN   INIMLT
+        EXTRN   SETTXT
+        EXTRN   SETT32
+        EXTRN   SETGRP
+        EXTRN   SETMLT
+        EXTRN   CALPAT
+        EXTRN   CALATR
+        EXTRN   GSPSIZ
+        EXTRN   GRPPRT
+        EXTRN   GICINI
+        EXTRN   WRTPSG
+        EXTRN   RDPSG
+        EXTRN   STRTMS
+        EXTRN   CHSNS
+        EXTRN   CHGET
+        EXTRN   CHPUT
+        EXTRN   LPTOUT
+        EXTRN   LPTSTT
+        EXTRN   CNVCHR
+        EXTRN   PINLIN
+        EXTRN   INLIN
+        EXTRN   QINLIN
+        EXTRN   BREAKX
+        EXTRN   ISCNTC
+        EXTRN   CKCNTC
+        EXTRN   BEEP
+        EXTRN   CLS
+        EXTRN   POSIT
+        EXTRN   FNKSB
+        EXTRN   ERAFNK
+        EXTRN   DSPFNK
+        EXTRN   TOTEXT
+        EXTRN   GTSTCK
+        EXTRN   GTTRIG
+        EXTRN   GTPAD
+        EXTRN   GTPDL
+        EXTRN   TAPION
+        EXTRN   TAPIN
+        EXTRN   TAPIOF
+        EXTRN   TAPOON
+        EXTRN   TAPOUT
+        EXTRN   TAPOOF
+        EXTRN   STMOTR
+        EXTRN   LFTQ
+        EXTRN   PUTQ
+        EXTRN   RIGHTC
+        EXTRN   LEFTC
+        EXTRN   UPC
+        EXTRN   TUPC
+        EXTRN   DOWNC
+        EXTRN   TDOWNC
+        EXTRN   SCALXY
+        EXTRN   MAPXYC
+        EXTRN   FETCHC
+        EXTRN   STOREC
+        EXTRN   SETATR
+        EXTRN   READC
+        EXTRN   SETC
+        EXTRN   NSETCX
+        EXTRN   GTASPC
+        EXTRN   PNTINI
+        EXTRN   SCANR
+        EXTRN   SCANL
+        EXTRN   CHGCAP
+        EXTRN   CHGSND
+        EXTRN   RSLREG
+        EXTRN   WSLREG
+        EXTRN   RDVDP
+        EXTRN   SNSMAT
+        EXTRN   PHYDIO
+        EXTRN   FORMAT
+        EXTRN   ISFLIO
+        EXTRN   OUTDLP
+        EXTRN   GETVCP
+        EXTRN   GETVC2
+        EXTRN   KILBUF
+        EXTRN   CALBAS
+        EXTRN   CHKRAM
+        EXTRN   CGTABL
+        EXTRN   RD_PORT
+        EXTRN   WR_PORT
+
+; START SUBTTL  BIOHDR
+
+        SUBTTL  BIOHDR
+
+
+        di
+        jp      CHKRAM
+
+        defw    CGTABL
+VDP.DR: defb    098H
+VDP.DW: defb    098H
+
+        jp      SYNENT
+
+        defs    0000CH-$,0
+
+        jp      RDSLT
+
+        defs    00010H-$,0
+
+        jp      CHRENT
+
+        defs    00014H-$,0
+
+        jp      WRSLT
+
+        defs    00018H-$,0
+
+        jp      OUTDO
+
+        defs    0001CH-$,0
+
+        jp      CALSLT
+
+        defs    00020H-$,0
+
+        jp      DCOMPR
+
+        defs    00024H-$,0
+
+        jp      ENASLT
+
+        defs    00028H-$,0
+
+        jp      WR_PORT ; GETENT
+;
+IDBYT0:
+        IF      INTHZ EQ 60
+        DEFB    CHRGEN+16*DATFMT
+        ELSE
+        DEFB    CHRGEN+16*DATFMT+128
+        ENDIF
+IDBYT1: DEFB    KEYTYP+16*BASVER
+IDBYT2: DEFB    MSXVER                  ; MSX version 0 = MSX1
+        DEFB    0
+
+        DEFS    00030H-$
+
+        jp      CALLF
+;
+        DEFS    00034H-$
+
+;       The next bytes are used by the diskrom, to initialize the double byte header char
+;       table (0F30FH). I have not seen a MSX with anything other than four zero's, meaning
+;       no double byte chars.
+
+D0034:  defb    0,0
+        defb    0,0
+
+        jp      RD_PORT ; KEYINT
+        jp      INITIO
+        jp      INIFNK
+        jp      DISSCR
+        jp      ENASCR
+        jp      WRTVDP
+        jp      RDVRM
+        jp      WRTVRM
+        jp      SETRD
+        jp      SETWRT
+        jp      FILVRM
+        jp      LDIRMV
+        jp      LDIRVM
+        jp      CHGMOD
+        jp      CHGCLR
+
+        defs    00066H-$,0              ; align to Z80 NMI entry at 0066H
+
+        jp      KEYINT ; NMI
+        jp      CLRSPR
+        jp      INITXT
+        jp      INIT32
+        jp      INIGRP
+        jp      INIMLT
+        jp      SETTXT
+        jp      SETT32
+        jp      SETGRP
+        jp      SETMLT
+        jp      CALPAT
+        jp      CALATR
+        jp      GSPSIZ
+        jp      GRPPRT
+        jp      GICINI
+        jp      WRTPSG
+        jp      RDPSG
+        jp      STRTMS
+        jp      CHSNS
+        jp      CHGET
+        jp      CHPUT
+        jp      LPTOUT
+        jp      LPTSTT
+        jp      CNVCHR
+        jp      PINLIN
+        jp      INLIN
+        jp      QINLIN
+        jp      BREAKX
+        jp      ISCNTC
+        jp      CKCNTC
+        jp      BEEP
+        jp      CLS
+        jp      POSIT
+        jp      FNKSB
+        jp      ERAFNK
+        jp      DSPFNK
+        jp      TOTEXT
+        jp      GTSTCK
+        jp      GTTRIG
+        jp      GTPAD
+        jp      GTPDL
+        jp      TAPION
+        jp      TAPIN
+        jp      TAPIOF
+        jp      TAPOON
+        jp      TAPOUT
+        jp      TAPOOF
+        jp      STMOTR
+        jp      LFTQ
+        jp      PUTQ
+        jp      RIGHTC
+        jp      LEFTC
+        jp      UPC
+        jp      TUPC
+        jp      DOWNC
+        jp      TDOWNC
+        jp      SCALXY
+        jp      MAPXYC
+        jp      FETCHC
+        jp      STOREC
+        jp      SETATR
+        jp      READC
+        jp      SETC
+        jp      NSETCX
+        jp      GTASPC
+        jp      PNTINI
+        jp      SCANR
+        jp      SCANL
+        JP      CHGCAP
+        JP      CHGSND
+        jp      RSLREG
+        jp      WSLREG
+        jp      RDVDP
+        jp      SNSMAT
+        jp      PHYDIO
+        jp      FORMAT
+        jp      ISFLIO
+        jp      OUTDLP
+        jp      GETVCP
+        jp      GETVC2
+        jp      KILBUF
+        jp      CALBAS
+
+; END   SUBTTL  BIOHDR
+
+        end

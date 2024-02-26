@@ -1,0 +1,819 @@
+; SPCDEV.MAC
+
+; BASIC load and save statements, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     06F55h ; 6F15H
+
+
+        INCLUDE MSX.INC
+
+
+SYNCHR  equ     0008H
+CHRGTR  equ     0010H
+OUTDO   equ     0018H
+DCOMPR  equ     0020H
+GRPPRT  equ     008DH
+CHPUT   equ     00A2H
+TAPION  equ     00E1H
+TAPIN   equ     00E4H
+TAPIOF  equ     00E7H
+TAPOON  equ     00EAH
+TAPOUT  equ     00EDH
+TAPOOF  equ     00F0H
+OUTDLP  equ     014DH
+
+FRCNEW  equ     0F3F5H
+CURLIN  equ     0F41CH
+TXTTAB  equ     0F676H
+VARTAB  equ     0F6C2H
+DAC     equ     0F7F6H
+PTRFIL  equ     0F864H
+FILNAM  equ     0F866H
+FILNM2  equ     0F871H
+SAVEND  equ     0F87DH
+SCRMOD  equ     0FCAFH
+CASPRV  equ     0FCB1H
+SAVENT  equ     0FCBFH
+
+H.PARD  equ     0FEB2H
+H.NODE  equ     0FEB7H
+H.POSD  equ     0FEBCH
+H.GEND  equ     0FEC6H
+
+
+        PUBLIC  CSAVE
+        PUBLIC  CLOAD
+        PUBLIC  GENDSP
+        PUBLIC  PARDEV
+        PUBLIC  CBSAVE
+        PUBLIC  CBLOAD
+        PUBLIC  POPAL2
+        PUBLIC  POPAL3
+
+        EXTRN   DERNMF
+        EXTRN   FCERR
+        EXTRN   DERSOO
+        EXTRN   ERROR
+        EXTRN   REDDY
+        EXTRN   FRMEVL
+        EXTRN   STROUT
+        EXTRN   REASON
+        EXTRN   SCRTCH
+        EXTRN   DEPTR
+        EXTRN   CRDO
+        EXTRN   MAKUPL
+        EXTRN   CONIA
+        EXTRN   GETCSP
+        EXTRN   BLDFIN
+        EXTRN   FINI
+        EXTRN   ASC2
+        EXTRN   DIOERR
+        EXTRN   EXTDEV
+        EXTRN   EXTDFN
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL  SPCDEV
+
+        SUBTTL  SPCDEV
+
+;       Subroutine      devicename parser
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PARDEV:
+C6F15:  CALL    H.PARD                  ; hook devicename parser: start of parser
+        LD      A,(HL)
+        CP      3AH                     ; 00H-39H ?
+        JR      C,J6F37                 ; yep, bad filename
+        PUSH    HL
+        LD      D,E
+        LD      A,(HL)
+        INC     HL
+        DEC     E
+        JR      Z,J6F2E                 ; filespec has length 1, no device
+J6F24:  CP      ":"                     ; device seperator ?
+        JR      Z,J6F3D                 ; yep,
+        LD      A,(HL)
+        INC     HL
+        DEC     E
+        JP      P,J6F24                 ; check for device
+J6F2E:  LD      E,D
+        POP     HL
+        XOR     A                       ; Zx set
+        LD      A,0FFH                  ; devicecode for CAS
+        CALL    H.NODE                  ; hook devicename parser: no device specified
+        RET
+
+J6F37:  CALL    H.POSD                  ; hook devicename parser: first character filespecification has code 00-39H
+        JP      DERNMF                  ; bad filename
+
+J6F3D:  LD      A,D
+        SUB     E
+        DEC     A                       ; length of devicename
+        POP     BC
+        PUSH    DE
+        PUSH    BC
+        LD      C,A
+        LD      B,A
+        LD      DE,I6F76                ; internal devicename table
+        EX      (SP),HL
+        PUSH    HL
+J6F4A:  CALL    MAKUPL                  ; get char uppercase
+        PUSH    BC
+        LD      B,A
+        LD      A,(DE)
+        INC     HL
+        INC     DE
+        CP      B                       ; match ?
+        POP     BC
+        JR      NZ,J6F63                ; nope,
+        DEC     C
+        JR      NZ,J6F4A                ; next
+J6F59:  LD      A,(DE)
+        OR      A                       ; name in table also ends ?
+        JP      P,J6F63                 ; nope, this is not it!
+        POP     HL                      ; yep, A=devicecode
+        POP     HL
+        POP     DE
+        OR      A                       ; Zx reset
+        RET
+
+J6F63:  OR      A                       ; already at devicecode ?
+        JP      M,J6F59                 ; yep, found device!
+J6F67:  LD      A,(DE)
+        ADD     A,A
+        INC     DE
+        JR      NC,J6F67                ; skip to next devicename in table
+        LD      C,B
+        POP     HL
+        PUSH    HL
+        LD      A,(DE)
+        OR      A
+        JR      NZ,J6F4A                ; try next devicename
+        JP      EXTDEV                  ; try external devices (in expansion roms)
+
+I6F76:  DEFB    "CAS",0FFH
+        DEFB    "LPT",0FEH
+        DEFB    "CRT",0FDH
+        DEFB    "GRP",0FCH
+        DEFB    0
+
+I6F87:  DEFW    C71C7                   ; CAS jumptable
+        DEFW    C72A6                   ; LPT jumptable
+        DEFW    C71A2                   ; CRT jumptable
+        DEFW    C7182                   ; GRP jumptable
+
+;       Subroutine      i/o function dispatcher
+;       Inputs          A = function, HL = i/o channel pointer
+;       Outputs         ________________________
+
+GENDSP:
+C6F8F:  CALL    H.GEND
+        PUSH    HL
+        PUSH    DE
+        PUSH    AF
+        LD      DE,4
+        ADD     HL,DE
+        LD      A,(HL)			; device code
+        CP      0FCH                    ; i/o channel device a internal device ?
+        JP      C,EXTDFN                ; nope, start i/o function in expansion ROM
+        LD      A,0FFH
+        SUB     (HL)
+        ADD     A,A
+        LD      E,A
+        LD      HL,I6F87
+        ADD     HL,DE
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        POP     AF                      ; functioncode
+        LD      L,A
+        LD      H,0
+        ADD     HL,DE
+        LD      E,(HL)
+        INC     HL
+        LD      D,(HL)
+        EX      DE,HL
+        POP     DE                      ; filemode
+        EX      (SP),HL                 ; i/o channel control block
+        RET
+
+;       Subroutine      CSAVE statement
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+CSAVE:
+C6FB7:  call    A7098
+        dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        jr      z,A6FC3			; yep,
+        _RST    SYNCHR
+        db      ','			; check for ,
+        call    GETCSP
+A6FC3:  push    hl
+        ld      a,0D3H			; header type = CSAVE file
+        call    A7125			; write cassette file header
+        ld      hl,(VARTAB)
+        ld      (SAVEND),hl
+        ld      hl,(TXTTAB)
+        call    A713E
+        pop     hl
+        ret
+;
+CBSAVE:
+J6FD7:  ld      a,0D0H			; header type = BSAVE file
+        call    A7125			; write cassette file header
+        xor     a
+        call    C72F8			; start tape for output
+        pop     hl
+        push    hl
+        call    A7003
+        ld      hl,(SAVEND)
+        push    hl
+        call    A7003
+        ld      hl,(SAVENT)
+        call    A7003
+        pop     de
+        pop     hl
+A6FF4:  ld      a,(hl)
+        call    C72DE
+        _RST    DCOMPR
+        jr      nc,A6FFE
+        inc     hl
+        jr      A6FF4
+;
+A6FFE:  call    TAPOOF
+        pop     hl
+        ret
+;
+A7003:  ld      a,l
+        call    C72DE
+        ld      a,h
+        jp      C72DE
+;
+A700B:  call    C72D4
+        ld      l,a
+        call    C72D4
+        ld      h,a
+        ret
+;
+CBLOAD:
+J7014:  ld      c,0D0H			; header type = BSAVE file
+        call    A70B8			; read tape until correct file header is found
+        call    C72E9			; start tape for input
+        pop     bc
+        call    A700B
+        add     hl,bc
+        ex      de,hl
+        call    A700B
+        add     hl,bc
+        push    hl
+        call    A700B
+        ld      (SAVENT),hl
+        ex      de,hl
+        pop     de
+A702F:  call    C72D4
+        ld      (hl),a
+        _RST    DCOMPR
+        jr      z,A7039
+        inc     hl
+        jr      A702F
+;
+A7039:  call    TAPIOF
+        jp      BLDFIN
+;
+CLOAD:
+C703F:  sub     091H
+        jr      z,A7045
+        xor     a
+        db      001H
+A7045:  cpl
+        inc     hl
+        cp      001H
+        push    af
+        call    A708C                   ; evaluate filename
+        ld      c,0D3H			; header type = CSAVE file
+        call    A70B8			; read tape until correct file header is found
+        pop     af
+        ld      (DAC+2),a
+        call    c,SCRTCH                ; CLOAD, do a NEW
+        ld      a,(DAC+2)
+        cp      001H
+        ld      (FRCNEW),a
+        push    af
+        call    DEPTR                   ; force linenumbers
+        pop     af
+        ld      hl,(TXTTAB)
+        call    A715D                   ; load/compare basicprogram
+        jr      nz,A707E                ; not equal
+        ld      (VARTAB),hl             ; start of vararea
+A7071:
+        ld      hl,REDDY                ; prompt message
+        CALL    STROUT                  ; message to interpreter output
+        ld      hl,(TXTTAB)
+        push    hl
+        jp      FINI                    ; manage pointers & vars, headloop
+
+A707E:  inc     hl
+        ex      de,hl
+        ld      hl,(VARTAB)
+        _RST    DCOMPR                  ; difference in programarea ?
+        jp      c,A7071                 ; nop, then it is ok
+        ld      e,014H
+        jp      ERROR                   ; Verify error
+
+A708C:  dec     hl
+        _RST    CHRGTR                  ; end of statement ?
+        jr      nz,A7098		; nope,
+        push    hl
+        ld      hl,FILNAM
+        ld      b,6
+        jr      A70B1
+
+A7098:  call    FRMEVL                  ; eval expression
+        push    hl
+        call    ASC2                    ; free if temp
+        dec     hl
+        dec     hl
+        ld      b,(hl)                  ; length of string
+        ld      c,6
+        ld      hl,FILNAM
+A70A7:  ld      a,(de)
+        ld      (hl),a
+        inc     hl
+        inc     de
+        dec     c
+        jr      z,A70B6                 ; FILNAM filled, quit
+        djnz    A70A7
+        ld      b,c
+A70B1:  ld      (hl),' '
+        inc     hl
+        djnz    A70B1                   ; fill remainer with spaces
+A70B6:  pop     hl
+        ret
+;
+A70B8:  call    C72E9			; start tape for input
+        ld      b,10
+A70BD:  call    C72D4                   ; read byte
+        cp      c
+        jr      nz,A70B8                ; other filetype, try again
+        djnz    A70BD
+        ld      hl,FILNM2
+        push    hl
+        ld      b,6
+A70CB:  call    C72D4
+        ld      (hl),a
+        inc     hl
+        djnz    A70CB                   ; read filename
+        pop     hl
+        ld      de,FILNAM
+        ld      b,6
+A70D8:  ld      a,(de)
+        inc     de
+        cp      ' '
+        jr      nz,A70E2
+        djnz    A70D8                   ; FILNAM all spaces ?
+        jr      A70EF                   ; yep, found
+;
+A70E2:  ld      de,FILNAM
+        ld      b,6
+A70E7:  ld      a,(de)
+        cp      (hl)
+        jr      nz,A70F5                ; not the same, skip
+        inc     hl
+        inc     de
+        djnz    A70E7                   ; compare next
+A70EF:  ld      hl,T70FF
+        jp      A710D                   ; found
+;
+A70F5:  push    bc
+        ld      hl,T7106
+        call    A710D                   ; print Skip
+        pop     bc
+        jr      A70B8                   ; try again
+;
+T70FF:  db      "Found:",0
+
+T7106:  db      "Skip :",0
+
+A710D:  ld      de,(CURLIN)
+        inc     de
+        ld      a,d
+        or      e
+        ret     nz
+        call    STROUT
+        ld      hl,FILNM2
+        ld      b,6
+A711D:  ld      a,(hl)
+        inc     hl
+        _RST    OUTDO
+        djnz    A711D
+        jp      CRDO                    ; OUTDO next line
+;
+A7125:  call    C72F8			; start tape for output
+        ld      b,00AH
+A712A:  call    C72DE
+        djnz    A712A
+        ld      b,6
+        ld      hl,FILNAM
+A7134:  ld      a,(hl)
+        inc     hl
+        call    C72DE
+        djnz    A7134
+        jp      TAPOOF
+;
+A713E:  push    hl
+        call    DEPTR                   ; force linenumbers
+        xor     a
+        call    C72F8			; start tape for output
+        pop     de
+        ld      hl,(SAVEND)
+A714A:  ld      a,(de)
+        inc     de
+        call    C72DE
+        _RST    DCOMPR
+        jr      nz,A714A
+        ld      l,007H
+A7154:  call    C72DE
+        dec     l
+        jr      nz,A7154
+        jp      TAPOOF
+;
+A715D:  call    C72E9			; start tape for input
+        sbc     a,a
+        cpl
+        ld      d,a
+A7163:  ld      b,00AH
+A7165:  call    C72D4
+        ld      e,a
+        call    REASON
+        ld      a,e
+        sub     (hl)
+        and     d
+        jp      nz,TAPIOF
+        ld      (hl),e
+        ld      a,(hl)
+        or      a
+        inc     hl
+        jr      nz,A7163
+        djnz    A7165
+        ld      bc,-6
+        add     hl,bc
+        xor     a
+        jp      TAPIOF
+;
+;       Table GRP device
+
+C7182:  DEFW    J71B6                   ; open, check if output/append and open
+        DEFW    J71C2                   ; close, quit
+        DEFW    DERSOO                  ; random i/o, sequential i/o only error
+        DEFW    J7196                   ; sequential output, output char to screen
+        DEFW    FCERR                   ; sequential input, illegal function call
+        DEFW    FCERR                   ; loc, illegal function call
+        DEFW    FCERR                   ; lof, illegal function call
+        DEFW    FCERR                   ; eof, illegal function call
+        DEFW    FCERR                   ; fpos, illegal function call
+        DEFW    FCERR                   ; backup, illegal function call
+
+;       Subroutine      sequential output (GRP device)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J7196:  LD      A,(SCRMOD)
+        CP      2                       ; in graphic screenmode ?
+        JP      C,FCERR                 ; nope, illegal function call
+        LD      A,C
+        JP      GRPPRT                  ; output char to graphic screen
+
+;       Table CRT device
+
+C71A2:  DEFW    J71B6                   ; open, check if output/append and open
+        DEFW    J71C2                   ; close, quit
+        DEFW    DERSOO                  ; random i/o, sequential i/o only error
+        DEFW    J71C3                   ; sequential output, output char to screen
+        DEFW    FCERR                   ; sequential input, illegal function call
+        DEFW    FCERR                   ; loc, illegal function call
+        DEFW    FCERR                   ; lof, illegal function call
+        DEFW    FCERR                   ; eof, illegal function call
+        DEFW    FCERR                   ; fpos, illegal function call
+        DEFW    FCERR                   ; backup, illegal function call
+
+J71B6:  CALL    C72CD                   ; bad filename error if in random i/o mode
+        CP      1			; sequential input mode ?
+        JP      Z,DERNMF                ; yep, bad filename error
+J71BE:  LD      (PTRFIL),HL             ; interpreter input/output device
+        LD      (HL),E			; i/o channel mode
+J71C2:  RET
+
+;       Subroutine      sequential output (CRT device)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J71C3:  LD      A,C
+        JP      CHPUT
+
+;       Table CAS device
+
+C71C7:  DEFW    C71DB                   ; open,
+        DEFW    J7205                   ; close,
+        DEFW    DERSOO                  ; random i/o, sequential i/o only error
+        DEFW    J722A                   ; sequential output,
+        DEFW    C723F                   ; sequential input,
+        DEFW    FCERR                   ; loc, illegal function call
+        DEFW    FCERR                   ; lof, illegal function call
+        DEFW    J726D                   ; eof
+        DEFW    FCERR                   ; fpos, illegal function call
+        DEFW    J727C                   ; backup
+
+;       Subroutine      open (CAS device)
+;       Inputs          HL = i/o channel pointer, E = file mode
+;       Outputs         ________________________
+
+C71DB:  push    hl
+        push    de
+        ld      bc,6
+        add     hl,bc
+        xor     a
+        ld      (hl),a			; position in buffer = 0
+        ld      (CASPRV),a
+        call    C72CD                   ; bad filename error if in random i/o mode
+        cp      4			; seqential append mode ?
+        jp      z,DERNMF		; yep, bad filename error
+        cp      1			; seqential input mode ?
+        jr      z,A71FB			; yep,
+        ld      a,0EAH			; header type = ASCII file
+        call    A7125			; write cassette file header
+A71F7:  pop     de
+        pop     hl
+        jr      J71BE
+;
+A71FB:  ld      c,0EAH			; header type = ASCII file
+        call    A70B8			; read tape until correct file header is found
+        call    TAPIOF			; stop tape for input
+        jr      A71F7
+
+;       Subroutine      close (CAS device)
+;       Inputs          HL = i/o channel pointer
+;       Outputs         ________________________
+
+J7205:  ld      a,(hl)
+        cp      1			; sequential input mode ?
+        jr      z,A7225			; yep,
+        ld      a,01AH
+        push    hl
+        call    A728B			; put in i/o channel buffer
+        call    z,A722F			; buffer full, write buffer to tape
+        pop     hl
+        call    A7281
+        jr      z,A7225
+        push    hl
+        add     hl,bc
+A721B:  ld      (hl),01AH
+        inc     hl
+        inc     c
+        jr      nz,A721B
+        pop     hl
+        call    A722F			; write buffer to tape
+A7225:  xor     a
+        ld      (CASPRV),a
+        ret
+
+;       Subroutine      sequential output (CAS device)
+;       Inputs          HL = i/o channel pointer, C = character
+;       Outputs         ________________________
+
+J722A:  ld      a,c
+        call    A728B			; put in i/o channel buffer
+        ret     nz			; buffer not full, quit
+A722F:  xor     a
+        call    C72F8			; start tape for output
+        ld      b,000H
+A7235:  ld      a,(hl)
+        call    C72DE
+        inc     hl
+        djnz    A7235
+        jp      TAPOOF
+
+;       Subroutine      seqential input (CAS device)
+;       Inputs          HL = i/o channel pointer
+;       Outputs         ________________________
+
+C723F:  ex      de,hl
+        ld      hl,CASPRV
+        call    C72BE
+        ex      de,hl
+        call    A729B
+        jr      nz,A7260
+        push    hl
+        call    C72E9			; start tape for input
+        pop     hl
+        ld      b,000H
+A7253:  call    C72D4
+        ld      (hl),a
+        inc     hl
+        djnz    A7253
+        call    TAPIOF
+        dec     h
+        xor     a
+        ld      b,a
+A7260:  ld      c,a
+        add     hl,bc
+        ld      a,(hl)
+        cp      01AH
+        scf
+        ccf
+        ret     nz
+        ld      (CASPRV),a
+        scf
+        ret
+
+;       Subroutine      eof (CAS device)
+;       Inputs          HL = i/o channel pointer
+;       Outputs         ________________________
+
+J726D:  call    C723F
+        ld      hl,CASPRV
+        ld      (hl),a
+        sub     01AH
+        sub     001H
+        sbc     a,a
+        jp      CONIA
+
+;       Subroutine      backup (CAS device)
+;       Inputs          HL = i/o channel pointer, C = character
+;       Outputs         ________________________
+
+J727C:  ld      hl,CASPRV
+        ld      (hl),c
+        ret
+;
+A7281:  ld      bc,6
+        add     hl,bc
+        ld      a,(hl)
+        ld      c,a
+        ld      (hl),000H
+        jr      A72A1
+;
+A728B:  ld      e,a
+        ld      bc,6
+        add     hl,bc
+        ld      a,(hl)			; current position in buffer
+        inc     (hl)			; update
+        inc     hl
+        inc     hl
+        inc     hl			; buffer
+        push    hl
+        ld      c,a
+        add     hl,bc
+        ld      (hl),e			; put in buffer
+        pop     hl
+        ret
+;
+A729B:  ld      bc,6
+        add     hl,bc
+        ld      a,(hl)
+        inc     (hl)
+A72A1:  inc     hl
+        inc     hl
+        inc     hl
+        and     a
+        ret
+
+
+;       Table LPT device
+
+C72A6:  DEFW    J71B6                   ; open, check if output/append and open
+        DEFW    J71C2                   ; close, quit
+        DEFW    DERSOO                  ; random i/o, sequential i/o only error
+        DEFW    J72BA                   ; sequential output, output char to printer
+        DEFW    FCERR                   ; sequential input, illegal function call
+        DEFW    FCERR                   ; loc, illegal function call
+        DEFW    FCERR                   ; lof, illegal function call
+        DEFW    FCERR                   ; eof, illegal function call
+        DEFW    FCERR                   ; fpos, illegal function call
+        DEFW    FCERR                   ; backup, illegal function call
+
+;       Subroutine      sequential output (LPT device)
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+J72BA:  LD      A,C
+        JP      OUTDLP
+
+;       Subroutine      get cassette putback character if any
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72BE:  LD      A,(HL)
+        LD      (HL),0
+        AND     A
+        RET     Z
+        INC     SP
+        INC     SP
+        CP      1AH
+        SCF
+        CCF
+        RET     NZ
+        LD      (HL),A
+        SCF
+        RET
+
+;       Subroutine      bad filename error if in random i/o mode
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72CD:  LD      A,E
+        CP      8
+        JP      Z,DERNMF                ; bad filename
+        RET
+
+;       Subroutine      read character from cassette
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72D4:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        CALL    TAPIN
+        JR      NC,POPAL3		; no error, pop registers and quit
+        JR      J72F2			; stop tape and quit with device I/O error
+
+;       Subroutine      write character to cassette
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72DE:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    AF
+        CALL    TAPOUT
+        JR      NC,POPAL2		; no error, pop registers and quit
+        JR      J72F2			; stop tape and quit with device I/O error
+
+;       Subroutine      start cassette input
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72E9:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    AF
+        CALL    TAPION			; start tape for input
+        JR      NC,POPAL2		; no error, pop registers and quit
+J72F2:  CALL    TAPIOF			; stop tape
+        JP      DIOERR                  ; quit with device I/O error
+
+;       Subroutine      start cassette output
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+C72F8:  PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    AF
+        CALL    TAPOON
+POPAL2: POP     AF
+POPAL3: POP     BC
+        POP     DE
+        POP     HL
+        RET
+
+
+; END   SUBTTL  SPCDEV
+
+        END
+

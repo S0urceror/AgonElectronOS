@@ -8,7 +8,6 @@
 	XDEF	electron_os_api
 	XDEF	electron_os_inout
 	XDEF	_machine_vblank_handler
-	; XDEF	checkEIstate
 
 	XREF	_machine_read_write_disk
     XREF 	_machine_warm_boot
@@ -26,6 +25,13 @@
 	XREF	uart0_recv_fifo_get
 	XREF	uart0_recv
 	XREF	uart0_send
+	;
+	XREF    _machine_fopen
+	XREF	_machine_fclose
+	XREF	_machine_fgetc
+	XREF	_machine_feof
+	XREF    _machine_fputc
+	XREF	_machine_putc
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
 
@@ -46,7 +52,7 @@ electron_os_api:
 	; let ix point to address in jumptable
     ld bc, jumptable
     add ix,bc
-	; read contens of jumptable
+	; read contents of jumptable
 	ld c, (ix+0)
 	ld b, (ix+1)
 	; put in ix
@@ -69,7 +75,18 @@ jumptable:
 	DW eos_msx_machine_setvblankaddress			;0x000e
 	DW eos_msx_machine_getvdpstatus				;0x0010
 	DW eos_msx_machine_getscanline				;0x0012
-	DW eos_msx_machine_writeport				;0x0014
+	DW eos_msx_machine_ldirvm					;0x0014
+	DW eos_msx_machine_ldirmv					;0x0016
+	DW eos_msx_machine_fillvrm					;0x0018
+	DW eos_machine_fopen						;0x001a
+	DW eos_machine_fclose						;0x001c
+	DW eos_machine_fputc						;0x001e
+	DW eos_machine_fgetc						;0x0020
+	DW eos_machine_feof							;0x0022
+	DW eos_machine_opendir						;0x0024
+	DW eos_machine_readdir						;0x0026
+	DW eos_machine_closedir						;0x0028
+	DW eos_machine_chdir						;0x002a
 
 ; read/write a sector from/to the disk
 ; 
@@ -340,29 +357,21 @@ _exit_vblank_handler:
 	ei
 	RETI.L
 
-; 	IF $ < 100H
-;         ERROR "Must be at address >= 100H"
-;     ENDIF
-; ; Workaround for LD A,I / LD A,R lying to us if an interrupt occurs during the
-; ; instruction. We detect this by examining if (sp - 1) was overwritten.
-; ; f: pe <- interrupts enabled, po <- interrupts disabled
-; ; Modifies: af
-; checkEIstate:
-;     xor a
-;     push af  ; set (sp - 1) to 0
-;     pop af
-;     ld a,i	; check IFF2, 1 is EI, 0 is DI
-;     ret pe  ; interrupts enabled? 1 is pe is EI, 0 is po is DI
-; 	; interrupts disabled (DI)? let's check to be sure
-;     dec sp
-; 	dec sp
-;     dec sp  ; check whether the Z80 lied about ints being disabled
-;     pop af  ; (sp - 1) is overwritten w/ MSB of ret address if an ISR occurred
-; 	sub 1
-;     sbc a,a
-;     and 1   ; (sp - 1) is not 0? return with pe, otherwise po
-;     ret
-
+; character to be printed passed via the stack
+_machine_putc:
+	push ix
+	push iy
+	ld ix,0
+	ld iy,0
+	add ix,sp
+	ld a, (ix+9) ; character to be printed
+	ld IYh, 0
+	ld IX, 0a2h
+	ld (call_address_ix),ix
+	call eos_msx_machine_calslt
+	pop iy
+	pop ix
+	ret
 
 ; IN/OUT to port specified in IYl
 ; OUT value in IYh
@@ -418,9 +427,17 @@ _electron_os_inout_slotregister:
 	pop af
 	jp eos_msx_machine_slotregister
 
+; This routine is routinely called to get the current state of keyboard scanlines
+; In:  A = scanline row
+; Out: A = bits of scanline
+;
+; When A=0 we are going to get the status of all scanlines in one go
+; subsequent requests are handled from the buffered status
 eos_msx_machine_getscanline:
 	push bc
 	push hl
+	and a
+	call z, eos_msx_getallscanlines
 	ld bc,0
 	ld c,a
 	ld hl,_eos_msx_keyboard_scanline
@@ -430,49 +447,290 @@ eos_msx_machine_getscanline:
 	pop bc
 	ret
 
-eos_msx_machine_writeport:
-	; interrupts enabled?
-    ld a,i	; check IFF2, 1 is pe is EI, 0 is po is DI
-    ; call System_CheckEIState
-    push af     ; store interrupt state
-    jp po, WRITE_PORT_WITH_INTERRUPTS_OFF
-    di ;interrupts were on, we switch temporary off to write 2 or 3 consecutive bytes without interrupt
-WRITE_PORT_WITH_INTERRUPTS_OFF:
-    ; can we use short hand send?
-    ld a, IYl ; port in A
-    cp 0ffh
-    jp nz, WRITE_PORT_REG_A
-    ld a, c ; port in C
-WRITE_PORT_REG_A:
-    cp 098h
-    jp z, WRITE_VDP_98h
-    cp 099h
-    jp z, WRITE_VDP_99h
-    cp 0a8h
-    jp z, WRITE_SLOT_REGISTER
-    ; do normal 3 byte output
-    ld a, 080h
+eos_msx_getallscanlines:
+	push af
+	di
+	ld b, 11   ; 11 scanlines
+    ld a, 083h ; input repeat
+	call uart0_send
+    ld a, 0a9h
     call uart0_send
-    ld a, IYl ; port in A
-    jp WRITE_PORT_UART
-WRITE_VDP_98h:
-    ld a, 10000010b ; output to vdp port 0
-    jp WRITE_PORT_UART
-WRITE_VDP_99h:
-    ld a, 10010010b ; output to vdp port 1
-    jp WRITE_PORT_UART    
-WRITE_SLOT_REGISTER:
-    ; TODO: save slot register
-    jp WRITE_PORT_DONE
-WRITE_PORT_UART:    
-    ; A contains port
+    ld a, 0
     call uart0_send
-    ld a,iyh    ; value in IYh
-    ; A contains value
+    ld a, b
     call uart0_send
-WRITE_PORT_DONE:
-    pop af ; restore interrupt state (in flags)
-    ; interrupts were enabled? 1 is pe is EI, 0 is po is DI
-    ret po ; leave them switched off
-    ei     ; switch them back on when enabled
+    ; switch off uart0 receive interrupts
+	; we go direct mode
+	in0 a,(UART0_IER)
+	and 0feh ;0b11111110
+    out0 (UART0_IER),a
+    ;
+	ld hl, _eos_msx_keyboard_scanline
+getallnext:
+    ; while characters in fifo => process
+    in0 a,(UART0_LSR)
+    bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
+    jr z, getallnext
+    in0 a,(UART0_RBR)
+    ld (hl),a
+    inc hl
+    djnz getallnext  
+    ; switch on uart0 receive interrupts
+	in0 a,(UART0_IER)
+	or 001h ;0b00000001
+    out0 (UART0_IER),a
+	ei
+	pop af
 	ret
+
+;Address  : #0050
+;Function : Enable VDP to read
+;Input    : HL - For VRAM-address
+;Registers: AF
+SETRD:
+	;out     (099H),a
+	ld a, 080h ; output
+	call uart0_send
+	ld a, 099h
+	call uart0_send
+	ld a, l
+	call uart0_send
+	;out     (099H),a
+	ld a, 080h ; output
+	call uart0_send
+	ld a, 099h
+	call uart0_send
+	ld a, h
+	and     03FH		; high bit 0 = set read address
+	call uart0_send
+    ret
+
+;Address  : #0053
+;Function : Enable VDP to write
+;Input    : HL - Address
+;Registers: AF
+SETWRT:
+	;out     (099H),a
+	ld a, 080h ; output
+	call uart0_send
+	ld a, 099h
+	call uart0_send
+	ld a, l
+	call uart0_send
+	;out     (099H),a
+	ld a, 080h ; output
+	call uart0_send
+	ld a, 099h
+	call uart0_send
+	ld a, h
+	and     03FH
+	or      040H		; high bit 1 = set write address
+	call uart0_send
+    ret
+
+; Function : Block transfer to VRAM from memory
+; Input    : BC - Block length
+;            DE - Start address of VRAM
+;            HL - Start address of memory
+; Registers: All
+eos_msx_machine_ldirvm:
+	di
+    ex de,hl
+    call SETWRT
+    ld a, 082h ; output repeat
+    call uart0_send
+	ld a, 098h
+    call uart0_send
+    ld a, b
+    call uart0_send
+    ld a, c
+    call uart0_send
+	;
+	push ix ; save IX
+	; push de to stack which gives:
+	; SP   - E
+	; SP+1 - D
+	; SP+2 - U
+	push de
+	ld ix, 0
+	add ix, sp
+	; modify DE on stack to point to right 64kB segment
+	ld a, mb
+	ld (ix+2),a
+	pop de ; DE updated with right 24-bits address
+LDIRVMN:
+    ld a, (de)
+    call uart0_send
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, LDIRVMN
+	pop ix ; restore IX
+    ei
+    ret
+; Function : Block transfer to memory from VRAM
+; Input    : BC - Block length
+;            DE - Start address of memory
+;            HL - Start address of VRAM
+; Registers: All
+eos_msx_machine_ldirmv:
+    di
+    call SETRD
+    ld a, 083h ; input repeat
+	call uart0_send
+    ld a, 098h
+    call uart0_send
+    ld a, b
+    call uart0_send
+    ld a, c
+    call uart0_send
+    ; switch off uart0 receive interrupts
+	; we go direct mode
+	in0 a,(UART0_IER)
+	and 0feh ;0b11111110
+    out0 (UART0_IER),a
+    ;
+	push ix ; save IX
+	; push DE 16-bit address to stack which gives:
+	; SP   - E
+	; SP+1 - D
+	; SP+2 - U
+	push de
+	ld ix, 0
+	add ix, sp
+	; modify DE on stack to point to right 64kB segment
+	ld a, mb
+	ld (ix+2),a
+	pop de ; DE updated with right 24-bits address	
+LDIRMVN:
+    ; while characters in fifo => process
+    in0 a,(UART0_LSR)
+    bit 0,a ; check receive data ready, 1 = character(s) in FIFO/RBR, 0 = empty
+    jr	z, LDIRMVN
+    in0 a,(UART0_RBR)
+    ld (de),a
+    inc de
+    dec bc
+    ld a, b
+    or c
+    jr nz, LDIRMVN  
+    ; switch on uart0 receive interrupts
+	in0 a,(UART0_IER)
+	or 001h ;0b00000001
+    out0 (UART0_IER),a
+    ;  
+	pop ix
+    ei
+    ret
+; Function : Fill VRAM with value
+; Input    : A  - Data byte
+;            BC - Length of the area to be written
+;            HL - Start address
+; Registers: AF, BC
+eos_msx_machine_fillvrm:
+FILVRM_FAST:
+	di
+    push af
+    call SETWRT
+    ld a, 084h ; output fill
+    call uart0_send
+    ld a, 098h
+    call uart0_send
+    ld a, b
+    call uart0_send
+    ld a, c
+    call uart0_send
+    POP     AF
+	call uart0_send
+    ei
+    RET
+
+eos_machine_fopen:
+	; Called with:
+	; reg A = channelnumber, reg DE = filename, reg C = openmode
+	;
+	push ix ; save ix
+	push bc ; 3 - openmode
+	ex af, af'
+	; modify de on stack to point to filename in right slot
+	ld a, mb
+	push de ; 2 - filename
+	ld ix, 0
+	add ix, sp
+	ld (ix+2),a
+	;
+	ex af, af'
+	ld c, a
+	push bc ; 1 - channel
+	call _machine_fopen ; char machine_fopen (UINT8 channel,char* filename,UINT8 openmode)
+	pop de ; 1 - was BC
+	pop de ; 2 - was DE
+	pop bc ; 3 - was BC
+	pop ix ; restore ix
+	ret
+
+eos_machine_fclose:
+	; Called with:
+	; reg A = channelnumber
+	ld bc, 0
+	ld c,a
+	push bc ; 1 - channel number
+	call _machine_fclose ; char machine_fclose (UINT8 channel)
+	pop bc ; 1 - dummy
+	ret
+
+eos_machine_fputc:
+	; Called with
+	; reg A = channelnumber, reg L = character being output
+	push de ; store de
+	ld de,0
+	ld e,l
+	push de ; 2 - character
+	ld de, 0
+	ld e, a
+	push de ; 1 - channelnumber
+	call _machine_fputc ; char machine_fputc (UINT8 channel,UINT8 character)
+	pop de
+	pop de
+	pop de ; restore de
+	ret
+
+eos_machine_fgetc:
+	; Called with:
+	; reg A = channelnumber, reg DE = pointer to buffer to receive character
+	push ix ; save ix
+	ex af, af'
+	; modify de on stack to point to filename in right slot
+	ld a, mb
+	push de ; 2 - buffer
+	ld ix, 0
+	add ix, sp
+	ld (ix+2),a
+	;
+	ex af, af'
+	ld de, 0
+	ld e, a
+	push de ; 1 - channelnumber
+	call _machine_fgetc ; char machine_fgetc (UINT8 channel, char* character)
+	pop de ; 1 - dummy
+	pop de ; 2 - was DE
+	pop ix ; restore ix
+	ret
+
+eos_machine_feof:
+	; Called with:
+	; reg A = channelnumber
+	ld bc, 0
+	ld c, a
+	push bc
+	call _machine_feof
+	pop bc ; dummy
+	ret
+
+eos_machine_opendir:
+eos_machine_readdir:
+eos_machine_closedir:
+eos_machine_chdir:
+	ld a, 1
+	RET

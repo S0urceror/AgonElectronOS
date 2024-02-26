@@ -1,0 +1,519 @@
+; MSXINL.MAC
+
+; BIOS line input functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ASEG
+        ORG     23BFH
+
+        INCLUDE MSX.INC
+
+
+LINLEN  equ     0F3B0H
+CSRY    equ     0F3DCH
+CSRX    equ     0F3DDH
+BUFMIN  equ     0F55DH
+BUF     equ     0F55EH
+AUTFLG  equ     0F6AAH
+BASROM  equ     0FBB1H
+FSTPOS  equ     0FBCAH
+INTFLG  equ     0FC9BH
+INSFLG  equ     0FCA8H
+CSTYLE  equ     0FCAAH
+
+H.PINL  equ     0FDDBH
+H.QINL  equ     0FDE0H
+H.INLI  equ     0FDE5H
+
+
+        PUBLIC  PINLIN
+        PUBLIC  QINLIN
+        PUBLIC  INLIN
+
+        EXTRN   CHGET
+        EXTRN   GICINI
+        EXTRN   POSIT
+        EXTRN   TERMIN
+        EXTRN   UNTERM
+        EXTRN   INDJMP
+        EXTRN   CKERCS
+        EXTRN   CKDPCS
+        EXTRN   GETTRM
+        EXTRN   CKSTTP
+        EXTRN   GETVRM
+        EXTRN   PUTVRM
+        EXTRN   GETLEN
+        EXTRN   INSLN0
+        EXTRN   DELLN0
+        EXTRN   EOL
+        EXTRN   ADVCUR
+        EXTRN   BS
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        RCALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL  MSXINL
+
+        SUBTTL  MSXINL
+
+
+;       Subroutine      PINLIN
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PINLIN:
+A23BF:  call    H.PINL
+        ld      a,(AUTFLG)
+        and     a
+        jr      nz,A23D5
+        ld      l,0
+        jr      A23E0
+
+;       Subroutine      QINLIN
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+QINLIN:
+A23CC:  call    H.QINL
+        ld      a,'?'
+        _RST    OUTDO                   ; OUTDO
+        ld      a,' '
+        _RST    OUTDO                   ; OUTDO
+
+;       Subroutine      INLIN
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+INLIN:
+A23D5:  call    H.INLI
+        ld      hl,(CSRY)
+        dec     l
+        call    nz,TERMIN               ; no extend on next line
+        inc     l
+A23E0:  ld      (FSTPOS),hl
+        xor     a
+        ld      (INTFLG),a
+A23E7:  call    CHGET                   ; CHGET
+        ld      hl,T2439-2
+        ld      c,11
+        call    INDJMP
+        push    af
+        call    nz,A23FF
+        pop     af
+        jr      nc,A23E7
+        ld      hl,BUFMIN
+        ret     z
+        ccf
+A23FE:  ret
+;
+A23FF:  push    af
+        cp      009H
+        jr      nz,A2413
+        pop     af
+A2405:  ld      a,020H
+        call    A23FF
+        ld      a,(CSRX)
+        dec     a
+        and     007H
+        jr      nz,A2405
+        ret
+;
+A2413:  pop     af
+        ld      hl,INSFLG
+        cp      001H
+        jr      z,A2426
+        cp      020H
+        jr      c,A2428
+        push    af
+        ld      a,(hl)
+        and     a
+        call    nz,A24F2
+        pop     af
+A2426:  _RST    OUTDO                   ; OUTDO
+        ret
+;
+A2428:  ld      (hl),0
+        _RST    OUTDO                   ; OUTDO
+        defb    03EH                    ; LD A,xx: a trick to skip the next line
+A242C:  defb    03EH                    ; LD A,xx: a trick to skip the next line
+A242D:  xor     a
+        push    af
+        call    CKERCS                  ; cursor off
+        pop     af
+        ld      (CSTYLE),a
+        jp      CKDPCS                  ; cursor on
+;
+T2439:  defb    008H
+        defw    A2561
+        defb    012H
+        defw    A24E5
+        defb    01BH
+        defw    A23FE
+        defb    002H
+        defw    A260E
+        defb    006H
+        defw    A25F8
+        defb    00EH
+        defw    A25D7
+        defb    005H
+        defw    A25B9
+        defb    003H
+        defw    A24C5
+        defb    00DH
+        defw    A245A
+        defb    015H
+        defw    A25AE
+        defb    07FH
+        defw    A2550
+
+A245A:  call    A266C
+        ld      a,(AUTFLG)
+        and     a
+        jr      z,A2465
+        ld      h,1
+A2465:  push    hl
+        call    CKERCS                  ; cursor off
+        pop     hl
+        ld      de,BUF
+        ld      b,254
+        dec     l
+A2470:  inc     l
+A2471:  push    de
+        push    bc
+        call    GETVRM                  ; read char from VRAM
+        pop     bc
+        pop     de
+        and     a
+        jr      z,A248F
+        cp      020H
+        jr      nc,A248A
+        dec     b
+        jr      z,A249F
+        ld      c,a
+        ld      a,1
+        ld      (de),a
+        inc     de
+        ld      a,c
+        add     a,040H
+A248A:  ld      (de),a
+        inc     de
+        dec     b
+        jr      z,A249F
+A248F:  inc     h
+        ld      a,(LINLEN)
+        cp      h
+        jr      nc,A2471
+        push    de
+        call    GETTRM                  ; extend at next line ?
+        pop     de
+        ld      h,1
+        jr      z,A2470
+A249F:  dec     de
+        ld      a,(de)
+        cp      020H
+        jr      z,A249F
+        push    hl
+        push    de
+        call    CKDPCS                  ; cursor on
+        pop     de
+        pop     hl
+        inc     de
+        xor     a
+        ld      (de),a
+A24AF:  ld      a,00DH
+        and     a
+A24B2:  push    af
+        call    TERMIN                  ; no extend on next line
+        call    POSIT                   ; POSIT
+        ld      a,00AH
+        _RST    OUTDO                   ; OUTDO
+        xor     a
+        ld      (INSFLG),a
+        pop     af
+        scf
+        pop     hl
+        ret
+;
+A24C4:  inc     l
+A24C5:  call    GETTRM                  ; extends in next line ?
+        jr      z,A24C4
+        call    A242D
+        xor     a
+        ld      (BUF),a
+        ld      h,1
+        push    hl
+        call    GICINI                  ; GICINI
+        call    CKSTTP
+        pop     hl
+        jr      c,A24AF
+        ld      a,(BASROM)
+        and     a
+        jr      nz,A24AF
+        jr      A24B2
+
+A24E5:  ld      hl,INSFLG
+        ld      a,(hl)
+        xor     0FFH
+        ld      (hl),a
+        jp      z,A242D
+        jp      A242C
+;
+A24F2:  call    CKERCS                  ; cursor off
+        ld      hl,(CSRY)
+        ld      c,020H
+A24FA:  push    hl
+A24FB:  push    bc
+        call    GETVRM                  ; read char from VRAM
+        pop     de
+        push    bc
+        ld      c,e
+        call    PUTVRM                   ; calc VRAM adres
+        pop     bc
+        ld      a,(LINLEN)
+        inc     h
+        cp      h
+        ld      a,d
+        jr      nc,A24FB
+        pop     hl
+        call    GETTRM                  ; extend in next line ?
+        jr      z,A254B
+        ld      a,c
+        cp      020H
+        push    af
+        jr      nz,A2524
+        ld      a,(LINLEN)
+        cp      h
+        jr      z,A2524
+        pop     af
+        jp      CKDPCS                  ; cursor on
+;
+A2524:  call    UNTERM                  ; extend on next line
+        inc     l
+        push    bc
+        push    hl
+        call    GETLEN                  ; get max. linenumber
+        cp      l
+        jr      c,A2535
+        call    INSLN0
+        jr      A2544
+;
+A2535:  ld      hl,CSRY
+        dec     (hl)
+        jr      nz,A253C
+        inc     (hl)
+A253C:  ld      l,1
+        call    DELLN0
+        pop     hl
+        dec     l
+        push    hl
+A2544:  pop     hl
+        pop     bc
+        pop     af
+        jp      z,CKDPCS                ; cursor on
+        dec     l
+A254B:  inc     l
+        ld      h,1
+        jr      A24FA
+
+A2550:  ld      a,(LINLEN)
+        cp      h
+        jr      nz,A255B
+        call    GETTRM                  ; extend in next line ?
+        jr      nz,A2595
+A255B:  ld      a,01CH
+        _RST    OUTDO                   ; OUTDO
+        ld      hl,(CSRY)
+A2561:  push    hl
+        call    CKERCS                  ; cursor off
+        pop     hl
+        dec     h
+        jp      nz,A257A
+        inc     h
+        push    hl
+        dec     l
+        jr      z,A2579
+        ld      a,(LINLEN)
+        ld      h,a
+        call    GETTRM                  ; extend on next line ?
+        jr      nz,A2579
+        ex      (sp),hl
+A2579:  pop     hl
+A257A:  ld      (CSRY),hl
+A257D:  ld      a,(LINLEN)
+        cp      h
+        jr      z,A2595
+        inc     h
+A2584:  call    GETVRM                  ; read char from VRAM
+        dec     h
+        call    PUTVRM                  ; calc VRAM adres
+        inc     h
+        inc     h
+        ld      a,(LINLEN)
+        inc     a
+        cp      h
+        jr      nz,A2584
+        dec     h
+A2595:  ld      c,020H
+        call    PUTVRM                  ; calc VRAM adres
+        call    GETTRM                  ; extend on next line ?
+        jp      nz,CKDPCS               ; cursor on
+        push    hl
+        inc     l
+        ld      h,1
+        call    GETVRM                  ; read char from VRAM
+        ex      (sp),hl
+        call    PUTVRM                  ; calc VRAM adres
+        pop     hl
+        jr      A257D
+
+A25AE:  call    CKERCS                  ; cursor off
+        call    A266C
+        ld      (CSRY),hl
+        jr      A25BE
+
+A25B9:  push    hl
+        call    CKERCS                  ; cursor off
+        pop     hl
+A25BE:  call    GETTRM                  ; extend on next line ?
+        push    af
+        call    EOL                     ; clear to end of line
+        pop     af
+        jr      nz,A25CD
+        ld      h,1
+        inc     l
+        jr      A25BE
+;
+A25CD:  call    CKDPCS                  ; cursor on
+        xor     a
+        ld      (INSFLG),a
+        jp      A242D
+
+A25D7:  call    CKERCS                  ; cursor off
+        ld      hl,(CSRY)
+        dec     l
+A25DE:  inc     l
+        call    GETTRM                  ; extend on next line ?
+        jr      z,A25DE
+        ld      a,(LINLEN)
+        ld      h,a
+        inc     h
+A25E9:  dec     h
+        jr      z,A25F3
+        call    GETVRM                  ; read char from VRAM
+        cp      020H
+        jr      z,A25E9
+A25F3:  call    ADVCUR                  ; cursor right
+        jr      A25CD
+
+A25F8:  call    CKERCS                  ; cursor off
+        call    A2634
+A25FE:  call    A2624
+        jr      z,A25CD
+        jr      c,A25FE
+A2605:  call    A2624
+        jr      z,A25CD
+        jr      nc,A2605
+        jr      A25CD
+
+A260E:  call    CKERCS                  ; cursor off
+A2611:  call    A2634
+        jr      z,A25CD
+        jr      nc,A2611
+A2618:  call    A2634
+        jr      z,A25CD
+        jr      c,A2618
+        call    ADVCUR                  ; cursor right
+        jr      A25CD
+;
+A2624:  ld      hl,(CSRY)
+        call    ADVCUR                  ; cursor right
+        call    GETLEN                  ; get max. linenumber
+        ld      e,a
+        ld      a,(LINLEN)
+        ld      d,a
+        jr      A263D
+;
+A2634:  ld      hl,(CSRY)
+        call    BS                      ; cursor left with warp
+        ld      de,1*256+1
+A263D:  ld      hl,(CSRY)
+        _RST    DCOMPR                  ; DCOMPR
+        ret     z
+        ld      de,A2668
+        push    de
+        call    GETVRM                  ; read char from VRAM
+        cp      "0"
+        ccf
+        ret     nc
+        cp      "9"+1
+        ret     c
+        cp      "A"
+        ccf
+        ret     nc
+        cp      "Z"+1
+        ret     c
+        cp      "a"
+        ccf
+        ret     nc
+        cp      "z"+1
+        ret     c
+        cp      086H
+        ccf
+        ret     nc
+        cp      0A0H
+        ret     c
+        cp      0A6H
+        ccf
+A2668:  ld      a,0
+        inc     a
+        ret
+
+;       Subroutine      __________________________
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+A266C:  dec     l
+        jr      z,A2674
+        call    GETTRM                  ; extend on next line ?
+        jr      z,A266C
+A2674:  inc     l
+        ld      a,(FSTPOS)
+        cp      l
+        ld      h,1
+        ret     nz
+        ld      hl,(FSTPOS)
+        ret
+
+; END   SUBTTL  MSXINL
+
+        end

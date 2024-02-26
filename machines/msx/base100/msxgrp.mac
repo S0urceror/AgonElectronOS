@@ -1,0 +1,950 @@
+; MSXGRP.MAC
+
+; BIOS graphic functions, MSX 1 version (version 1.0)
+
+; Source re-created by Z80DIS 2.2
+; Z80DIS was written by Kenneth Gielow, Palo Alto, CA
+
+; Code Copyrighted by ASCII and maybe others
+; Source comments by Arjen Zeilemaker
+
+; Sourcecode supplied for STUDY ONLY
+; Recreation NOT permitted without authorisation of the copyrightholders
+
+
+        .Z80
+        ;ASEG
+        ;ORG     1510H
+
+        INCLUDE MSX.INC
+
+
+GRPCGP  equ     0F3CBH
+MLTCGP  equ     0F3D5H
+FORCLR  equ     0F3E9H
+ATRBYT  equ     0F3F2H
+ASPCT1  equ     0F40BH
+ASPCT2  equ     0F40DH
+FILNAM  equ     0F866H
+CLOC    equ     0F92AH
+CMASK   equ     0F92CH
+CSAVEA  equ     0F942H
+CSAVEM  equ     0F944H
+PATWRK  equ     0FC40H
+SCRMOD  equ     0FCAFH
+BRDATR  equ     0FCB2H
+GRPACX  equ     0FCB7H
+GRPACY  equ     0FCB9H
+
+
+        PUBLIC  GRPPRT
+        PUBLIC  SCALXY
+        PUBLIC  MAPXYC
+        PUBLIC  FETCHC
+        PUBLIC  STOREC
+        PUBLIC  SETATR
+        PUBLIC  READC
+        PUBLIC  SETC
+        PUBLIC  NSETCX
+        PUBLIC  GTASPC
+        PUBLIC  PNTINI
+        PUBLIC  SCANR
+        PUBLIC  SCANL
+        PUBLIC  RIGHTC
+        PUBLIC  LEFTC
+        PUBLIC  UPC
+        PUBLIC  DOWNC
+        PUBLIC  TUPC
+        PUBLIC  TDOWNC
+
+        EXTRN   DCOMPR
+        EXTRN   CNVCHR
+        EXTRN   RDVRM
+        EXTRN   WRTVRM
+        EXTRN   GETPAT
+        EXTRN   POPALL
+
+
+_RST    MACRO   X
+        IFIDN   <X>,<SYNCHR>
+        RST     08H
+        ENDIF
+        IFIDN   <X>,<CHRGTR>
+        RST     10H
+        ENDIF
+        IFIDN   <X>,<OUTDO>
+        RST     18H
+        ENDIF
+        IFIDN   <X>,<DCOMPR>
+        RST     20H
+        ENDIF
+        IFIDN   <X>,<GETYPR>
+        CALL    GETENT ;RST     28H
+        ENDIF
+        IFIDN   <X>,<CALLF>
+        RST     30H
+        ENDIF
+        ENDM
+
+
+; START SUBTTL  MSXGRP
+
+        SUBTTL  MSXGRP
+
+
+;       Subroutine      GRPPRT
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GRPPRT:
+A1510:  push    hl
+        push    de
+        push    bc
+        push    af
+        call    CNVCHR                  ; CNVCHR (is grafic header ?)
+        jr      nc,A157B
+        jr      nz,A1523
+        cp      00DH
+        jr      z,A157E
+        cp      020H
+        jr      c,A157B
+A1523:  call    GETPAT
+        ld      a,(FORCLR)
+        ld      (ATRBYT),a
+        ld      hl,(GRPACY)
+        ex      de,hl
+        ld      bc,(GRPACX)
+        call    SCALXY                  ; SCALXY
+        jr      nc,A157B
+        call    MAPXYC                  ; MAPXYC
+        ld      de,PATWRK
+        ld      c,008H
+A1541:  ld      b,008H
+        call    FETCHC                  ; FETCHC
+        push    hl
+        push    af
+        ld      a,(de)
+A1549:  add     a,a
+        push    af
+        call    c,SETC                  ; SETC
+        call    A16AC
+        pop     hl
+        jr      c,A1558
+        push    hl
+        pop     af
+        djnz    A1549
+A1558:  pop     af
+        pop     hl
+        call    STOREC                  ; STOREC
+        call    TDOWNC                  ; TDOWNC
+        jr      c,A1566
+        inc     de
+        dec     c
+        jr      nz,A1541
+A1566:  call    A15D9
+        ld      a,(GRPACX)
+        jr      z,A1574
+        add     a,020H
+        jr      c,A157E
+        jr      A1578
+;
+A1574:  add     a,008H
+        jr      c,A157E
+A1578:  ld      (GRPACX),a
+A157B:  jp      POPALL
+;
+A157E:  xor     a
+        ld      (GRPACX),a
+        call    A15D9
+        ld      a,(GRPACY)
+        jr      z,A158D
+        add     a,020H
+        defb    001H
+A158D:  add     a,008H
+        cp      0C0H
+        jr      c,A1594
+        xor     a
+A1594:  ld      (GRPACY),a
+        jr      A157B
+
+;       Subroutine      SCALXY
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCALXY:
+A1599:  push    hl
+        push    bc
+        ld      b,1
+        ex      de,hl
+        ld      a,h
+        add     a,a
+        jr      nc,A15A7
+        ld      hl,0
+        jr      A15AF
+;
+A15A7:  ld      de,192
+        _RST    DCOMPR
+        jr      c,A15B1
+        ex      de,hl
+        dec     hl
+A15AF:  ld      b,0
+A15B1:  ex      (sp),hl
+        ld      a,h
+        add     a,a
+        jr      nc,A15BB
+        ld      hl,0
+        jr      A15C3
+;
+A15BB:  ld      de,256
+        _RST    DCOMPR
+        jr      c,A15C5
+        ex      de,hl
+        dec     hl
+A15C3:  ld      b,0
+A15C5:  pop     de
+        call    A15D9
+        jr      z,A15D3
+        srl     l
+        srl     l
+        srl     e
+        srl     e
+A15D3:  ld      a,b
+        rrca
+        ld      b,h
+        ld      c,l
+        pop     hl
+        ret
+;
+A15D9:  ld      a,(SCRMOD)
+        sub     002H
+        ret
+
+;       Subroutine      MAPXYC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+MAPXYC:
+A15DF:  push    bc
+        call    A15D9
+        jr      nz,A1613
+        ld      d,c
+        ld      a,c
+        and     007H
+        ld      c,a
+        ld      hl,T160B
+        add     hl,bc
+        ld      a,(hl)
+        ld      (CMASK),a
+        ld      a,e
+        rrca
+        rrca
+        rrca
+        and     01FH
+        ld      b,a
+        ld      a,d
+        and     0F8H
+        ld      c,a
+        ld      a,e
+        and     007H
+        or      c
+        ld      c,a
+        ld      hl,(GRPCGP)
+        add     hl,bc
+        ld      (CLOC),hl
+        pop     bc
+        ret
+;
+T160B:  defb    10000000b
+        defb    01000000b
+        defb    00100000b
+        defb    00010000b
+        defb    00001000b
+        defb    00000100b
+        defb    00000010b
+        defb    00000001b
+
+A1613:  ld      a,c
+        rrca
+        ld      a,0F0H
+        jr      nc,A161B
+        ld      a,00FH
+A161B:  ld      (CMASK),a
+        ld      a,c
+        add     a,a
+        add     a,a
+        and     0F8H
+        ld      c,a
+        ld      a,e
+        and     007H
+        or      c
+        ld      c,a
+        ld      a,e
+        rrca
+        rrca
+        rrca
+        and     007H
+        ld      b,a
+        ld      hl,(MLTCGP)
+        add     hl,bc
+        ld      (CLOC),hl
+        pop     bc
+        ret
+
+;       Subroutine      FETCHC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+FETCHC:
+A1639:  ld      a,(CMASK)
+        ld      hl,(CLOC)
+        ret
+
+;       Subroutine      STOREC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+STOREC:
+A1640:  ld      (CMASK),a
+        ld      (CLOC),hl
+        ret
+
+;       Subroutine      READC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+READC:
+A1647:  push    bc
+        push    hl
+        call    FETCHC                  ; FETCHC
+        ld      b,a
+        call    A15D9
+        jr      nz,A166C
+        call    RDVRM                   ; RDVRM
+        and     b
+        push    af
+        ld      bc,02000H
+        add     hl,bc
+        call    RDVRM                   ; RDVRM
+        ld      b,a
+        pop     af
+        ld      a,b
+        jr      z,A1667
+A1663:  rrca
+        rrca
+        rrca
+        rrca
+A1667:  and     00FH
+        pop     hl
+        pop     bc
+        ret
+;
+A166C:  call    RDVRM                   ; RDVRM
+        inc     b
+        dec     b
+        jp      p,A1667
+        jr      A1663
+
+;       Subroutine      SETATR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETATR:
+A1676:  cp      010H
+        ccf
+        ret     c
+        ld      (ATRBYT),a
+        ret
+
+;       Subroutine      SETC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SETC:
+A167E:  push    hl
+        push    bc
+        call    A15D9
+        call    FETCHC                  ; FETCHC
+        jr      nz,A1690
+        push    de
+        call    A186C
+        pop     de
+        pop     bc
+        pop     hl
+        ret
+;
+A1690:  ld      b,a
+        call    RDVRM                   ; RDVRM
+        ld      c,a
+        ld      a,b
+        cpl
+        and     c
+        ld      c,a
+        ld      a,(ATRBYT)
+        inc     b
+        dec     b
+        jp      p,A16A5
+        add     a,a
+        add     a,a
+        add     a,a
+        add     a,a
+A16A5:  or      c
+        call    WRTVRM                  ; WRTVRM
+        pop     bc
+        pop     hl
+        ret
+;
+A16AC:  push    hl
+        call    A15D9
+        jp      nz,A1779
+        call    FETCHC                  ; FETCHC
+        rrca
+        jr      nc,A1704
+        ld      a,l
+        and     0F8H
+        cp      0F8H
+        ld      a,080H
+        jr      nz,A16D2
+        jp      A175A
+
+;       Subroutine      RIGHTC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+RIGHTC:
+A16C5:  push    hl
+        call    A15D9
+        jp      nz,A178B
+        call    FETCHC                  ; FETCHC
+        rrca
+        jr      nc,A1704
+A16D2:  push    de
+        ld      de,8
+        jr      A16FF
+;
+A16D8:  push    hl
+        call    A15D9
+        jp      nz,A179C
+        call    FETCHC                  ; FETCHC
+        rlca
+        jr      nc,A1704
+        ld      a,l
+        and     0F8H
+        ld      a,1
+        jr      nz,A16FB
+        jr      A175A
+
+;       Subroutine      LEFTC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+LEFTC:
+A16EE:  push    hl
+        call    A15D9
+        jp      nz,A17AC
+        call    FETCHC                  ; FETCHC
+        rlca
+        jr      nc,A1704
+A16FB:  push    de
+        ld      de,-8
+A16FF:  add     hl,de
+        ld      (CLOC),hl
+        pop     de
+A1704:  ld      (CMASK),a
+        and     a
+        pop     hl
+        ret
+
+;       Subroutine      TDOWNC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TDOWNC:
+A170A:  push    hl
+        push    de
+        ld      hl,(CLOC)
+        call    A15D9
+        jp      nz,A17C6
+        push    hl
+        ld      hl,(GRPCGP)
+        ld      de,256*24-256
+        add     hl,de
+        ex      de,hl
+        pop     hl
+        _RST    DCOMPR
+        jr      c,A1735
+        ld      a,l
+        inc     a
+        and     007H
+        jr      nz,A1735
+        jr      A1759
+
+;       Subroutine      DOWNC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+DOWNC:
+A172A:  push    hl
+        push    de
+        ld      hl,(CLOC)
+        call    A15D9
+        jp      nz,A17DC
+A1735:  inc     hl
+        ld      a,l
+        ld      de,248
+        jr      A176D
+
+;       Subroutine      TUPC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+TUPC:
+A173C:  push    hl
+        push    de
+        ld      hl,(CLOC)
+        call    A15D9
+        jp      nz,A17E3
+        push    hl
+        ld      hl,(GRPCGP)
+        ld      de,256
+        add     hl,de
+        ex      de,hl
+        pop     hl
+        _RST    DCOMPR
+        jr      nc,A1768
+        ld      a,l
+        and     007H
+        jr      nz,A1768
+A1759:  pop     de
+A175A:  scf
+        pop     hl
+        ret
+
+;       Subroutine      UPC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+UPC:
+A175D:  push    hl
+        push    de
+        ld      hl,(CLOC)
+        call    A15D9
+        jp      nz,A17F8
+A1768:  ld      a,l
+        dec     hl
+        ld      de,-248
+A176D:  and     007H
+        jr      nz,A1772
+        add     hl,de
+A1772:  ld      (CLOC),hl
+        and     a
+        pop     de
+        pop     hl
+        ret
+;
+A1779:  call    FETCHC                  ; FETCHC
+        and     a
+        ld      a,00FH
+        jp      m,A17C0
+        ld      a,l
+        and     0F8H
+        cp      0F8H
+        jr      nz,A1794
+        jr      A175A
+;
+A178B:  call    FETCHC                  ; FETCHC
+        and     a
+        ld      a,00FH
+        jp      m,A17C0
+A1794:  push    de
+        ld      de,8
+        ld      a,0F0H
+        jr      A17BB
+;
+A179C:  call    FETCHC                  ; FETCHC
+        and     a
+        ld      a,0F0H
+        jp      p,A17C0
+        ld      a,l
+        and     0F8H
+        jr      nz,A17B5
+        jr      A175A
+;
+A17AC:  call    FETCHC                  ; FETCHC
+        and     a
+        ld      a,0F0H
+        jp      p,A17C0
+A17B5:  push    de
+        ld      de,-8
+        ld      a,00FH
+A17BB:  add     hl,de
+        ld      (CLOC),hl
+        pop     de
+A17C0:  ld      (CMASK),a
+        and     a
+        pop     hl
+        ret
+;
+A17C6:  push    hl
+        ld      hl,(MLTCGP)
+        ld      de,64*24-256
+        add     hl,de
+        pop     hl
+        _RST    DCOMPR
+        jr      c,A17DC
+        ld      a,l
+        inc     a
+        and     007H
+        jr      nz,A17DC
+        scf
+        pop     de
+        pop     hl
+        ret
+;
+A17DC:  inc     hl
+        ld      a,l
+        ld      de,248
+        jr      A17FD
+;
+A17E3:  push    hl
+        ld      hl,(MLTCGP)
+        ld      de,256
+        add     hl,de
+        pop     hl
+        _RST    DCOMPR
+        jr      nc,A17F8
+        ld      a,l
+        and     007H
+        jr      nz,A17F8
+        scf
+        pop     de
+        pop     hl
+        ret
+;
+A17F8:  ld      a,l
+        dec     hl
+        ld      de,-248
+A17FD:  and     007H
+        jr      nz,A1802
+        add     hl,de
+A1802:  ld      (CLOC),hl
+        and     a
+        pop     de
+        pop     hl
+        ret
+
+;       Subroutine      NSETCX
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+NSETCX:
+A1809:  call    A15D9
+        jp      nz,A18BB
+        push    hl
+        call    FETCHC                  ; FETCHC
+        ex      (sp),hl
+        add     a,a
+        jr      c,A182F
+        push    af
+        ld      bc,-1
+        rrca
+A181C:  add     hl,bc
+        jr      nc,A1864
+        rrca
+        jr      nc,A181C
+        pop     af
+        dec     a
+        ex      (sp),hl
+        push    hl
+        call    A186C
+        pop     hl
+        ld      de,8
+        add     hl,de
+        ex      (sp),hl
+A182F:  ld      a,l
+        and     007H
+        ld      c,a
+        ld      a,h
+        rrca
+        ld      a,l
+        rra
+        rrca
+        rrca
+        and     03FH
+        pop     hl
+        ld      b,a
+        jr      z,A1853
+A183F:  xor     a
+        call    WRTVRM                  ; WRTVRM
+        ld      de,02000H
+        add     hl,de
+        ld      a,(ATRBYT)
+        call    WRTVRM                  ; WRTVRM
+        ld      de,02008H
+        add     hl,de
+        djnz    A183F
+A1853:  dec     c
+        ret     m
+        push    hl
+        ld      hl,T185D
+        add     hl,bc
+        ld      a,(hl)
+        jr      A186B
+;
+T185D:  defb    10000000b
+        defb    11000000b
+        defb    11100000b
+        defb    11110000b
+        defb    11111000b
+        defb    11111100b
+        defb    11111110b
+
+A1864:  add     a,a
+        dec     a
+        cpl
+        ld      b,a
+        pop     af
+        dec     a
+        and     b
+A186B:  pop     hl
+A186C:  ld      b,a
+        call    RDVRM                   ; RDVRM
+        ld      c,a
+        ld      de,02000H
+        add     hl,de
+        call    RDVRM                   ; RDVRM
+        push    af
+        and     00FH
+        ld      e,a
+        pop     af
+        sub     e
+        ld      d,a
+        ld      a,(ATRBYT)
+        cp      e
+        jr      z,A189E
+        add     a,a
+        add     a,a
+        add     a,a
+        add     a,a
+        cp      d
+        jr      z,A18A2
+        push    af
+        ld      a,b
+        or      c
+        cp      0FFH
+        jr      z,A18AA
+        push    hl
+        push    de
+        call    A18A2
+        pop     de
+        pop     hl
+        pop     af
+        or      e
+        jr      A18B8
+;
+A189E:  ld      a,b
+        cpl
+        and     c
+        defb    011H
+A18A2:  ld      a,b
+        or      c
+A18A4:  ld      de,02000H
+        add     hl,de
+        jr      A18B8
+;
+A18AA:  pop     af
+        ld      a,b
+        cpl
+        push    hl
+        push    de
+        call    A18A4
+        pop     de
+        pop     hl
+        ld      a,(ATRBYT)
+        or      d
+A18B8:  jp      WRTVRM                  ; WRTVRM
+;
+A18BB:  push    hl
+        call    SETC                    ; SETC
+        call    RIGHTC                  ; RIGHTC
+        pop     hl
+        dec     l
+        jr      nz,A18BB
+        ret
+
+;       Subroutine      GTASPC
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+GTASPC:
+A18C7:  ld      hl,(ASPCT1)
+        ex      de,hl
+        ld      hl,(ASPCT2)
+        ret
+
+;       Subroutine      PNTINI
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+PNTINI:
+A18CF:  push    af
+        call    A15D9
+        jr      z,A18DB
+        pop     af
+        cp      010H
+        ccf
+        jr      A18E0
+;
+A18DB:  pop     af
+        ld      a,(ATRBYT)
+        and     a
+A18E0:  ld      (BRDATR),a
+        ret
+
+;       Subroutine      SCANR
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCANR:
+A18E4:  ld      hl,0
+        ld      c,l
+        call    A15D9                   ; grafic mode ?
+        jr      nz,A1951                ; nop
+        ld      a,b
+        ld      (FILNAM+0),a
+        xor     a
+        ld      (FILNAM+3),a
+        ld      a,(BRDATR)
+        ld      b,a
+A18F9:  call    READC                   ; READC (get color of pixel)
+        cp      b                       ; is border color ?
+        jr      nz,A190C                ; nop,
+        dec     de
+        ld      a,d
+        or      e                       ; skipped all ?
+        ret     z                       ; yep, quit
+        call    A16AC                   ; move right
+        jr      nc,A18F9                ; not out of screen, cont
+        ld      de,0
+        ret
+;
+A190C:  call    A19AE
+        push    de
+        call    FETCHC                  ; FETCHC (get pixel adres & mask)
+        ld      (CSAVEA),hl
+        ld      (CSAVEM),a              ; save it
+        ld      de,0
+A191C:  inc     de
+        call    A16AC                   ; move right
+        jr      c,A192D                 ; out of screen,
+        call    READC                   ; READC (get pixel color)
+        cp      b                       ; is border color ?
+        jr      z,A192D                 ; yep,
+        call    A19AE
+        jr      A191C
+;
+A192D:  push    de
+        call    FETCHC                  ; FETCHC (get pixel adres & mask)
+        push    hl
+        push    af                      ; save
+        ld      hl,(CSAVEA)
+        ld      a,(CSAVEM)
+        call    STOREC                  ; STOREC (set pixel adres & mask)
+        ex      de,hl
+        ld      (FILNAM+1),hl
+        ld      a,(FILNAM+0)
+        and     a
+        call    nz,NSETCX               ; NSETCX
+        pop     af
+        pop     hl
+        call    STOREC                  ; STOREC
+        pop     hl
+        pop     de
+        jp      A19A9
+;
+A1951:  call    A19C7
+        jr      nc,A1963
+        dec     de
+        ld      a,d
+        or      e
+        ret     z
+        call    A16AC
+        jr      nc,A1951
+        ld      de,0
+        ret
+;
+A1963:  call    FETCHC                  ; FETCHC
+        ld      (CSAVEA),hl
+        ld      (CSAVEM),a
+        ld      hl,0
+A196F:  inc     hl
+        call    A16AC
+        ret     c
+        call    A19C7
+        jr      nc,A196F
+        ret
+
+;       Subroutine      SCANL
+;       Inputs          ________________________
+;       Outputs         ________________________
+
+SCANL:
+A197A:  ld      hl,0
+        ld      c,l
+        call    A15D9
+        jr      nz,A19BA
+        xor     a
+        ld      (FILNAM+3),a
+        ld      a,(BRDATR)
+        ld      b,a
+A198B:  call    A16D8
+        jr      c,A199F
+        call    READC                   ; READC
+        cp      b
+        jr      z,A199C
+        call    A19AE
+        inc     hl
+        jr      A198B
+;
+A199C:  call    RIGHTC                  ; RIGHTC
+A199F:  push    hl
+        ld      de,(FILNAM+1)
+        add     hl,de
+        call    NSETCX                  ; NSETCX
+        pop     hl
+A19A9:  ld      a,(FILNAM+3)
+        ld      c,a
+        ret
+;
+A19AE:  push    hl
+        ld      hl,ATRBYT
+        cp      (hl)
+        pop     hl
+        ret     z
+        inc     a
+        ld      (FILNAM+3),a
+        ret
+;
+A19BA:  call    A16D8
+        ret     c
+        call    A19C7
+        jp      c,RIGHTC                ; RIGHTC
+        inc     hl
+        jr      A19BA
+;
+A19C7:  call    READC                   ; READC
+        ld      b,a
+        ld      a,(BRDATR)
+        sub     b
+        scf
+        ret     z
+        ld      a,(ATRBYT)
+        cp      b
+        ret     z
+        call    SETC                    ; SETC
+        ld      c,1
+        and     a
+        ret
+
+; END   SUBTTL  MSXGRP
+
+        end
