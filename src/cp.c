@@ -312,7 +312,7 @@ BOOL cp_process ()
 	{
 		return TRUE;
 	}
-	if (strstr (szCommandLine,"joystick_test")==szCommandLine)
+	if (strstr (szCommandLine,"test_joystick")==szCommandLine)
 	{
 		int value = read_joysticks();
 		printf ("\r\n%06X",value);
@@ -329,6 +329,17 @@ BOOL cp_process ()
 			value&0x40/*0b01000000*/?'.':'R',
 			value&0x1000/*0b0001000000000000*/?'.':'1',
 			value&0x4000/*0b0100000000000000*/?'.':'2');
+
+		return TRUE;
+	}
+	if (strstr (szCommandLine,"test_dir")==szCommandLine)
+	{
+		char szFileName[13];
+		printf ("\r\nchdir /msx: %d\r\n",machine_chdir ("/msx"));
+		printf ("opendir .: %d\r\n",machine_opendir ("."));
+		while (machine_readdir (szFileName))
+			printf ("readdir: %s\r\n",szFileName);
+		printf ("closedir: %d\r\n",machine_closedir ());
 
 		return TRUE;
 	}

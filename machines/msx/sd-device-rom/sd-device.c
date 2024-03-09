@@ -17,15 +17,12 @@
 #include "MSX/BIOS/msxbios.h"
 #include <stdint.h>
 
-const char SD_DEVICE_ID = 1;
 __at (BIOS_DEVICE) char req_device;
 __at (BIOS_FILNAM) char filename[];
 __at (BIOS_FILNM2) char filename2;
 __at (BIOS_PTRFIL) uint16_t ptrfil;
 __at (BIOS_DAC) uint8_t DAC[];
 __at (BIOS_VALTYP) uint16_t VALTYP;
-
-uint8_t cnt=10;
 
 // SNERR   EQU     4055H                   ; syntax error
 // FCERR   EQU     475AH                   ; illegal function call error
@@ -37,57 +34,6 @@ uint8_t cnt=10;
 // DERIER  EQU     6E80H                   ; internal error
 // DERSOO  EQU     6E86H                   ; sequential I/O only error
 // DERBFN  EQU     6E6BH                   ; bad filename error
-
-// void convertToStr (uint8_t value, char* buffer)
-// {
-//     uint8_t lo_nibble = value & 0x0f;
-//     uint8_t hi_nibble = value >> 4;
-
-//     *buffer = hi_nibble>9?hi_nibble+'A'-10:hi_nibble+'0';
-//     *(buffer+1) = lo_nibble>9?lo_nibble+'A'-10:lo_nibble+'0';
-// }
-// void printHEX16 (uint16_t value)
-// {
-// 	char szBuf[3];
-// 	szBuf[2]=0;
-
-// 	uint8_t H = (uint8_t)(value>>8);
-// 	uint8_t L = (uint8_t)(value&0xff);
-
-// 	convertToStr (H,szBuf);
-// 	print (szBuf);
-// 	convertToStr (L,szBuf);
-// 	print (szBuf);
-// }
-// void printHEX8 (uint8_t value)
-// {
-// 	char szBuf[3];
-// 	szBuf[2]=0;
-// 	convertToStr (value,szBuf);
-// 	print (szBuf);
-// }
-// void print_openmode (uint8_t mode)
-// {
-// 	switch (mode)
-// 	{
-// 		case 0:
-// 			print ("CLOSED");
-// 			break;
-// 		case 1:
-// 			print ("INPUT");
-// 			break;
-// 		case 2:
-// 			print ("OUTPUT");
-// 			break;
-// 		case 4:
-// 			print ("RANDOM");
-// 			break;
-// 		case 8:
-// 			print ("APPEND");
-// 			break;
-// 	}
-// 	print ("\r\n");
-// }
 
 uint8_t get_channelnumber ()
 {
@@ -101,7 +47,7 @@ void throw_error (uint8_t error)
 		ld 		e, a
 		ld      ix, #0x408B ; #0x406F ;ERROR
 		ld		iy,(#BIOS_EXPTBL+0-1)
-		call	BIOS_CALSLT
+		jp		BIOS_CALSLT
 	__endasm;
 	#endif
 }
@@ -109,6 +55,7 @@ void throw_error (uint8_t error)
 void onDeviceSD_INIT() 
 {
 }
+
 // DEVICE OPEN
 // Input:
 //   HL = i/o channel pointer, D = device code, E = file open mode
@@ -132,6 +79,9 @@ void onDeviceSD_OPEN (uint16_t reghl,uint16_t regde)
 	uint8_t regE = (uint8_t)(regde&0xff);
 	uint8_t openmode = regE;
 	uint8_t channelnumber = get_channelnumber ();
+
+	if (openmode==4)
+		throw_error (58); // DERSOO, serial only
 
 	// convert a filename from this: "ABC     TXT" to this: "ABC.TXT"
 	char* pfilename=filename_ext;
@@ -183,10 +133,20 @@ void onDeviceSD_CLOSE (uint16_t reghl)
 	else
 		throw_error (56); // DERBFN
 }
+
+// DEVICE RANDOM ACCESS (GET/PUT)
+// Input:
+//  HL: filebuffer
+//  DE: BASIC pointer
+//  B: 00h = GET, 80h = PUT
+// Output:
+//  HL: BASIC pointer (updated)
 void onDeviceSD_RANDOM_ACCESS ()
 {
-	print ("SD RANDOM ACCESS\r\n\0");
+	throw_error (56); // DERBFN
+	//print ("SD RANDOM ACCESS\r\n\0");
 }
+
 // DEVICE OUTPUT
 // Input:
 //   HL = i/o channel pointer, C = character
@@ -220,6 +180,7 @@ void onDeviceSD_OUTPUT (uint16_t reghl)
 		throw_error (19); // Device IO error
 	}
 }
+
 // DEVICE INPUT
 // Input:
 //   HL = i/o channel pointer
@@ -255,8 +216,10 @@ void onDeviceSD_INPUT (uint16_t reghl)
 void onDeviceSD_LOC ()
 {
 	print ("SD LOC\r\n\0");
-	// return bytes received in HL
+	// return bytes received/send
+	// put integer result in DAC
 }
+
 // LOF()
 // Returns the size of a file on disk in bytes.
 void onDeviceSD_LOF ()
@@ -265,6 +228,7 @@ void onDeviceSD_LOF ()
 	// put integer result in DAC
 	print ("SD LOF\r\n\0");
 }
+
 // DEVICE EOF
 // Input
 //  HL = i/o channel pointer
@@ -301,14 +265,17 @@ void onDeviceSD_EOF (uint16_t reghl)
 		scf ; set carry
 	__endasm;
 }
+
 // FPOS() is a reserved word that has never been used.
 // This function was meant to return physical sector of where opened file number is located. 
 // Since in FAT file system cluster size can differ and disk can be fragmented this was probably 
 // left out to avoid problems when used without other needed support functions.
 void onDeviceSD_FPOS ()
 {
+	print ("SD FPOS\r\n\0");
 	throw_error (5); // FCERR
 }
+
 // HL = i/o channel pointer, C = character
 void onDeviceSD_BACKUP_CHAR ()
 {
@@ -317,51 +284,6 @@ void onDeviceSD_BACKUP_CHAR ()
 		call BIOS_CHPUT
 	__endasm;
 	print ("SD BACKUP CHAR\r\n\0");
-}
-
-void onDeviceAGON_INIT() 
-{
-	print ("AGON INIT\r\n\0");
-}
-void onDeviceAGON_OPEN ()
-{
-	print ("AGON OPEN\r\n\0");
-}
-void onDeviceAGON_CLOSE ()
-{
-	print ("AGON CLOSE\r\n\0");
-}
-void onDeviceAGON_RANDOM_ACCESS ()
-{
-	print ("AGON RANDOM ACCESS\r\n\0");
-}
-void onDeviceAGON_OUTPUT ()
-{
-	print ("AGON OUTPUT\r\n\0");
-}
-void onDeviceAGON_INPUT ()
-{
-	print ("AGON INPUT\r\n\0");
-}
-void onDeviceAGON_LOC ()
-{
-	print ("AGON LOC\r\n\0");
-}
-void onDeviceAGON_LOF ()
-{
-	print ("AGON LOF\r\n\0");
-}
-void onDeviceAGON_EOF ()
-{
-	print ("AGON EOF\r\n\0");
-}
-void onDeviceAGON_FPOS ()
-{
-	print ("AGON FPOS\r\n\0");
-}
-void onDeviceAGON_BACKUP_CHAR ()
-{
-	print ("AGON BACKUP CHAR\r\n\0");
 }
 
 #endif		// DEVICE_EXPANSION

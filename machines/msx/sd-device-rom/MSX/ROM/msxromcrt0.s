@@ -59,32 +59,36 @@ _init::
 ;----------------------------------------------------------
 ;	Configure H.STKE hook if LATE_EXECUTION is _ON.
 	ld		a, c				; Get the ROM slot number
-	ld		hl,	#H_STKE_romInit
+	ld		hl,	#H_CLEA_romInit
 	ld		de,	#BIOS_H_CLEAR
-	ld		bc,	#H_STKE_romInit_end - H_STKE_romInit
+	ld		bc,	#H_CLEA_romInit_end - H_CLEA_romInit
 	ldir						; Copy the routine to execute the ROM to the hook
 	ld		(#BIOS_H_CLEAR+1), a	; Put the ROM slot number to the hook
 	ret							; Back to slots scanning
 
-H_STKE_romInit::				; Routine to execute the ROM
+H_CLEA_romInit::				; Routine to execute the ROM
 	rst		#BIOS_CALLF			; Inter-slot call
 	.db		#0					; Dummy; to be replaced with the slot number of ROM in RAM
 	.dw		#_romInit			; Address to execute the ROM
-H_STKE_romInit_end:
+H_CLEA_romInit_end:
 .endif
 
 _romInit::
 .if LATE_EXECUTION
 .if RETURN_TO_BASIC
- 	; save HL+BC to support returning to BASIC and LATE_EXECUTION
-	push bc
-	push hl
+ 	; save register to support returning to BASIC and LATE_EXECUTION
+    push ix
+    push iy
+    push hl             ; save BASIC pointer
+    push de
+    push bc
+    push af
 .endif
 ;----------------------------------------------------------
 ;	Step 0: Remove hook H.STKE
 	ld		hl, #BIOS_H_CLEAR
 	ld		de, #BIOS_H_CLEAR + 1
-	ld		bc,	#H_STKE_romInit_end - H_STKE_romInit - 1
+	ld		bc,	#H_CLEA_romInit_end - H_CLEA_romInit - 1
 	ld		a, #0xC9			; ret
 	ld		(hl), a				; Remove the hook 
 	ldir
@@ -145,8 +149,12 @@ _romInit::
 .if RETURN_TO_BASIC
 	call	_main
 .if LATE_EXECUTION	
-	pop hl
-	pop bc
+    pop af
+    pop bc
+    pop de
+    pop hl ; restore BASIC pointer
+    pop iy
+    pop ix
 .endif
 	ret
 .else
@@ -220,7 +228,6 @@ callExpansionStmtFound:
 	push	de
 	exx
 	pop		de				; *handler
-;	push	hl
 	ld		(#_pBuffer), hl
 
 .ifeq __SDCCCALL

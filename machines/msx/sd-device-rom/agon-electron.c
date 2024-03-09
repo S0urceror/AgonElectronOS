@@ -18,6 +18,7 @@ bool eos_machine_fopen  (uint8_t channelnumber,char* filename,uint8_t openmode)
         rst 0x38
         pop ix
     __endasm;
+    // return 0 or 1 in A
 }
 bool eos_machine_fclose (uint8_t channelnumber)
 {
@@ -29,6 +30,7 @@ bool eos_machine_fclose (uint8_t channelnumber)
         rst 0x38
         pop ix
     __endasm;
+    // return 0 or 1 in A
 }
 bool eos_machine_fputc  (uint8_t channelnumber,char character)
 {
@@ -40,6 +42,7 @@ bool eos_machine_fputc  (uint8_t channelnumber,char character)
         rst 0x38
         pop ix
     __endasm;
+    // return 0 or 1 in A
 }
 bool eos_machine_fgetc  (uint8_t channelnumber,char* character)
 {
@@ -51,6 +54,7 @@ bool eos_machine_fgetc  (uint8_t channelnumber,char* character)
         rst 0x38
         pop ix
     __endasm;
+    // return 0 or 1 in A
 }
 bool eos_machine_feof   (uint8_t channelnumber)
 {
@@ -62,5 +66,55 @@ bool eos_machine_feof   (uint8_t channelnumber)
         rst 0x38
         pop ix
     __endasm;
+    // return 0 or 1 in A
 }
+
+bool eos_machine_opendir (char* dirname)
+{
+    // reg HL = dirname
+    __asm
+        push ix 
+        ld ix, #0x0024  ; eos_machine_opendir
+        .db #0x5b       ; .LIL
+        rst 0x38
+        pop ix
+    __endasm;
+    // return 0 or 1 in A
+}
+bool eos_machine_readdir (char* filename)
+{
+    // reg HL = filename
+    __asm
+        push ix 
+        ld ix, #0x0026  ; eos_machine_readdir
+        .db #0x5b       ; .LIL
+        rst 0x38
+        pop ix
+    __endasm;
+    // return 0 or 1 in A
+}
+bool eos_machine_closedir ()
+{
+    __asm
+        push ix 
+        ld ix, #0x0028  ; eos_machine_closedir
+        .db #0x5b       ; .LIL
+        rst 0x38
+        pop ix
+    __endasm;    
+    // return 0 or 1 in A
+}
+bool eos_machine_chdir (char* dirname)
+{
+    // reg HL = dirname
+    __asm
+        push ix 
+        ld ix, #0x002a  ; eos_machine_chdir
+        .db #0x5b       ; .LIL
+        rst 0x38
+        pop ix
+    __endasm;    
+    // return 0 or 1 in A
+}
+
 #endif

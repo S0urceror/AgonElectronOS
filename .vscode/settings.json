@@ -16,6 +16,14 @@
         "vector": "c",
         "cstdint": "cpp",
         "ios": "cpp",
-        "__locale": "c"
+        "__locale": "c",
+        "printinterface.h": "c",
+        "agon-electron.h": "c",
+        "applicationsettings.h": "c",
+        "targetconfig.h": "c",
+        "queue": "c",
+        "stack": "c",
+        "random": "c",
+        "chrono": "c"
     }
 }

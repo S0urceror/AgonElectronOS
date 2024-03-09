@@ -1,6 +1,7 @@
 #include <eZ80.h>
 #include <defines.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "machine.h"
 #include "misc.h"
 #include <String.h>
@@ -20,6 +21,7 @@ UINT32 machine_vsync_address;
 UINT8 machine_vsync_register;
 UINT8 machine_vsync_running;
 BOOL want_vsync;
+DIR* current_dir;
 
 BOOL machine_load_image (UINT8 bank,TCHAR* filename)
 {
@@ -101,6 +103,7 @@ BOOL machine_init ()
 	memset (disks,0,sizeof (disks));
 	memset (channels,0,sizeof (channels));
 	channel_state = 0; // 0b00000000;
+	current_dir=NULL;
 
 	// // set port C bit 0 to output, L=GND, H=Vcc
 	// // leave rest set to input mode
@@ -333,4 +336,71 @@ char machine_feof (UINT8 channel)
 		return 1; // cannot get eof status from closed file
 
 	return f_eof (&channels[channel]);
+}
+
+char machine_opendir (char* path)
+{
+	if (current_dir)
+		return 0; // error, close the previous directory first
+
+	current_dir = malloc (sizeof (DIR));
+	if(f_opendir(current_dir, path) == FR_OK)
+		return 1;
+	return 0;
+}
+char machine_readdir (char* filename)
+{
+	FILINFO fno;
+	char* filename_to_copy;
+	UINT8 max = 13;
+	UINT8 i;
+
+	if (!current_dir)
+		return 0; // not an open dir.
+
+	if (f_readdir (current_dir,&fno) != FR_OK)
+		return 0; // error
+	if (fno.fname[0] == 0)
+		return 0; // end of directory
+
+
+	if (fno.altname[0])
+		filename_to_copy = fno.altname;
+	else
+		filename_to_copy = fno.fname;
+
+	// maximum 13 chars
+	if (fno.fattrib & AM_DIR) 
+	{
+		*(filename++)='[';
+		max--;
+	}
+	for (i=0;i<max;i++)
+	{
+		if (filename_to_copy[i]!=0)
+			*(filename++) = filename_to_copy[i];
+		else
+			break;
+	}
+	if (fno.fattrib & AM_DIR) 
+		*(filename++)=']';
+	*(filename++)='\0';
+	
+	return 1;
+}
+char machine_closedir ()
+{
+	if (!current_dir)
+		return 0; // not an open dir.
+
+	f_closedir (current_dir);
+
+	free (current_dir);
+	current_dir = NULL;
+
+	return 1;
+}
+char machine_chdir (char* path)
+{
+	return (f_chdir(path)==FR_OK);
 }

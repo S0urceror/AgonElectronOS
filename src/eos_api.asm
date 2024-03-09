@@ -32,6 +32,10 @@
 	XREF	_machine_feof
 	XREF    _machine_fputc
 	XREF	_machine_putc
+	XREF 	_machine_opendir
+	XREF 	_machine_readdir
+	XREF 	_machine_closedir
+	XREF 	_machine_chdir
 
 JUMPER EQU 0f3fch ;Work area of the data recorder. (Until MSX2+) 
 
@@ -729,8 +733,55 @@ eos_machine_feof:
 	ret
 
 eos_machine_opendir:
+	; called with:
+	; reg HL = path
+	push ix ; save ix
+	; modify hl on stack to point to filename in right slot
+	ld a, mb
+	push hl ; 2 - buffer
+	ld ix, 0
+	add ix, sp
+	ld (ix+2),a
+	call _machine_opendir
+	pop hl
+	pop ix ; restore ix
+	; return 0 or 1 in A
+	ret
+
 eos_machine_readdir:
+	; called with:
+	; reg HL = path
+	push ix ; save ix
+	; modify hl on stack to point to filename in right slot
+	ld a, mb
+	push hl ; 2 - buffer
+	ld ix, 0
+	add ix, sp
+	ld (ix+2),a
+	call _machine_readdir
+	pop hl
+	pop ix ; restore ix
+	; return 0 or 1 in A
+	ret
+
 eos_machine_closedir:
+	; called without arguments, closes active directory
+	call _machine_closedir
+	; return 0 or 1 in A
+	ret
+
 eos_machine_chdir:
-	ld a, 1
-	RET
+	; called with:
+	; reg HL = path
+	push ix ; save ix
+	; modify hl on stack to point to filename in right slot
+	ld a, mb
+	push hl ; 2 - buffer
+	ld ix, 0
+	add ix, sp
+	ld (ix+2),a
+	call _machine_chdir
+	pop hl
+	pop ix ; restore ix
+	; return 0 or 1 in A
+	ret

@@ -268,6 +268,7 @@
 #define BIOS_AUTLIN     0xf6ab
 #define BIOS_AUTINC     0xf6ad
 #define BIOS_SAVTXT     0xf6af
+#define BIOS_SAVSTK     0xF6B1
 #define BIOS_ERRLIN     0xf6b3
 #define BIOS_DOT        0xf6b5
 #define BIOS_ERRTXT     0xf6b7
@@ -516,7 +517,7 @@
 #define BIOS_H_SAVE     0xfe6c
 #define BIOS_H_BINS     0xfe71
 #define BIOS_H_BINL     0xfe76
-#define BIOS_H_FILE     0xfd7b
+#define BIOS_H_FILE     0xfe7b
 #define BIOS_H_DGET     0xfe80
 #define BIOS_H_FILO     0xfe85
 #define BIOS_H_INDS     0xfe8a

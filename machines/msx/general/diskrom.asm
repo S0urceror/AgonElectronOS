@@ -6737,7 +6737,7 @@ A6663:  ei
         ld      a,(YF348)
         add     a,a
         ld      hl,16
-        jr      nc,A6673
+        jr      nc,A6673 ; no expanded slot?
         ld      l,16+8
 A6673:  add     hl,sp
         push    ix
@@ -8023,12 +8023,12 @@ A6E7D:  push    af
 A6E88:  call    A7380                   ; take control from caller
         ld      d,000H
         jr      z,A6E95
-        call    A6F80
+        call    A6F80                   ; check file specification
         push    hl
         jr      A6E99
 
 A6E95:  push    hl
-        call    A6FFE
+        call    A6FFE                   ; load default file specification '???????????'
 A6E99:  call    A6F63
         ld      a,(PRTFLG)
         and     a                       ; output to printer ?
@@ -8695,7 +8695,7 @@ A7380:  ei
         ld      a,(YF348)
         add     a,a
         ld      hl,12
-        jr      nc,A738E
+        jr      nc,A738E ; no expanded slot?
         ld      l,12+8
 A738E:  add     hl,sp
         ld      (hl),LOW RETRTN

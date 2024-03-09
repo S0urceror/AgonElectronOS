@@ -34,7 +34,8 @@ callhandler.c
 ;	ApplicationSettings.txt, choose ONE and ONLY ONE of
 ;	the examples below, and leave the other commented!
 ;devicehandler.s
-devicehandler.c
+sd-device.c
+agon-device.c
 
 ;----------------------------------------------------------
 ;	Disk access example
@@ -50,5 +51,6 @@ devicehandler.c
 ;	using relative paths from the project folder
 print.s
 agon-electron.c
+workarea_msx.c
 ;yourSourceCodeHere.s
 ;yourSourceCodeHere.c

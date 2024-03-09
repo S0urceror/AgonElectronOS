@@ -53,5 +53,9 @@ char machine_fgetc (UINT8 channel,char* character);
 char machine_fputc (UINT8 channel,UINT8 character);
 void machine_print (char* szBuf);
 void machine_putc (char ch);
+char machine_opendir (char* dirname);
+char machine_readdir (char* filename);
+char machine_closedir ();
+char machine_chdir (char* dirname);
 
 #endif

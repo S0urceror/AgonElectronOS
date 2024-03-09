@@ -527,8 +527,8 @@ T7EE4:  DEFB    "version 1.0",13,10
 
 T7EF2:  DEFB    "MSX BASIC "
         DEFB    0
-T7EFD:  ;DEFB    "Copyright 1983 by Microsoft",13,10
-        DEFB    "Copyright 2024 by Sourceror",13,10
+T7EFD:  DEFB    "Copyright 1983 by Microsoft",13,10
+        ;DEFB    "Copyright 2024 by Sourceror",13,10
         DEFB    0
 
 I7F1B:  DEFB    " Bytes free"
