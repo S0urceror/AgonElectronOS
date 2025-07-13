@@ -16,13 +16,15 @@
 #include "agon-electron.h"
 #include "MSX/BIOS/msxbios.h"
 #include <stdint.h>
+#include "workarea_msx.h"
 
-__at (BIOS_DEVICE) char req_device;
-__at (BIOS_FILNAM) char filename[];
-__at (BIOS_FILNM2) char filename2;
-__at (BIOS_PTRFIL) uint16_t ptrfil;
-__at (BIOS_DAC) uint8_t DAC[];
-__at (BIOS_VALTYP) uint16_t VALTYP;
+__at (BIOS_DEVICE) 	char 		req_device;
+__at (BIOS_FILNAM) 	char 		filename[];
+__at (BIOS_FILNM2) 	char 		filename2;
+__at (BIOS_PTRFIL) 	uint16_t 	ptrfil;
+__at (BIOS_DAC) 	uint8_t 	DAC[];
+__at (BIOS_VALTYP) 	uint16_t 	VALTYP;
+__at (BIOS_CASPRV) 	char 		eof_char;
 
 // SNERR   EQU     4055H                   ; syntax error
 // FCERR   EQU     475AH                   ; illegal function call error
@@ -105,6 +107,7 @@ void onDeviceSD_OPEN (uint16_t reghl,uint16_t regde)
 
 	if (eos_machine_fopen (channelnumber,filename_ext,openmode))
 	{
+		eof_char=0;
 		// at success:
 		// (HL) should receive requested open mode in E
 		// (PTRFIL) should point to buffer passed hl
@@ -187,25 +190,36 @@ void onDeviceSD_OUTPUT (uint16_t reghl)
 // Output:
 //   success: A=char, not zero and no carry
 //   failure: carry flag, call ERROR in ROM with appropiate error number in E
-void onDeviceSD_INPUT (uint16_t reghl)
+uint8_t onDeviceSD_INPUT (uint16_t reghl)
 {
-	char* p = (char*) reghl;
 	char character;
+	bool result;
+	char* p = (char*) reghl;
 	uint8_t channelnumber = p[1]; // get_channelnumber ();
 
-	if (eos_machine_fgetc (channelnumber,&character))
+	if (eof_char)
 	{
-		__asm
-			ld a, (de) ; register DE still points to address of character
-			and a
-		__endasm;
+		// process consumed character in EOF function
+		result = true;
+		character=eof_char;
+		eof_char=0;
 	}
 	else
+		// get new character from stream
+		result = eos_machine_fgetc (channelnumber,&character);
+
+	// process character, check for CTRL-Z (stream end)
+	if (result && character!=0x1a) // CTRL-Z
 	{
-		__asm 
-			scf
+		__asm
+			and a ; clear carry
 		__endasm;
+		return character;
 	}
+	__asm
+		scf ; set carry
+	__endasm;
+	return 0x1a; // CTRL-Z, indicate end-of-file
 }
 
 // LOC()
@@ -238,24 +252,35 @@ void onDeviceSD_LOF ()
 //  Carry = 1 (eof) or 0 (not eof)
 void onDeviceSD_EOF (uint16_t reghl)
 {
+	char character;
+	bool result;
 	char* p = (char*) reghl;
 	uint8_t channelnumber = p[1]; // get_channelnumber ();
 
 	// return with A=0 for EOF
 	// C=0 for not EOF
 	// also put result in DAC and VALTYP
-	if (!eos_machine_feof(channelnumber))
+	//if (!eos_machine_feof(channelnumber))
+	//{
+	result = eos_machine_fgetc (channelnumber,&character);
+	if (result)
 	{
-		// not end-of-file
-		DAC[2]=0;
-		DAC[3]=0;
-		VALTYP = 2; // DAC type = integer
-		__asm
-			ld a, #1 ; A=1
-			and a ; clear carry
-		__endasm;
-		return;
+		// store this character for next INPUT
+		eof_char = character;
+		if (character!=0x1a)
+		{	
+			// not end-of-file
+			DAC[2]=0;
+			DAC[3]=0;
+			VALTYP = 2; // DAC type = integer
+			__asm
+				ld a, #1 ; A=1
+				and a ; clear carry
+			__endasm;
+			return;
+		}
 	}
+	//}
 	// C=1 => ERROR or EOF
 	DAC[2]=255;
 	DAC[3]=255;

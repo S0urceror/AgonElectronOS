@@ -51,12 +51,7 @@ void onDeviceAGON_CLOSE (uint16_t reghl)
 	print ("AGON CLOSE\r\n\0");
 	p[0] = 0;
 }
-void printRANDOM_ACCESS (uint16_t regaf,uint16_t regbc,uint16_t regde, uint16_t reghl)
-{
-	char szBuffer[100];
-	sprintf (szBuffer,"AGON RANDOM ACCESS - AF: %x,BC: %x,DE:%x,HL:%x\r\n",regaf, regbc, regde, reghl);
-	print (szBuffer);
-}
+
 // Input:
 //  HL: filebuffer
 //  DE: BASIC pointer
@@ -65,21 +60,30 @@ void printRANDOM_ACCESS (uint16_t regaf,uint16_t regbc,uint16_t regde, uint16_t 
 //  HL: BASIC pointer (updated)
 void onDeviceAGON_RANDOM_ACCESS (uint16_t reghl,uint16_t regde)
 {
-	uint16_t regaf;
-	uint16_t regbc;
 	__asm
-		; put register C in space reserved for uint8_t regc
-		ld	iy, #0
-		add	iy, sp
-		ld	0 (iy),#0
-		ld	1 (iy),a
-		ld	2 (iy),c
-		ld  3 (iy),b
-		push de ; preserve BASIC pointer
-	__endasm;
-	printRANDOM_ACCESS (regaf,regbc,regde,reghl);
-	__asm
-		pop hl ; return BASIC pointer in HL
+		push de			; store BASIC pointer from DE
+		ld a, b
+		and a
+		jr z, get_record
+	put_record:
+		ld hl, #strput
+		jr print
+	get_record:
+		ld hl, #strget
+	print:
+		call _print
+		pop hl			; restore BASIC pointer in HL
+		ret
+	strget: 
+		.ascii "GET"
+		.db 0x0d
+		.db 0x0a
+		.db 0x00
+	strput: 
+		.ascii "PUT"
+		.db 0x0d
+		.db 0x0a
+		.db 0x00
 	__endasm;
 }
 void onDeviceAGON_OUTPUT ()

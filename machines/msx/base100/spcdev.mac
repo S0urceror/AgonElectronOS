@@ -136,7 +136,8 @@ J6F2E:  LD      E,D
         XOR     A                       ; Zx set
         LD      A,0FFH                  ; devicecode for CAS
         CALL    H.NODE                  ; hook devicename parser: no device specified
-        RET
+;        RET
+        DEFB    0
 
 J6F37:  CALL    H.POSD                  ; hook devicename parser: first character filespecification has code 00-39H
         JP      DERNMF                  ; bad filename

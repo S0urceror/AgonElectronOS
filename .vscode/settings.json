@@ -24,6 +24,15 @@
         "queue": "c",
         "stack": "c",
         "random": "c",
-        "chrono": "c"
-    }
+        "chrono": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "__tree": "c",
+        "list": "c",
+        "map": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "*.tcc": "c"
+    },
+    "idf.pythonInstallPath": "/opt/homebrew/bin/python3"
 }
